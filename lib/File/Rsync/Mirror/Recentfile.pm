@@ -1,6 +1,6 @@
 package File::Rsync::Mirror::Recentfile;
 
-use warnings;
+# use warnings;
 use strict;
 
 =encoding utf-8
@@ -11,16 +11,62 @@ File::Rsync::Mirror::Recentfile - mirroring via rsync made efficient
 
 =head1 VERSION
 
-Version 0.01
+Version 0.0.1
 
 =cut
 
-our $VERSION = '0.01';
+package File::Rsync::Mirror::Recentfile;
 
+use File::Basename qw(dirname);
+use File::Path qw(mkpath);
+use File::Rsync;
+use File::Temp;
+use Scalar::Util qw(reftype);
+use Time::HiRes qw();
+use YAML::Syck;
+
+use version; our $VERSION = qv('0.0.1');
+
+
+use constant MAX_INT => ~0>>1; # anything better?
+
+# cf. interval_secs
+my %seconds = (
+               s => 1,
+               m => 60,
+               h => 60*60,
+               d => 60*60*24,
+               W => 60*60*24*7,
+               M => 60*60*30,
+               Q => 60*60*90,
+               Y => 60*60*365.25,
+              );
+
+use accessors (
+               "_current_tempfile",
+               "_is_locked",
+               "_remotebase",
+               "_rfile",
+               "_rsync",
+               "_use_tempfile",
+               "aggregator",
+               "canonize",
+               "comment",
+               "filenameroot",
+               "ignore_link_stat_errors",
+               "interval",
+               "localroot",
+               "protocol",            # reader/writer modifier
+               "remote_dir",
+               "remote_host",
+               "remote_module",
+               "rsync_options",
+               "verbose",
+              );
 
 =head1 SYNOPSIS
 
-B<!!!! ALPHA ALERT !!!!>
+B<!!!! PRE-ALPHA ALERT !!!!>
 
 Nothing in here is meant for public consumption. The plan is to
 provide a script in one of the next releases that acts as a frontend
@@ -28,7 +74,7 @@ for all the backend functionality. Option and method names will very
 likely change.
 
 Just for developers of the (yet to be named) script(s) we document
-here the alpha quality interface.
+here the pre-alpha quality interface.
 
 Writer:
 
@@ -74,11 +120,435 @@ No exports.
 
 =head1 METHODS
 
-=head2 
+=head2 my $obj = CLASS->new(%hash)
+
+Constructor. On every argument pair the key is a method name and the
+value is an argument to that method name.
 
 =cut
 
+sub new {
+    my($class, @args) = @_;
+    my $self = bless {}, $class;
+    while (@args) {
+        my($method,$arg) = splice @args, 0, 2;
+        $self->$method($arg);
+    }
+    unless (defined $self->protocol) {
+        $self->protocol(0);     # default protocol will soon be 1
+    }
+    unless (defined $self->filenameroot) {
+        $self->filenameroot("RECENT");
+    }
+    return $self;
+}
+
+=head2 my $rfile = $obj->rfile
+
+Returns the full path of the recentfile
+
+=cut
+
+sub rfile {
+    my($self) = @_;
+    if ($self->_use_tempfile) {
+        return $self->_current_tempfile;
+    } else {
+        my $rfile = $self->_rfile;
+        return $rfile if defined $rfile;
+        $rfile = File::Spec->catfile
+            ($self->localroot,
+             sprintf ("%s-%s.yaml",
+                      $self->filenameroot,
+                      $self->interval,
+                     )
+            );
+        $self->_rfile ($rfile);
+        return $rfile;
+    }
+}
+
+=head2 $ret = $obj->update ($path,$type)
+
+Get a file from upstream.
+
+=cut
+
+sub update {
+    my($self,$path,$type) = @_;
+    if (my $meth = $self->canonize) {
+        if (ref $meth && ref $meth eq "CODE") {
+            die "FIXME";
+        } else {
+            $path = $self->$meth($path);
+        }
+    }
+    my $lrd = $self->localroot;
+    if ($path =~ s|^\Q$lrd\E||) {
+        my $interval = $self->interval;
+        my $secs = $self->interval_secs();
+        my $epoch = Time::HiRes::time;
+        my $oldest_allowed = $epoch-$secs;
+
+        $self->lock;
+        my $recent = $self->recent_events;
+        $recent ||= [];
+      TRUNCATE: while (@$recent) {
+            if ($recent->[-1]{epoch} < $oldest_allowed) {
+                pop @$recent;
+            } else {
+                last TRUNCATE;
+            }
+        }
+        # remove older duplicates of this $path, irrespective of $type:
+        $recent = [ grep { $_->{path} ne $path } @$recent ];
+
+        unshift @$recent, { epoch => $epoch, path => $path, type => $type };
+        $self->write_recent($recent);
+        $self->unlock;
+    }
+}
+
+=head2 (void) $obj->lock
+
+Locking is implemented with an C<mkdir> on a locking directory
+(C<.lock> appended to $rfile).
+
+=cut
+
+sub lock {
+    my ($self) = @_;
+    # not using flock because it locks on filehandles instead of
+    # old school ressources.
+    my $locked = $self->_is_locked and return;
+    my $rfile = $self->rfile;
+    # XXX need a way to allow breaking the lock
+    while (not mkdir "$rfile.lock") {
+        Time::HiRes::sleep 0.01;
+    }
+    $self->_is_locked (1);
+}
+
+=head2 (void) $obj->unlock
+
+Unlocking is implemented with an C<rmdir> on a locking directory
+(C<.lock> appended to $rfile).
+
+=cut
+
+sub unlock {
+    my($self) = @_;
+    return unless $self->_is_locked;
+    my $rfile = $self->rfile;
+    rmdir "$rfile.lock";
+    $self->_is_locked (0);
+}
+
+=head2 $obj->write_recent ($recent_files_arrayref)
+
+Writes a recentfile based on the current reflection of the current
+state of the tree limited by the current interval.
+
+=cut
+
+sub write_recent {
+    my ($self,$recent) = @_;
+    my $meth = sprintf "write_%d", $self->protocol;
+    $self->$meth($recent);
+}
+
+=head2 $obj->write_0 ($recent_files_arrayref)
+
+Delegate of write_recent() on protocol 0
+
+=cut
+
+sub write_0 {
+    my ($self,$recent) = @_;
+    my $rfile = $self->rfile;
+    YAML::Syck::DumpFile("$rfile.new",$recent);
+    rename "$rfile.new", $rfile or die "Could not rename to '$rfile': $!";
+}
+
+=head2 $obj->write_1 ($recent_files_arrayref)
+
+Delegate of write_recent() on protocol 1
+
+=cut
+
+sub write_1 {
+    my ($self,$recent) = @_;
+    my $rfile = $self->rfile;
+    YAML::Syck::DumpFile("$rfile.new",{
+                                       meta => $self->meta_data,
+                                       recent => $recent,
+                                      });
+    rename "$rfile.new", $rfile or die "Could not rename to '$rfile': $!";
+}
+
+=head2 $hashref = $obj->meta_data
+
+returns the hashref of metadata that the server wants to add to the
+recentfile.
+
+=cut
+
+sub meta_data {
+    my($self) = @_;
+    my $ret = {};
+    for my $m (
+               "aggregator",
+               "canonize",
+               "comment",
+               "filenameroot",
+               "interval_secs",
+               "protocol",
+              ) {
+        $ret->{$m} = $self->$m;
+    }
+    return $ret;
+}
+
+=head2 $path = $obj->naive_path_normalize ($path)
+
+Takes a local absolute path as argument and canonicalizes frequent
+path mistakes like double slashes or C</./>. And removes references to
+C<../> directories to get a shorter unambiguos path.
+
+=cut
+
+sub naive_path_normalize {
+    my($self,$path) = @_;
+    $path =~ s|/+|/|g;
+    1 while $path =~ s|/[^/]+/\.\./|/|;
+    $path =~ s|/$||;
+    $path;
+}
+
+=head2 $array_ref = $obj->recent_events_from_tempfile
+
+Reads the file-events in the temporary local mirror of the remote file.
+
+=cut
+
+sub recent_events_from_tempfile {
+    my ($self) = @_;
+    $self->_use_tempfile(1);
+    my $ret = $self->recent_events;
+    $self->_use_tempfile(0);
+    return $ret;
+}
+
+=head2 $array_ref = $obj->recent_events
+
+Note: the code relies on the resource being written atomically. We
+cannot lock because we may have no write access.
+
+=cut
+
+sub recent_events {
+    my ($self) = @_;
+    my $rfile = $self->rfile;
+    my ($data) = eval {YAML::Syck::LoadFile($rfile);};
+    my $err = $@;
+    if ($err or !$data) {
+        return [];
+    }
+    if (reftype $data eq 'ARRAY') { # protocol 0
+        return $data;
+    } else {
+        my $meth = sprintf "read_recent_%d", $data->{meta}{protocol};
+        return $self->$meth($data);
+    }
+}
+
+=head2 $ret = $obj->read_recent_1 ( $recent_data )
+
+Delegate of recent_events() on protocol 1
+
+=cut
+
+sub read_recent_1 {
+    my($self,$data) = @_;
+    return $data->{recent};
+}
+
+=head2 $ret = $obj->local_event_path
+
+Misnomer
+
+=cut
+
+sub local_event_path {
+    my($self,$path) = @_;
+    my @p = split m|/|, $path; # rsync paths are always slash-separated
+    File::Spec->catfile($self->localroot,@p);
+}
+
+=head2 $success = $obj->mirror_path ( $path )
+
+Fetches a remote path into the local copy
+
+=cut
+
+sub mirror_path {
+    my($self,$path) = @_;
+    my $dst = $self->local_event_path($path);
+    mkpath dirname $dst;
+    unless ($self->rsync->exec
+            (
+             src => join("/",
+                         $self->remotebase,
+                         $path
+                        ),
+             dst => $dst,
+            )) {
+        my($err) = $self->rsync->err;
+        if ($self->ignore_link_stat_errors && $err =~ m{^ rsync: \s link_stat }x ) {
+            if ($self->verbose) {
+                warn "Info: ignoring link_stat error '$err'";
+            }
+            return 1;
+        }
+        die sprintf "Error: %s", $err;
+    }
+    return 1;
+}
+
+=head2 $tempfilename = $obj->get_remote_recentfile_as_tempfile
+
+Stores the remote recentfile locally as a tempfile
+
+=cut
+
+sub get_remote_recentfile_as_tempfile {
+    my($self) = @_;
+    my($fh) = File::Temp->new(TEMPLATE => sprintf(".%s-XXXX",
+                                                  $self->filenameroot,
+                                                 ),
+                              DIR => $self->localroot,
+                              SUFFIX => ".yaml",
+                              UNLINK => 0,
+                             );
+    my($trecentfile) = $fh->filename;
+    unless ($self->rsync->exec(
+                               src => join("/",
+                                           $self->remotebase,
+                                           $self->recentfile_basename),
+                               dst => $trecentfile,
+                              )) {
+        unlink $trecentfile or die "Couldn't unlink '$trecentfile': $!";
+        die sprintf "Error while rsyncing: %s", $self->rsync->err;
+    }
+    my $mode = 0644;
+    chmod $mode, $trecentfile or die "Could not chmod $mode '$trecentfile': $!";
+    $self->_current_tempfile ($trecentfile);
+    return $trecentfile;
+}
+
+=head2 $ret = $obj->recentfile
+
+deprecated, use rfile instead
+
+=cut
+
+sub recentfile {
+    my($self) = @_;
+    my $recent = File::Spec->catfile(
+                                     $self->localroot,
+                                     $self->recentfile_basename(),
+                                    );
+    return $recent;
+}
+
+=head2 $ret = $obj->recentfile_basename
+
+Status unknown. It seem this needs to be used in rfile too.
+
+=cut
+
+sub recentfile_basename {
+    my($self) = @_;
+    my $interval = $self->interval;
+    my $file = sprintf("%s-%s.yaml",
+                       $self->filenameroot,
+                       $interval
+                      );
+    return $file;
+}
+
+=head2 $secs = $obj->interval_secs ( $interval_spec )
+
+$interval_spec is a string that either consists of the single letter
+C<Z> or is composed from an integer and a letter.
+
+=cut
+
+sub interval_secs {
+    my ($self) = @_;
+    my $interval = $self->interval;
+    my ($n,$t) = $interval =~ /^(\d*)([smhdWMYZ]$)/ or
+        die "Could not determine seconds from interval[$interval]";
+    if ($interval eq "Z") {
+        return MAX_INT;
+    } elsif (exists $seconds{$t} and $n =~ /^\d+$/) {
+        return $seconds{$t}*$n;
+    } else {
+        die "Invalid interval specification: n[$n]t[$t]";
+    }
+}
+
+=head2 $str = $obj->remotebase
+
+Returns the composed prefix needed when rsyncing from a remote module.
+
+=cut
+
+sub remotebase {
+    my($self) = @_;
+    my $remotebase = $self->_remotebase;
+    unless (defined $remotebase) {
+        $remotebase = sprintf(
+                              "%s::%s%s",
+                              $self->remote_host,
+                              $self->remote_module,
+                              ($self->remote_dir ? ("/".$self->remote_dir) : ""),
+                             );
+        $self->_remotebase($remotebase);
+    }
+    return $remotebase;
+}
+
+=head2 $rsync_obj = $obj->rsync
+
+The File::Rsync object that this object uses for communicating with an
+upstream server.
+
+=cut
+
+sub rsync {
+    my($self) = @_;
+    my $rsync = $self->_rsync;
+    unless (defined $rsync) {
+        my $rsync_options = $self->rsync_options || {};
+        $rsync = File::Rsync->new($rsync_options);
+        $self->_rsync($rsync);
+    }
+    return $rsync;
+}
+
 =head1 BACKGROUND
+
+=head2 NON-COMPETITORS
+
+ File::Mirror        JWU/File-Mirror/File-Mirror-0.10.tar.gz only local trees
+ Mirror::YAML        ADAMK/Mirror-YAML-0.03.tar.gz           some sort of inner circle
+ Net::DownloadMirror KNORR/Net-DownloadMirror-0.04.tar.gz    FTP sites and stuff
+ Net::MirrorDir      KNORR/Net-MirrorDir-0.05.tar.gz         "
+ Net::UploadMirror   KNORR/Net-UploadMirror-0.06.tar.gz      "
+ Pushmi::Mirror      CLKAO/Pushmi-v1.0.0.tar.gz              something SVK
+
+=head2 COMPETITORS
 
 When the rsync people announced 3.0 they promised a batch mode for
 large rsynced clusters. The batch mode should solve a common problem
@@ -111,17 +581,16 @@ bring their trees in full sync.
 
 The rersyncrecent mode was developed for CPAN but it seems the most
 convenient and economic solution in many other areas too. I'm looking
-forwar to the first FUSE based CPAN filesystem. Anyone?
+forward to the first FUSE based CPAN filesystem. Anyone?
 
 =head1 AUTHOR
 
-Andreas König, C<< <andreas.koenig.7os6VVqR at franz.ak.mind.de> >>
+Andreas König
 
 =head1 BUGS
 
-Please report any bugs or feature requests to
-C<bug-file-rsync-mirror-recentfile at rt.cpan.org>, or through the web
-interface at
+Please report any bugs or feature requests through the web interface
+at
 L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=File-Rsync-Mirror-Recentfile>.
 I will be notified, and then you'll automatically be notified of
 progress on your bug as I make changes.

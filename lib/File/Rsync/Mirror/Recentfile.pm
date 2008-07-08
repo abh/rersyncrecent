@@ -423,7 +423,7 @@ Stores the remote recentfile locally as a tempfile
 
 sub get_remote_recentfile_as_tempfile {
     my($self) = @_;
-    mkpath dirname $self->localroot;
+    mkpath $self->localroot;
     my($fh) = File::Temp->new(TEMPLATE => sprintf(".%s-XXXX",
                                                   $self->filenameroot,
                                                  ),

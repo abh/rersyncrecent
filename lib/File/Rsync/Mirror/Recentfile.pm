@@ -17,7 +17,8 @@ Version 0.0.1
 
 package File::Rsync::Mirror::Recentfile;
 
-use File::Basename qw(dirname);
+use Data::Serializer;
+use File::Basename qw(dirname fileparse);
 use File::Path qw(mkpath);
 use File::Rsync;
 use File::Temp;
@@ -41,6 +42,14 @@ my %seconds = (
                Q => 60*60*90,
                Y => 60*60*365.25,
               );
+
+# maybe subclass if this mapping is bad?
+my %serializers = (
+                   ".yaml" => "YAML::Syck",
+                   ".json" => "JSON",
+                   ".sto"  => "Storable",
+                   ".dd"   => "Data::Dumper",
+                  );
 
 use accessors (
                "_current_tempfile",
@@ -114,6 +123,11 @@ Reader:
     die $@ if $@;
     my ($recent_data) = $rf->recent_events_from_tempfile();
 
+Aggregator:
+
+    my $rf = File::Rsync::Mirror::Recentfile->new_from_file ( $file );
+
+
 =head1 EXPORT
 
 No exports.
@@ -135,10 +149,46 @@ sub new {
         $self->$method($arg);
     }
     unless (defined $self->protocol) {
-        $self->protocol(0);     # default protocol will soon be 1
+        $self->protocol(1);
     }
     unless (defined $self->filenameroot) {
         $self->filenameroot("RECENT");
+    }
+    return $self;
+}
+
+=head2 my $obj = CLASS->new_from_file($file)
+
+Constructor. $file is a RECENT file.
+
+=cut
+
+sub new_from_file {
+    my($class, $file) = @_;
+    my $self = bless {}, $class;
+    $self->_rfile($file);
+    #?# $self->lock;
+    my $serialized = do { open my $fh, $file or die "Could not open '$file': $!";
+                           local $/;
+                           <$fh>;
+                       };
+    my($name,$path,$suffix) = fileparse $file, keys %serializers;
+    die "Could not determine file format from suffix" unless $suffix;
+    my $serializer = Data::Serializer->new
+        (
+         serializer => $serializers{$suffix},
+         secret     => undef,
+         compress   => 0,
+         digest     => 0,
+         portable   => 0,
+         encoding   => "raw",
+        );
+    my $deserialized = $serializer->deserialize($serialized);
+    while (my($k,$v) = each %{$deserialized->{meta}}) {
+        $self->$k($v);
+    }
+    unless (defined $self->protocol) {
+        $self->protocol(1);
     }
     return $self;
 }
@@ -295,7 +345,7 @@ recentfile.
 
 sub meta_data {
     my($self) = @_;
-    my $ret = {};
+    my $ret = $self->{meta};
     for my $m (
                "aggregator",
                "canonize",
@@ -306,9 +356,11 @@ sub meta_data {
               ) {
         $ret->{$m} = $self->$m;
     }
-    $ret->{Producers} = {
-                         __PACKAGE__ => $VERSION,
-                        };
+    # XXX need to reset the Producer if I am a writer, keep it when I
+    # am a reader
+    $ret->{Producers} ||= {
+                           __PACKAGE__ => "$VERSION", # stringified it looks better
+                          };
     return $ret;
 }
 

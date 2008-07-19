@@ -27,14 +27,15 @@ WriteMakefile
      PL_FILES            => {},
      PREREQ_PM =>
      {
-      'File::Rsync'     => 0,
-      'Test::More'      => 0,
-      'File::Basename'  => 0,
-      'File::Path'      => 0,
-      'File::Temp'      => 0,
-      'Scalar::Util'    => 0,
-      'Time::HiRes'     => 0,
-      'YAML::Syck'      => 0,
+      'Data::Serializer' => 0.46,
+      'File::Rsync'      => 0,
+      'Test::More'       => 0,
+      'File::Basename'   => 0,
+      'File::Path'       => 0,
+      'File::Temp'       => 0,
+      'Scalar::Util'     => 0,
+      'Time::HiRes'      => 0,
+      'YAML::Syck'       => 0,
      },
      dist => {
               DIST_DEFAULT => join(" ", # note: order matters!

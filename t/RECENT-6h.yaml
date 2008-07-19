@@ -10,7 +10,7 @@ meta:
   canonize: naive_path_normalize
   comment: These 'RECENT' files are part of a test of a new CPAN mirroring concept. Please ignore them for now.
   filenameroot: RECENT
-  interval_secs: 21600
+  interval: 6h
   protocol: 1
 recent: 
   - 

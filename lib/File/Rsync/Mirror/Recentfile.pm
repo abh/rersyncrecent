@@ -568,12 +568,13 @@ sub remotebase {
     my($self) = @_;
     my $remotebase = $self->_remotebase;
     unless (defined $remotebase) {
-        $remotebase = sprintf(
-                              "%s::%s%s",
-                              $self->remote_host,
-                              $self->remote_module,
-                              ($self->remote_dir ? ("/".$self->remote_dir) : ""),
-                             );
+        $remotebase = sprintf
+            (
+             "%s%s%s",
+             defined $self->remote_host   ? ($self->remote_host."::")  : "",
+             defined $self->remote_module ? ($self->remote_module."/") : "",
+             defined $self->remote_dir    ? $self->remote_dir          : "",
+            );
         $self->_remotebase($remotebase);
     }
     return $remotebase;

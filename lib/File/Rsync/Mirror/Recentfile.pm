@@ -306,6 +306,9 @@ sub meta_data {
               ) {
         $ret->{$m} = $self->$m;
     }
+    $ret->{Producers} = {
+                         __PACKAGE__ => $VERSION,
+                        };
     return $ret;
 }
 

@@ -1,5 +1,16 @@
 2008-07-08  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
+	* I keep changing my mind about what the best shortest File is on my
+	box. I see that the shortest file needs a special name like the zero
+	file (A?). And that the user must get the effective interval from within.
+
+	* consider if the one connection per file policy needs to be fixed. We
+	would really like to download chunks of files that pay off one
+	connection.
+
+	* find out what it would need to implement and decide if we want to
+	support symlinks, directories, sockets, etc.
+
 	* Moosify
 
 	Local Variables:

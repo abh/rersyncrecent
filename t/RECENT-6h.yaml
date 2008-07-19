@@ -1,0 +1,239 @@
+--- 
+meta: 
+  aggregator: 
+    - 1d
+    - 1W
+    - 1M
+    - 1Q
+    - 1Y
+    - Z
+  canonize: naive_path_normalize
+  comment: These 'RECENT' files are part of a test of a new CPAN mirroring concept. Please ignore them for now.
+  filenameroot: RECENT
+  interval_secs: 21600
+  protocol: 1
+recent: 
+  - 
+    epoch: 1216436573.95005
+    path: id/Z/ZO/ZOFFIX/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436573.52662
+    path: id/X/XM/XMATH/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436571.20817
+    path: id/S/SK/SKREUZER/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436570.7049
+    path: id/S/SD/SDEN/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436570.41612
+    path: id/S/SA/SAMV/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436569.50725
+    path: id/R/RK/RKITOVER/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436568.66943
+    path: id/P/PJ/PJF/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436567.57483
+    path: id/O/OL/OLIVER/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436566.42374
+    path: id/M/MR/MRAMBERG/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436563.29338
+    path: id/M/MA/MARKOV/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436557.75104
+    path: id/M/MA/MALETIN/Teamspeak/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436555.82757
+    path: id/J/JO/JOHND/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436555.32857
+    path: id/J/JE/JETTERO/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436554.31248
+    path: id/H/HU/HUGUEI/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436553.60805
+    path: id/G/GR/GROMMIER/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436553.56731
+    path: id/G/GR/GRODITI/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436553.43319
+    path: id/G/GP/GPHAT/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436552.73654
+    path: id/G/GF/GFUJI/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436551.64272
+    path: id/D/DW/DWHEELER/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436551.52133
+    path: id/D/DU/DURIST/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436551.03717
+    path: id/D/DM/DMAKI/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436548.38894
+    path: id/D/DA/DANNY/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436548.31236
+    path: id/D/DA/DANJOU/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436548.15297
+    path: id/D/DA/DAAN/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436546.94828
+    path: id/B/BO/BORLIK/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436546.75134
+    path: id/B/BI/BINGOS/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436545.17453
+    path: id/A/AG/AGENT/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216436544.57532
+    path: id/A/AA/AAU/MRIM/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216432990.6606
+    path: id/M/MT/MTHURN/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216431314.55839
+    path: id/J/JO/JOHND/Class-DBI-Lite-0.006.meta
+    type: new
+  - 
+    epoch: 1216431314.55405
+    path: id/J/JO/JOHND/Class-DBI-Lite-0.006.readme
+    type: new
+  - 
+    epoch: 1216431314.25833
+    path: id/J/JO/JOHND/Class-DBI-Lite-0.006.tar.gz
+    type: new
+  - 
+    epoch: 1216430779.11935
+    path: id/P/PC/PCIMPRICH/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216422547.25186
+    path: id/M/MA/MALETIN/Teamspeak/Teamspeak-0.6.meta
+    type: new
+  - 
+    epoch: 1216422547.24796
+    path: id/M/MA/MALETIN/Teamspeak/Teamspeak-0.6.readme
+    type: new
+  - 
+    epoch: 1216422547.22299
+    path: id/M/MA/MALETIN/Teamspeak/Teamspeak-0.6.tar.gz
+    type: new
+  - 
+    epoch: 1216422162.10794
+    path: id/P/PO/POLETTIX/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216421097.10554
+    path: id/O/OL/OLIVER/CatalystX-ListFramework-Builder-0.06.meta
+    type: new
+  - 
+    epoch: 1216421097.10131
+    path: id/O/OL/OLIVER/CatalystX-ListFramework-Builder-0.06.readme
+    type: new
+  - 
+    epoch: 1216421097.07914
+    path: id/O/OL/OLIVER/CatalystX-ListFramework-Builder-0.06.tar.gz
+    type: new
+  - 
+    epoch: 1216420476.48959
+    path: id/O/OL/OLIVER/CatalystX-ListFramework-Builder-0.05.meta
+    type: new
+  - 
+    epoch: 1216420476.48555
+    path: id/O/OL/OLIVER/CatalystX-ListFramework-Builder-0.05.readme
+    type: new
+  - 
+    epoch: 1216420476.46322
+    path: id/O/OL/OLIVER/CatalystX-ListFramework-Builder-0.05.tar.gz
+    type: new
+  - 
+    epoch: 1216418558.46872
+    path: id/M/MG/MGREGORO/CHECKSUMS
+    type: new
+  - 
+    epoch: 1216417367.77163
+    path: id/G/GR/GRODITI/MooseX-Object-Pluggable-0.0008.meta
+    type: new
+  - 
+    epoch: 1216417367.76272
+    path: id/G/GR/GRODITI/MooseX-Object-Pluggable-0.0008.readme
+    type: new
+  - 
+    epoch: 1216417367.73759
+    path: id/G/GR/GRODITI/MooseX-Object-Pluggable-0.0008.tar.gz
+    type: new
+  - 
+    epoch: 1216417367.4617
+    path: id/J/JO/JOHND/Class-DBI-Lite-0.004.meta
+    type: new
+  - 
+    epoch: 1216417367.4562
+    path: id/J/JO/JOHND/Class-DBI-Lite-0.004.readme
+    type: new
+  - 
+    epoch: 1216417367.42315
+    path: id/J/JO/JOHND/Class-DBI-Lite-0.004.tar.gz
+    type: new
+  - 
+    epoch: 1216416885.76619
+    path: id/Z/ZO/ZOFFIX/POE-Component-IRC-Plugin-BaseWrap-0.006.meta
+    type: new
+  - 
+    epoch: 1216416885.76078
+    path: id/Z/ZO/ZOFFIX/POE-Component-IRC-Plugin-BaseWrap-0.006.readme
+    type: new
+  - 
+    epoch: 1216416885.74023
+    path: id/Z/ZO/ZOFFIX/POE-Component-IRC-Plugin-BaseWrap-0.006.tar.gz
+    type: new
+  - 
+    epoch: 1216416416.169
+    path: id/D/DW/DWHEELER/SVN-Notify-2.77.meta
+    type: new
+  - 
+    epoch: 1216416416.1638
+    path: id/D/DW/DWHEELER/SVN-Notify-2.77.readme
+    type: new
+  - 
+    epoch: 1216416416.1295
+    path: id/D/DW/DWHEELER/SVN-Notify-2.77.tar.gz
+    type: new

@@ -68,13 +68,13 @@ use accessors (
 
 B<!!!! PRE-ALPHA ALERT !!!!>
 
-Nothing in here is meant for public consumption. The plan is to
-provide a script in one of the next releases that acts as a frontend
-for all the backend functionality. Option and method names will very
-likely change.
+Nothing in here is meant either stable or for public consumption. The
+plan is to provide a script in one of the next releases that acts as a
+frontend for all the backend functionality. Option and method names
+will very likely change.
 
-Just for developers of the (yet to be named) script(s) we document
-here the pre-alpha quality interface.
+This is published only for developers of the (yet to be named)
+script(s).
 
 Writer:
 
@@ -170,7 +170,7 @@ sub rfile {
 
 =head2 $ret = $obj->update ($path,$type)
 
-Get a file from upstream.
+Enter one file into the local recentfile.
 
 =cut
 
@@ -301,7 +301,7 @@ sub meta_data {
                "canonize",
                "comment",
                "filenameroot",
-               "interval_secs",
+               "interval",
                "protocol",
               ) {
         $ret->{$m} = $self->$m;

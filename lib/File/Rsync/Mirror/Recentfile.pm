@@ -481,13 +481,17 @@ sub recentfile_basename {
 =head2 $secs = $obj->interval_secs ( $interval_spec )
 
 $interval_spec is a string that either consists of the single letter
-C<Z> or is composed from an integer and a letter.
+C<Z> or is composed from an integer and a letter. If empty defaults to
+the inherent interval for this object.
 
 =cut
 
 sub interval_secs {
-    my ($self) = @_;
-    my $interval = $self->interval;
+    my ($self, $interval) = @_;
+    $interval ||= $self->interval;
+    unless (defined $interval) {
+        die "interval_secs() called without argument on an object without a declared one";
+    }
     my ($n,$t) = $interval =~ /^(\d*)([smhdWMYZ]$)/ or
         die "Could not determine seconds from interval[$interval]";
     if ($interval eq "Z") {
@@ -583,6 +587,12 @@ bring their trees in full sync.
 The rersyncrecent mode was developed for CPAN but it seems the most
 convenient and economic solution in many other areas too. I'm looking
 forward to the first FUSE based CPAN filesystem. Anyone?
+
+=head1 BUGS
+
+At the moment we have limited our scope to ordinary files and excluded
+empty directories and symlinks and special files from our
+considerations.
 
 =head1 AUTHOR
 

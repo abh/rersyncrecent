@@ -184,7 +184,8 @@ BEGIN {
 
 =item aggregator
 
-A list of interval specs that are to be produced.
+A list of interval specs that tell the aggregator which recentfiles
+are to be produced.
 
 =item canonize
 
@@ -203,7 +204,9 @@ C<RECENT>.
 =item ignore_link_stat_errors
 
 If set to true, rsync errors are ignored that complain about link stat
-errors, which stands for missing files at the origin.
+errors. These seem to happen only when there are files missing at the
+origin. In race conditions this can always happen, so it is
+recommended to set this value to true.
 
 =item interval
 
@@ -211,13 +214,14 @@ The interval spec for this recentfile.
 
 =item localroot
 
-The root of the tree we support.
+The local root of the tree.
 
 =item max_files_per_connection
 
-Default is the arbitrary value 42. Setting it higher means higher
-performance at the price of holding connections longer and potentially
-disturb other users in the pool.
+Maximum number of files that are transfered on a single rsync call.
+Setting it higher means higher performance at the price of holding
+connections longer and potentially disturbing other users in the pool.
+Defaults to the arbitrary value 42.
 
 =item protocol
 
@@ -235,8 +239,8 @@ The host we are mirroring from. Leave empty for the local filesystem.
 =item remote_module
 
 Rsync servers have so called modules to separate directory trees from
-each other. This is the name of such a module. Leave empty for local
-filesystem.
+each other. Put here the name of the module under which we are
+mirroring. Leave empty for local filesystem.
 
 =item rsync_options
 

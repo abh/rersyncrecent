@@ -1,7 +1,7 @@
 2008-07-20  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
-	* support deletes within the same routine. Maybe it works with a simple
-	delete=>true option?
+	* support deletes (within the same routine?). Maybe it works with a
+	simple delete=>true option?
 
 2008-07-19  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 

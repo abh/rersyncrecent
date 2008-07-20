@@ -334,7 +334,7 @@ sub interval_secs {
 
 =head2 $ret = $obj->local_event_path
 
-Misnomer. Use local_path instead
+Misnomer, deprecated. Use local_path instead
 
 =cut
 

@@ -1,3 +1,8 @@
+2008-07-20  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* support deletes within the same routine. Maybe it works with a simple
+	delete=>true option?
+
 2008-07-19  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* recommended update interval? Makes no sense, is different for
@@ -7,26 +12,18 @@
 	.cent would be unused:) RE.CENT is a symlink to (RECENT.yaml is a
 	symlink to)? RECENT-1h.yaml? Doesn't sound completely useless.
 
-	* Need to allow different serializers than yaml. Users may have a reason
-	to choose something else. json, yaml, sto, dd, ber. We would have to
-	benchmark certain characteristics of different serializers. Once again.
-	Under the new aspect how well they are suited for rsync protocol.
-
 	* I keep changing my mind about what the best shortest File is on my
 	box. I see that the shortest file needs a special name like the zero
 	file (A?). And that the user must get the effective interval from
 	within. I want to call it RECENT.yaml. It could always be a symlink to
 	our current favourite, right? Maybe need some symlink juggling?
 
-	* consider if the one connection per file policy needs to be fixed. We
-	would really like to download chunks of files that pay off one
-	connection. Should be doable with --files-from option and a chunk size
-	which so-to-say currently defaults to 1.
-
 2008-07-08  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* find out what it would need to implement and decide if we want to
-	support symlinks, directories, sockets, etc.
+	support symlinks, directories, sockets, etc. Update 2008-07-20: nothing!
+	rsync supports them and if the user writes symlinks and directories into
+	the RECENT file, it should JUST WORK. (untested)
 
 	* Moosify
 

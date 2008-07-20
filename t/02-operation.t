@@ -4,17 +4,18 @@ BEGIN { $tests = 0 }
 use lib "lib";
 use File::Basename qw(dirname);
 use File::Copy qw(cp);
-use File::Path qw(mkpath);
+use File::Path qw(mkpath rmtree);
 use File::Rsync::Mirror::Recentfile;
 use Time::HiRes qw(time);
+
+my $root_from = "t/ta";
+my $root_to = "t/tb";
 
 {
     BEGIN { $tests += 1 }
     my $rf = File::Rsync::Mirror::Recentfile->new_from_file("t/RECENT-6h.yaml");
     my $recent_events = $rf->recent_events;
     is(56, scalar @$recent_events, "found $recent_events events");
-    my $root_from = "t/ta";
-    my $root_to = "t/tb";
     for my $e (@$recent_events) {
         my $file_from = sprintf "%s/%s", $root_from, $e->{path};
         mkpath dirname $file_from;
@@ -31,8 +32,8 @@ use Time::HiRes qw(time);
         (
          filenameroot => "RECENT",
          interval => q(6h),
-         remote_dir => "t/ta",
-         localroot => "t/tb",
+         remote_dir => $root_from,
+         localroot => $root_to,
          rsync_options => {
                            compress => 0,
                            'rsync-path' => '/usr/bin/rsync',
@@ -46,6 +47,8 @@ use Time::HiRes qw(time);
     my $success = $rf->mirror;
     ok($success, "mirrored with success");
 }
+
+rmtree [$root_from, $root_to];
 
 BEGIN { plan tests => $tests }
 

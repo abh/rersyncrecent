@@ -1,5 +1,11 @@
 2008-07-20  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
+	* gc or fsck or both. Somehow we must get the old files into Z. We do
+	not need the other files filled up with filesystem contents though.
+
+	* need interface to query for a file in order to NOT call update on
+	PAUSE a second time within a short time.
+
 	* support deletes (within the same routine?). Maybe it works with a
 	simple delete=>true option?
 

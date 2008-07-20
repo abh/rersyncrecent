@@ -438,7 +438,7 @@ sub meta_data {
     # XXX need to reset the Producer if I am a writer, keep it when I
     # am a reader
     $ret->{Producers} ||= {
-                           __PACKAGE__ => "$VERSION", # stringified it looks better
+                           __PACKAGE__, "$VERSION", # stringified it looks better
                           };
     return $ret;
 }

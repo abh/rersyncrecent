@@ -6,6 +6,7 @@ use File::Basename qw(dirname);
 use File::Copy qw(cp);
 use File::Path qw(mkpath rmtree);
 use File::Rsync::Mirror::Recentfile;
+use Storable;
 use Time::HiRes qw(time);
 
 my $root_from = "t/ta";
@@ -15,15 +16,20 @@ my $root_to = "t/tb";
     BEGIN { $tests += 1 }
     my $rf = File::Rsync::Mirror::Recentfile->new_from_file("t/RECENT-6h.yaml");
     my $recent_events = $rf->recent_events;
-    is(56, scalar @$recent_events, "found $recent_events events");
+    my $recent_events_cnt = scalar @$recent_events;
+    is(56, $recent_events_cnt, "found $recent_events_cnt events");
+    my $rf2 = Storable::dclone($rf);
+    $rf2->interval("1m");
+    $rf2->localroot($root_from);
+    $rf2->comment("produced during the test 02-operation.t");
     for my $e (@$recent_events) {
         my $file_from = sprintf "%s/%s", $root_from, $e->{path};
         mkpath dirname $file_from;
         open my $fh, ">", $file_from or die "Could not open '$file_from': $!";
         print $fh time, ":", $file_from, "\n";
         close $fh or die "Could not close '$file_from': $!";
+        $rf2->update($file_from,$e->{type});
     }
-    cp "t/RECENT-6h.yaml", "t/ta/RECENT-6h.yaml" or die "Could not cp: $!";
 }
 
 {
@@ -31,7 +37,7 @@ my $root_to = "t/tb";
     my $rf = File::Rsync::Mirror::Recentfile->new
         (
          filenameroot => "RECENT",
-         interval => q(6h),
+         interval => q(1m),
          remote_dir => $root_from,
          localroot => $root_to,
          rsync_options => {

@@ -35,12 +35,7 @@ use constant MAX_INT => ~0>>1; # anything better?
 my %seconds;
 
 # maybe subclass if this mapping is bad?
-my %serializers = (
-                   ".yaml" => "YAML::Syck",
-                   ".json" => "JSON",
-                   ".sto"  => "Storable",
-                   ".dd"   => "Data::Dumper",
-                  );
+my %serializers;
 
 =head1 SYNOPSIS
 
@@ -122,6 +117,9 @@ sub new {
     unless (defined $self->filenameroot) {
         $self->filenameroot("RECENT");
     }
+    unless (defined $self->serializer_suffix) {
+        $self->serializer_suffix(".yaml");
+    }
     return $self;
 }
 
@@ -141,6 +139,8 @@ sub new_from_file {
                            <$fh>;
                        };
     my($name,$path,$suffix) = fileparse $file, keys %serializers;
+    $self->serializer_suffix($suffix);
+    $self->localroot($path);
     die "Could not determine file format from suffix" unless $suffix;
     my $serializer = Data::Serializer->new
         (
@@ -153,6 +153,7 @@ sub new_from_file {
         );
     my $deserialized = $serializer->deserialize($serialized);
     while (my($k,$v) = each %{$deserialized->{meta}}) {
+        next if $k ne lc $k; # "Producers"
         $self->$k($v);
     }
     unless (defined $self->protocol) {
@@ -170,7 +171,9 @@ my @accessors;
 BEGIN {
     @accessors = (
                   "_current_tempfile",
+                  "_interval",
                   "_is_locked",
+                  "_localroot",
                   "_remotebase",
                   "_rfile",
                   "_rsync",
@@ -208,14 +211,6 @@ errors. These seem to happen only when there are files missing at the
 origin. In race conditions this can always happen, so it is
 recommended to set this value to true.
 
-=item interval
-
-The interval spec for this recentfile.
-
-=item localroot
-
-The local root of the tree.
-
 =item max_files_per_connection
 
 Maximum number of files that are transfered on a single rsync call.
@@ -246,6 +241,13 @@ mirroring. Leave empty for local filesystem.
 
 Things like compress, links, times or checksums. Passed in to the
 File::Rsync object used to run the mirror.
+
+=item serializer_suffix
+
+Untested accessor. The only tested format for recentfiles at the
+moment is YAML. It is used with YAML::Syck via Data::Serializer. But
+in principle other formats are supported as well. See section
+SERIALIZERS below.
 
 =item sleep_per_connection
 
@@ -289,7 +291,7 @@ sub get_remote_recentfile_as_tempfile {
                                                   $self->filenameroot,
                                                  ),
                               DIR => $self->localroot,
-                              SUFFIX => ".yaml",
+                              SUFFIX => $self->serializer_suffix,
                               UNLINK => 0,
                              );
     my($trecentfile) = $fh->filename;
@@ -306,6 +308,22 @@ sub get_remote_recentfile_as_tempfile {
     chmod $mode, $trecentfile or die "Could not chmod $mode '$trecentfile': $!";
     $self->_current_tempfile ($trecentfile);
     return $trecentfile;
+}
+
+=head2 $obj->interval ( $interval_spec )
+
+Get/set accessor. $interval_spec is a string and described below in
+the section INTERVAL SPEC.
+
+=cut
+
+sub interval {
+    my ($self, $interval) = @_;
+    if (@_ >= 2) {
+        $self->_interval($interval);
+        $self->_rfile(undef);
+    }
+    $interval = $self->_interval;
 }
 
 =head2 $secs = $obj->interval_secs ( $interval_spec )
@@ -330,6 +348,21 @@ sub interval_secs {
     } else {
         die "Invalid interval specification: n[$n]t[$t]";
     }
+}
+
+=head2 $obj->localroot ( $localroot )
+
+Get/set accessor. The local root of the tree.
+
+=cut
+
+sub localroot {
+    my ($self, $localroot) = @_;
+    if (@_ >= 2) {
+        $self->_localroot($localroot);
+        $self->_rfile(undef);
+    }
+    $localroot = $self->_localroot;
 }
 
 =head2 $ret = $obj->local_event_path
@@ -629,16 +662,17 @@ sub recentfile {
 
 =head2 $ret = $obj->recentfile_basename
 
-Status unknown. It seem this needs to be used in rfile too.
+Just the basename of our recentfile, composed from filenameroot,
+interval, and serializer_suffix. E.g. RECENT-1h.yaml
 
 =cut
 
 sub recentfile_basename {
     my($self) = @_;
-    my $interval = $self->interval;
-    my $file = sprintf("%s-%s.yaml",
+    my $file = sprintf("%s-%s%s",
                        $self->filenameroot,
-                       $interval
+                       $self->interval,
+                       $self->serializer_suffix,
                       );
     return $file;
 }
@@ -680,10 +714,7 @@ sub rfile {
         return $rfile if defined $rfile;
         $rfile = File::Spec->catfile
             ($self->localroot,
-             sprintf ("%s-%s.yaml",
-                      $self->filenameroot,
-                      $self->interval,
-                     )
+             $self->recentfile_basename,
             );
         $self->_rfile ($rfile);
         return $rfile;
@@ -735,15 +766,17 @@ $type is one of "new" or "delete".
 
 sub update {
     my($self,$path,$type) = @_;
-    if (my $meth = $self->canonize) {
-        unless ($meth) {
-            $meth = "naive_path_normalize";
-        }
-        if (ref $meth && ref $meth eq "CODE") {
-            die "FIXME";
-        } else {
-            $path = $self->$meth($path);
-        }
+    die "write_recent called without path argument" unless defined $path;
+    die "write_recent called without type argument" unless defined $type;
+    die "write_recent called with illegal type argument: $type" unless $type =~ /(new|delete)/;
+    my $meth = $self->canonize;
+    unless ($meth) {
+        $meth = "naive_path_normalize";
+    }
+    if (ref $meth && ref $meth eq "CODE") {
+        die "FIXME";
+    } else {
+        $path = $self->$meth($path);
     }
     my $lrd = $self->localroot;
     if ($path =~ s|^\Q$lrd\E||) {
@@ -780,6 +813,7 @@ state of the tree limited by the current interval.
 
 sub write_recent {
     my ($self,$recent) = @_;
+    die "write_recent called without argument" unless defined $recent;
     my $meth = sprintf "write_%d", $self->protocol;
     $self->$meth($recent);
 }
@@ -812,6 +846,29 @@ sub write_1 {
                                       });
     rename "$rfile.new", $rfile or die "Could not rename to '$rfile': $!";
 }
+
+BEGIN {
+    my @pod_lines = 
+        split /\n/, <<'=cut'; %serializers = map { eval } grep {s/^=item\s+//} @pod_lines; }
+
+=head1 SERIALIZERS
+
+The following suffixes are supported and trigger the user of these
+serializers:
+
+=over 4
+
+=item ".yaml" => "YAML::Syck"
+
+=item ".json" => "JSON"
+
+=item ".sto"  => "Storable"
+
+=item ".dd"   => "Data::Dumper",
+
+=back
+
+=cut
 
 BEGIN {
     my @pod_lines = 

@@ -23,6 +23,7 @@ use File::Path qw(mkpath);
 use File::Rsync;
 use File::Temp;
 use Scalar::Util qw(reftype);
+use Storable;
 use Time::HiRes qw();
 use YAML::Syck;
 
@@ -41,17 +42,17 @@ my %serializers;
 
 B<!!!! PRE-ALPHA ALERT !!!!>
 
-Nothing in here is meant either stable or for public consumption. The
-plan is to provide a script in one of the next releases that acts as a
-frontend for all the backend functionality. Option and method names
-will very likely change.
+Nothing in here is believed to be stable, nothing yet intended for
+public consumption. The plan is to provide a script in one of the next
+releases that acts as a frontend for all the backend functionality.
+Option and method names will very likely change.
 
 For the rationale see the section BACKGROUND.
 
 This is published only for developers of the (yet to be named)
 script(s).
 
-Writer:
+Writer (of a single file):
 
     use File::Rsync::Mirror::Recentfile;
     my $fr = File::Rsync::Mirror::Recentfile->new
@@ -64,7 +65,7 @@ Writer:
       );
     $rf->update("/home/ftp/pub/PAUSE/authors/id/A/AN/ANDK/CPAN-1.92_63.tar.gz","new");
 
-Reader:
+Reader/mirrorer:
 
     my $rf = File::Rsync::Mirror::Recentfile->new
       (
@@ -87,9 +88,10 @@ Reader:
       );
     $rf->mirror;
 
-Aggregator:
+Aggregator (usually the writer):
 
     my $rf = File::Rsync::Mirror::Recentfile->new_from_file ( $file );
+    $rf->aggregate;
 
 =head1 EXPORT
 
@@ -125,7 +127,7 @@ sub new {
 
 =head2 my $obj = CLASS->new_from_file($file)
 
-Constructor. $file is a RECENT file.
+Constructor. $file is a recentfile.
 
 =cut
 
@@ -213,7 +215,7 @@ recommended to set this value to true.
 
 =item max_files_per_connection
 
-Maximum number of files that are transfered on a single rsync call.
+Maximum number of files that are transferred on a single rsync call.
 Setting it higher means higher performance at the price of holding
 connections longer and potentially disturbing other users in the pool.
 Defaults to the arbitrary value 42.
@@ -265,6 +267,30 @@ Boolean to turn on a bit verbosity.
 use accessors @accessors;
 
 =head1 METHODS
+
+=head2 $success = $obj->aggregate
+
+Takes all intervals that are collected in the accessor called
+aggregator. Sorts them numerically by actual length of the interval.
+Removes those that are shorter than our own interval.
+
+=cut
+
+sub aggregate {
+    my($self) = @_;
+    my @aggs = sort { $a->{secs} <=> $b->{secs} }
+        grep { $_->{secs} >= $self->interval_secs }
+            map { { interval => $_, secs => $self->interval_secs($_)} }
+                $self->interval, @{$self->aggregator || []};
+    $aggs[0]{object} = $self;
+    for my $i (0..$#aggs-1) {
+        my $this = $aggs[$i]{object};
+        my $other = Storable::dclone $this;
+        $other->interval($aggs[$i+1]{interval});
+        $other->merge($this);
+        $aggs[$i+1]{object} = $other;
+    }
+}
 
 =head2 $success = $obj->full_mirror
 
@@ -415,9 +441,53 @@ sub lock {
     $self->_is_locked (1);
 }
 
+=head2 $ret = $obj->merge ($other)
+
+Bulk update of this object with another one. It's intended (but not
+enforced) to only merge smaller and younger $other objects into the
+current one.
+
+=cut
+
+sub merge {
+    my($self,$other) = @_;
+    my $meth = $self->canonize;
+    unless ($meth) {
+        $meth = "naive_path_normalize";
+    }
+    my $lrd = $self->localroot;
+    my $other_recent_events = $other->recent_events;
+    $self->lock;
+    my $interval = $self->interval;
+    my $secs = $self->interval_secs();
+    my $epoch;
+    my $recent = $self->recent_events;
+    unless (@$recent) {
+        $recent = [];
+        $self->recent_events($recent);
+    }
+    for my $ev (reverse @$other_recent_events) {
+        my $path = $ev->{path};
+        $path = $self->$meth($path);
+        $epoch ||= $ev->{epoch};
+        my $oldest_allowed = $epoch-$secs;
+      TRUNCATE: while (@$recent) {
+            if ($recent->[-1]{epoch} < $oldest_allowed) {
+                pop @$recent;
+            } else {
+                last TRUNCATE;
+            }
+        }
+        $recent = [ grep { $_->{path} ne $path } @$recent ];
+        unshift @$recent, { epoch => $ev->{epoch}, path => $path, type => $ev->{type} };
+    }
+    $self->write_recent($recent);
+    $self->unlock;
+}
+
 =head2 $hashref = $obj->meta_data
 
-returns the hashref of metadata that the server wants to add to the
+Returns the hashref of metadata that the server has to add to the
 recentfile.
 
 =cut
@@ -479,7 +549,9 @@ sub mirror {
                 # proved useful...
                 $success = eval { $self->mirror_path($recent_event->{path}) };
             } else {
-                print STDERR "\n";
+                if ($self->verbose) {
+                    print STDERR "\n";
+                }
                 push @collector, $recent_event->{path};
                 if (@collector == $max_files_per_connection || $i==$#$recent_data) {
                     $success = eval { $self->mirror_path(\@collector) };
@@ -663,7 +735,7 @@ sub recentfile {
 =head2 $ret = $obj->recentfile_basename
 
 Just the basename of our recentfile, composed from filenameroot,
-interval, and serializer_suffix. E.g. RECENT-1h.yaml
+interval, and serializer_suffix. E.g. RECENT-6h.yaml
 
 =cut
 
@@ -773,13 +845,10 @@ sub update {
     unless ($meth) {
         $meth = "naive_path_normalize";
     }
-    if (ref $meth && ref $meth eq "CODE") {
-        die "FIXME";
-    } else {
-        $path = $self->$meth($path);
-    }
+    $path = $self->$meth($path);
     my $lrd = $self->localroot;
     if ($path =~ s|^\Q$lrd\E||) {
+        $path =~ s|^/||;
         my $interval = $self->interval;
         my $secs = $self->interval_secs();
         my $epoch = Time::HiRes::time;

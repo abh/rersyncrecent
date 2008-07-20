@@ -382,7 +382,7 @@ Mirrors the files in this recentfile.
 
 sub mirror {
     my($self) = @_;
-    $self->get_remote_recentfile_as_tempfile();
+    my $trecentfile = $self->get_remote_recentfile_as_tempfile();
     my ($recent_data) = $self->recent_events_from_tempfile();
     my $i = 0;
     my @error;
@@ -393,13 +393,14 @@ sub mirror {
             my $dst = $self->local_path($recent_event->{path});
             if ($self->verbose) {
                 my $doing = -e $dst ? "Syncing" : "Getting";
-                printf(
-                       "%s (%d/%d) %s\n",
-                       $doing,
-                       $i,
-                       $total,
-                       $recent_event->{path},
-                      );
+                warn sprintf
+                    (
+                     "%s (%d/%d) %s\n",
+                     $doing,
+                     $i,
+                     $total,
+                     $recent_event->{path},
+                    );
             }
             my $success = eval { $self->mirror_path($recent_event->{path}) };
             if (!$success || $@) {
@@ -413,6 +414,7 @@ sub mirror {
             warn "Warning: invalid upload type '$recent_event->{type}'";
         }
     }
+    rename $trecentfile, $self->recentfile;
     return !@error;
 }
 

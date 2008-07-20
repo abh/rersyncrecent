@@ -187,35 +187,70 @@ BEGIN {
 
 =item aggregator
 
-A list of spec
+A list of interval specs that are to be produced.
 
 =item canonize
 
+The name of a method to canonize the path before rsyncing. Only
+supported value is C<naive_path_normalize>. Defaults to that.
+
 =item comment
+
+A comment about this tree and setup.
 
 =item filenameroot
 
+The (prefix of the) filename we use for this recentfile. Defaults to
+C<RECENT>.
+
 =item files_per_iteration
+
+TBD
 
 =item ignore_link_stat_errors
 
+If set to true, rsync errors are ignored that complain about link stat
+errors, which stands for missing files at the origin.
+
 =item interval
+
+The interval spec for this recentfile.
 
 =item localroot
 
+The root of the tree we support.
+
 =item protocol
+
+When the RECENT file format changes, we increment the protocol. We try
+to support older protocols in later releases.
 
 =item remote_dir
 
+The directory we are mirroring from.
+
 =item remote_host
+
+The host we are mirroring from. Leave empty for the local filesystem.
 
 =item remote_module
 
+Rsync servers have so called modules to separate directory trees from
+each other. This is the name of such a module. Leave empty for local
+filesystem.
+
 =item rsync_options
+
+Things like compress, links, times or checksums. Passed in to the
+File::Rsync object used to run the mirror.
 
 =item sleep_per_iteration
 
+TBD
+
 =item verbose
+
+Boolean to turn on a bit verbosity.
 
 =back
 
@@ -632,6 +667,9 @@ $type is one of "new" or "delete".
 sub update {
     my($self,$path,$type) = @_;
     if (my $meth = $self->canonize) {
+        unless ($meth) {
+            $meth = "naive_path_normalize";
+        }
         if (ref $meth && ref $meth eq "CODE") {
             die "FIXME";
         } else {

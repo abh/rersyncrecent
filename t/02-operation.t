@@ -39,7 +39,7 @@ use Time::HiRes qw(time);
                            links => 1,
                            times => 1,
                            'omit-dir-times' => 1,
-                           checksum => 1,
+                           checksum => 0,
                           },
          verbose => 1,
         );

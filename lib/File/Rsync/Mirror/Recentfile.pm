@@ -90,14 +90,11 @@ Reader:
                         },
        verbose => 1,
       );
-    my $trecentfile = eval {$rf->get_remote_recentfile_as_tempfile();};
-    die $@ if $@;
-    my ($recent_data) = $rf->recent_events_from_tempfile();
+    $rf->mirror;
 
 Aggregator:
 
     my $rf = File::Rsync::Mirror::Recentfile->new_from_file ( $file );
-
 
 =head1 EXPORT
 
@@ -203,10 +200,6 @@ A comment about this tree and setup.
 The (prefix of the) filename we use for this recentfile. Defaults to
 C<RECENT>.
 
-=item files_per_iteration
-
-TBD
-
 =item ignore_link_stat_errors
 
 If set to true, rsync errors are ignored that complain about link stat
@@ -219,6 +212,12 @@ The interval spec for this recentfile.
 =item localroot
 
 The root of the tree we support.
+
+=item max_files_per_connection
+
+Default is the arbitrary value 42. Setting it higher means higher
+performance at the price of holding connections longer and potentially
+disturb other users in the pool.
 
 =item protocol
 
@@ -244,9 +243,10 @@ filesystem.
 Things like compress, links, times or checksums. Passed in to the
 File::Rsync object used to run the mirror.
 
-=item sleep_per_iteration
+=item sleep_per_connection
 
-TBD
+Sleep that many seconds (floating point OK) after every chunk of rsyncing
+has finished. Defaults to arbitrary 0.42.
 
 =item verbose
 
@@ -351,6 +351,9 @@ in this recentfile. In other words: the target of a mirro operation
 
 sub local_path {
     my($self,$path) = @_;
+    unless (defined $path) {
+        return $self->localroot;
+    }
     my @p = split m|/|, $path; # rsync paths are always slash-separated
     File::Spec->catfile($self->localroot,@p);
 }
@@ -416,26 +419,48 @@ sub mirror {
     my $i = 0;
     my @error;
     my $total = @$recent_data;
-  ITEM: for my $recent_event (@$recent_data) {
-        $i++;
+    my @collector;
+  ITEM: for my $i (0..$#$recent_data) {
+        my $recent_event = $recent_data->[$i];
         if ($recent_event->{type} eq "new"){
             my $dst = $self->local_path($recent_event->{path});
             if ($self->verbose) {
                 my $doing = -e $dst ? "Syncing" : "Getting";
-                warn sprintf
+                printf STDERR
                     (
-                     "%s (%d/%d) %s\n",
+                     "%s (%d/%d) %s ... ",
                      $doing,
-                     $i,
+                     1+$i,
                      $total,
                      $recent_event->{path},
                     );
             }
-            my $success = eval { $self->mirror_path($recent_event->{path}) };
+            my $max_files_per_connection = $self->max_files_per_connection || 42;
+            my $success;
+            if ($max_files_per_connection == 1) {
+                # old code path may go away when the collector has
+                # proved useful...
+                $success = eval { $self->mirror_path($recent_event->{path}) };
+            } else {
+                print STDERR "\n";
+                push @collector, $recent_event->{path};
+                if (@collector == $max_files_per_connection || $i==$#$recent_data) {
+                    $success = eval { $self->mirror_path(\@collector) };
+                    @collector = ();
+                    my $sleep = $self->sleep_per_connection;
+                    $sleep = 0.42 unless defined $sleep;
+                    Time::HiRes::sleep $sleep;
+                } else {
+                    next ITEM;
+                }
+            }
             if (!$success || $@) {
                 warn "error while mirroring: $@";
                 push @error, $@;
                 sleep 1;
+            }
+            if ($self->verbose) {
+                print STDERR "DONE\n";
             }
         } elsif ($recent_event->{type} eq "delete") {
             warn "deletions not yet implemented";
@@ -447,35 +472,73 @@ sub mirror {
     return !@error;
 }
 
-=head2 $success = $obj->mirror_path ( $path )
+=head2 $success = $obj->mirror_path ( $arrref | $path )
 
-Fetches a remote path into the local copy. $path is the path found in
-the recentfile, i.e. it is relative to the root directory of the mirror.
+If the argument is a scalar, fetches a remote path into the local
+copy. $path is the path found in the recentfile, i.e. it is relative
+to the root directory of the mirror.
+
+If $path is an array reference then all elements are treated as a path
+below the current tree and all are rsynced with a single command (and
+a single connection).
 
 =cut
 
 sub mirror_path {
     my($self,$path) = @_;
-    my $dst = $self->local_path($path);
-    mkpath dirname $dst;
-    unless ($self->rsync->exec
-            (
-             src => join("/",
-                         $self->remotebase,
-                         $path
-                        ),
-             dst => $dst,
-            )) {
-        my($err) = $self->rsync->err;
-        if ($self->ignore_link_stat_errors && $err =~ m{^ rsync: \s link_stat }x ) {
-            if ($self->verbose) {
-                warn "Info: ignoring link_stat error '$err'";
-            }
-            return 1;
+    if (ref $path and ref $path eq "ARRAY") {
+        my $dst = $self->local_path();
+        mkpath dirname $dst;
+        my($fh) = File::Temp->new(TEMPLATE => sprintf(".%s-XXXX",
+                                                      lc $self->filenameroot,
+                                                     ),
+                                  TMPDIR => 1,
+                                  UNLINK => 0,
+                                 );
+        for my $p (@$path) {
+            print $fh $p, "\n";
         }
-        die sprintf "Error: %s", $err;
+        $fh->flush;
+        $fh->unlink_on_destroy(1);
+        unless ($self->rsync->exec
+                (
+                 src => join("/",
+                             $self->remotebase,
+                            ),
+                 dst => $dst,
+                 'files-from' => $fh->filename,
+                )) {
+            my($err) = $self->rsync->err;
+            if ($self->ignore_link_stat_errors && $err =~ m{^ rsync: \s link_stat }x ) {
+                if ($self->verbose) {
+                    warn "Info: ignoring link_stat error '$err'";
+                }
+                return 1;
+            }
+            die sprintf "Error: %s", $err;
+        }
+    } else {
+        my $dst = $self->local_path($path);
+        mkpath dirname $dst;
+        unless ($self->rsync->exec
+                (
+                 src => join("/",
+                             $self->remotebase,
+                             $path
+                            ),
+                 dst => $dst,
+                )) {
+            my($err) = $self->rsync->err;
+            if ($self->ignore_link_stat_errors && $err =~ m{^ rsync: \s link_stat }x ) {
+                if ($self->verbose) {
+                    warn "Info: ignoring link_stat error '$err'";
+                }
+                return 1;
+            }
+            die sprintf "Error: %s", $err;
+        }
+        return 1;
     }
-    return 1;
 }
 
 =head2 $path = $obj->naive_path_normalize ($path)
@@ -551,6 +614,8 @@ deprecated, use rfile instead
 
 sub recentfile {
     my($self) = @_;
+    require Carp;
+    Carp::cluck("deprecated method recentfile called. Please use rfile instead!");
     my $recent = File::Spec->catfile(
                                      $self->localroot,
                                      $self->recentfile_basename(),

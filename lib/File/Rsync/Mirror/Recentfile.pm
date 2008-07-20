@@ -32,16 +32,7 @@ use version; our $VERSION = qv('0.0.1');
 use constant MAX_INT => ~0>>1; # anything better?
 
 # cf. interval_secs
-my %seconds = (
-               s => 1,
-               m => 60,
-               h => 60*60,
-               d => 60*60*24,
-               W => 60*60*24*7,
-               M => 60*60*30,
-               Q => 60*60*90,
-               Y => 60*60*365.25,
-              );
+my %seconds;
 
 # maybe subclass if this mapping is bad?
 my %serializers = (
@@ -59,6 +50,8 @@ Nothing in here is meant either stable or for public consumption. The
 plan is to provide a script in one of the next releases that acts as a
 frontend for all the backend functionality. Option and method names
 will very likely change.
+
+For the rationale see the section BACKGROUND.
 
 This is published only for developers of the (yet to be named)
 script(s).
@@ -194,6 +187,8 @@ BEGIN {
 
 =item aggregator
 
+A list of spec
+
 =item canonize
 
 =item comment
@@ -276,9 +271,8 @@ sub get_remote_recentfile_as_tempfile {
 
 =head2 $secs = $obj->interval_secs ( $interval_spec )
 
-$interval_spec is a string that either consists of the single letter
-C<Z> or is composed from an integer and a letter. If empty defaults to
-the inherent interval for this object.
+$interval_spec is described below in the section INTERVAL SPEC. If
+empty defaults to the inherent interval for this object.
 
 =cut
 
@@ -288,7 +282,7 @@ sub interval_secs {
     unless (defined $interval) {
         die "interval_secs() called without argument on an object without a declared one";
     }
-    my ($n,$t) = $interval =~ /^(\d*)([smhdWMYZ]$)/ or
+    my ($n,$t) = $interval =~ /^(\d*)([smhdWMQYZ]$)/ or
         die "Could not determine seconds from interval[$interval]";
     if ($interval eq "Z") {
         return MAX_INT;
@@ -712,7 +706,46 @@ sub write_1 {
     rename "$rfile.new", $rfile or die "Could not rename to '$rfile': $!";
 }
 
+BEGIN {
+    my @pod_lines = 
+        split /\n/, <<'=cut'; %seconds = map { eval } grep {s/^=item\s+//} @pod_lines; }
+
+=head1 INTERVAL SPEC
+
+An interval spec is a primitive way to express time spans. Normally it
+is composed from an integer and a letter.
+
+As a special case, a string that either consists only of the single
+letter C<Z>, stands for unlimited time.
+
+The following letters express the specified number of seconds:
+
+=over 4
+
+=item s => 1
+
+=item m => 60
+
+=item h => 60*60
+
+=item d => 60*60*24
+
+=item W => 60*60*24*7
+
+=item M => 60*60*24*30
+
+=item Q => 60*60*24*90
+
+=item Y => 60*60*24*365.25
+
+=back
+
+=cut
+
 =head1 BACKGROUND
+
+This is about speeding up rsync operation on large trees to many
+places. Uses a small metadata cocktail and pull technology.
 
 =head2 NON-COMPETITORS
 

@@ -18,6 +18,20 @@ use File::Rsync::Mirror::Recentfile;
     }
 }
 
+{
+    BEGIN { $tests += 5 }
+    my $rf = File::Rsync::Mirror::Recentfile->new;
+    for my $x (["12s" => 12],
+               ["12m" => 720],
+               ["2h"  => 7200],
+               ["1d"  => 86400],
+               ["4Q"  => 31104000],
+              ) {
+        my $ret = $rf->interval_secs ( $x->[0] );
+        is $ret, $x->[1];
+    }
+}
+
 BEGIN { plan tests => $tests }
 
 # Local Variables:

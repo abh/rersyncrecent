@@ -13,7 +13,7 @@ my $root_from = "t/ta";
 my $root_to = "t/tb";
 
 {
-    BEGIN { $tests += 1 }
+    BEGIN { $tests += 2 }
     my $rf = File::Rsync::Mirror::Recentfile->new_from_file("t/RECENT-6h.yaml");
     my $recent_events = $rf->recent_events;
     my $recent_events_cnt = scalar @$recent_events;
@@ -22,6 +22,9 @@ my $root_to = "t/tb";
     $rf2->interval("1m");
     $rf2->localroot($root_from);
     $rf2->comment("produced during the test 02-operation.t");
+    $rf2->aggregator([qw(1h Z)]);
+    $rf2->verbose(0);
+    my $start = Time::HiRes::time;
     for my $e (@$recent_events) {
         my $file_from = sprintf "%s/%s", $root_from, $e->{path};
         mkpath dirname $file_from;
@@ -30,6 +33,9 @@ my $root_to = "t/tb";
         close $fh or die "Could not close '$file_from': $!";
         $rf2->update($file_from,$e->{type});
     }
+    $rf2->aggregate;
+    my $took = Time::HiRes::time - $start;
+    ok $took > 0, "creating the tree and aggregate took $took seconds";
 }
 
 {
@@ -48,11 +54,11 @@ my $root_to = "t/tb";
                            'omit-dir-times' => 1,
                            checksum => 0,
                           },
-         verbose => 1,
         );
     my $success = $rf->mirror;
     ok($success, "mirrored with success");
 }
+
 
 rmtree [$root_from, $root_to];
 

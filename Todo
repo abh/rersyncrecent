@@ -1,5 +1,7 @@
 2008-07-20  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
+	* test the aggregate method, 02-operation does not yet
+
 	* gc or fsck or both. Somehow we must get the old files into Z. We do
 	not need the other files filled up with filesystem contents though.
 

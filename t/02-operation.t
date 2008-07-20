@@ -43,10 +43,8 @@ use Time::HiRes qw(time);
                           },
          verbose => 1,
         );
-    my $trecentfile = eval {$rf->get_remote_recentfile_as_tempfile();};
-    die $@ if $@;
-    my ($recent_data) = $rf->recent_events_from_tempfile();
-    ok(!!$recent_data, "somehow we survived");
+    my $success = $rf->mirror;
+    ok($success, "mirrored with success");
 }
 
 BEGIN { plan tests => $tests }

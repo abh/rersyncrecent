@@ -468,7 +468,7 @@ sub mirror {
             warn "Warning: invalid upload type '$recent_event->{type}'";
         }
     }
-    rename $trecentfile, $self->recentfile;
+    rename $trecentfile, $self->rfile;
     return !@error;
 }
 

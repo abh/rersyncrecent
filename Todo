@@ -1,3 +1,23 @@
+2008-07-21  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* remember that aggregate() shall only merge after a certain amount of
+	time in order to not only reduce costs of syncing but also to not steal
+	time from the origin server. If a minute has a few thousand new files
+	and there are many recentfiles and we rewrite all of them every minute,
+	this would cause a high burden. I'd say, given aggregators
+
+	1h 1d 1W 1M 1Q 1Y Z
+
+	then
+	
+	1h updates 1d once per 1m (because 1m is the cronjob granularity)
+	1d updates 1W once per 1h
+	1W updates 1M once per 1d
+	1M updates 1Q once per 1W
+	1Q updates 1Y once per 1M
+	1Y updates  Z once per 1Q
+	
+
 2008-07-20  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* test the aggregate method, 02-operation does not yet

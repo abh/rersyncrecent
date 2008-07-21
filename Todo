@@ -10,12 +10,12 @@
 
 	then
 	
-	1h updates 1d once per 1m (because 1m is the cronjob granularity)
-	1d updates 1W once per 1h
-	1W updates 1M once per 1d
-	1M updates 1Q once per 1W
-	1Q updates 1Y once per 1M
-	1Y updates  Z once per 1Q
+	1h updates 1d on every call to aggregate
+	1d updates 1W earliest after 1h
+	1W updates 1M earliest after 1d
+	1M updates 1Q earliest after 1W
+	1Q updates 1Y earliest after 1M
+	1Y updates  Z earliest after 1Q
 	
 
 2008-07-20  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>

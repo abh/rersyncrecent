@@ -918,7 +918,7 @@ sub write_1 {
 
 BEGIN {
     my @pod_lines = 
-        split /\n/, <<'=cut'; %serializers = map { eval } grep {s/^=item\s+//} @pod_lines; }
+        split /\n/, <<'=cut'; %serializers = map { eval } grep {s/^=item\s+C<<(.+)>>$/$1/} @pod_lines; }
 
 =head1 SERIALIZERS
 
@@ -927,13 +927,13 @@ serializers:
 
 =over 4
 
-=item ".yaml" => "YAML::Syck"
+=item C<< ".yaml" => "YAML::Syck" >>
 
-=item ".json" => "JSON"
+=item C<< ".json" => "JSON" >>
 
-=item ".sto"  => "Storable"
+=item C<< ".sto"  => "Storable" >>
 
-=item ".dd"   => "Data::Dumper",
+=item C<< ".dd"   => "Data::Dumper" >>
 
 =back
 
@@ -941,35 +941,35 @@ serializers:
 
 BEGIN {
     my @pod_lines = 
-        split /\n/, <<'=cut'; %seconds = map { eval } grep {s/^=item\s+//} @pod_lines; }
+        split /\n/, <<'=cut'; %seconds = map { eval } grep {s/^=item\s+C<<(.+)>>$/$1/} @pod_lines; }
 
 =head1 INTERVAL SPEC
 
 An interval spec is a primitive way to express time spans. Normally it
 is composed from an integer and a letter.
 
-As a special case, a string that either consists only of the single
-letter C<Z>, stands for unlimited time.
+As a special case, a string that consists only of the single letter
+C<Z>, stands for unlimited time.
 
 The following letters express the specified number of seconds:
 
 =over 4
 
-=item s => 1
+=item C<< s => 1 >>
 
-=item m => 60
+=item C<< m => 60 >>
 
-=item h => 60*60
+=item C<< h => 60*60 >>
 
-=item d => 60*60*24
+=item C<< d => 60*60*24 >>
 
-=item W => 60*60*24*7
+=item C<< W => 60*60*24*7 >>
 
-=item M => 60*60*24*30
+=item C<< M => 60*60*24*30 >>
 
-=item Q => 60*60*24*90
+=item C<< Q => 60*60*24*90 >>
 
-=item Y => 60*60*24*365.25
+=item C<< Y => 60*60*24*365.25 >>
 
 =back
 

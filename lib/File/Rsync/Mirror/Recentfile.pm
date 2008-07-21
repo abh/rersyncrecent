@@ -213,6 +213,11 @@ errors. These seem to happen only when there are files missing at the
 origin. In race conditions this can always happen, so it is
 recommended to set this value to true.
 
+=item locktimeout
+
+After how many seconds shall we die if we cannot lock a recentfile?
+Defaults to 600 seconds.
+
 =item max_files_per_connection
 
 Maximum number of files that are transferred on a single rsync call.
@@ -268,11 +273,30 @@ use accessors @accessors;
 
 =head1 METHODS
 
-=head2 $success = $obj->aggregate
+=head2 (void) $obj->aggregate
 
 Takes all intervals that are collected in the accessor called
 aggregator. Sorts them numerically by actual length of the interval.
-Removes those that are shorter than our own interval.
+Removes those that are shorter than our own interval. Then merges this
+object into the next larger object. The merging continues upwards
+as long as the next recentfiles is old enough to warrant a merge.
+
+If a merge is warranted is decided according to the interval of the
+previous interval so that larger files are not so often updated as
+smaller ones.
+
+Here is an example to illustrate the behaviour. Given aggregators
+
+  1h 1d 1W 1M 1Q 1Y Z
+
+then
+
+  1h updates 1d on every call to aggregate()
+  1d updates 1W earliest after 1h
+  1W updates 1M earliest after 1d
+  1M updates 1Q earliest after 1W
+  1Q updates 1Y earliest after 1M
+  1Y updates  Z earliest after 1Q
 
 =cut
 
@@ -283,12 +307,32 @@ sub aggregate {
             map { { interval => $_, secs => $self->interval_secs($_)} }
                 $self->interval, @{$self->aggregator || []};
     $aggs[0]{object} = $self;
-    for my $i (0..$#aggs-1) {
+  AGGREGATOR: for my $i (0..$#aggs-1) {
         my $this = $aggs[$i]{object};
-        my $other = Storable::dclone $this;
-        $other->interval($aggs[$i+1]{interval});
-        $other->merge($this);
-        $aggs[$i+1]{object} = $other;
+        my $next = Storable::dclone $this;
+        $next->interval($aggs[$i+1]{interval});
+        my $want_merge = 0;
+        if ($i == 0) {
+            $want_merge = 1;
+        } else {
+            my $next_rfile = $next->rfile;
+            if (-e $next_rfile) {
+                my $prev = $aggs[$i-1]{object};
+                local $^T = time;
+                my $next_age = 86400 * -M $next_rfile;
+                if ($next_age > $prev->interval_secs) {
+                    $want_merge = 1;
+                }
+            } else {
+                $want_merge = 1;
+            }
+        }
+        if ($want_merge) {
+            $next->merge($this);
+            $aggs[$i+1]{object} = $next;
+        } else {
+            last AGGREGATOR;
+        }
     }
 }
 
@@ -435,8 +479,13 @@ sub lock {
     my $locked = $self->_is_locked and return;
     my $rfile = $self->rfile;
     # XXX need a way to allow breaking the lock
+    my $start = time;
+    my $locktimeout = $self->locktimeout || 600;
     while (not mkdir "$rfile.lock") {
         Time::HiRes::sleep 0.01;
+        if (time - $start > $locktimeout) {
+            die "Could not acquire lockdirectory '$rfile.lock': $!";
+        }
     }
     $self->_is_locked (1);
 }

@@ -22,7 +22,7 @@ my $root_to = "t/tb";
     $rf2->interval("1m");
     $rf2->localroot($root_from);
     $rf2->comment("produced during the test 02-operation.t");
-    $rf2->aggregator([qw(1h Z)]);
+    $rf2->aggregator([qw(2m 1h Z)]);
     $rf2->verbose(0);
     my $start = Time::HiRes::time;
     for my $e (@$recent_events) {

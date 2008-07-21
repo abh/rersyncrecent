@@ -1,3 +1,4 @@
+bin/rrr-aggregate
 Changes
 lib/File/Rsync/Mirror/Recentfile.pm
 Makefile.PL

@@ -494,7 +494,8 @@ sub lock {
 
 Bulk update of this object with another one. It's intended (but not
 enforced) to only merge smaller and younger $other objects into the
-current one.
+current one. If the other file is a C<Z> file, then we do not merge in
+objects of type C<delete>.
 
 =cut
 
@@ -509,26 +510,35 @@ sub merge {
     $self->lock;
     my $interval = $self->interval;
     my $secs = $self->interval_secs();
-    my $epoch;
     my $recent = $self->recent_events;
     unless (@$recent) {
         $recent = [];
         $self->recent_events($recent);
     }
+    my($epoch,$oldest_allowed);
+    # reverse combined with unshift smells. This can be done by
+    # starting with hashifying both lists, concatenation, and removing
+    # the duplicates. Need to write better tests to make sure I get it
+    # right
     for my $ev (reverse @$other_recent_events) {
         my $path = $ev->{path};
         $path = $self->$meth($path);
-        $epoch ||= $ev->{epoch};
-        my $oldest_allowed = $epoch-$secs;
-      TRUNCATE: while (@$recent) {
-            if ($recent->[-1]{epoch} < $oldest_allowed) {
-                pop @$recent;
-            } else {
-                last TRUNCATE;
-            }
+        unless ($epoch) {
+            $epoch = $ev->{epoch};
+            $oldest_allowed = $epoch-$secs;
         }
+        # smells of inefficiency
+        while (@$recent && $recent->[-1]{epoch} < $oldest_allowed) {
+            pop @$recent;
+        }
+        # more smells:
         $recent = [ grep { $_->{path} ne $path } @$recent ];
-        unshift @$recent, { epoch => $ev->{epoch}, path => $path, type => $ev->{type} };
+        # stinking:
+        if ($self->interval eq "Z" and $ev->{type} eq "delete") {
+            # a Z file has no deletes, only living objects
+        } else {
+            unshift @$recent, { epoch => $ev->{epoch}, path => $path, type => $ev->{type} };
+        }
     }
     $self->write_recent($recent);
     $self->unlock;

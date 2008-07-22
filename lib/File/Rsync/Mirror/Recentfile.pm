@@ -127,7 +127,7 @@ sub new {
 
 =head2 my $obj = CLASS->new_from_file($file)
 
-Constructor. $file is a recentfile.
+Constructor. $file is a I<recentfile>.
 
 =cut
 
@@ -189,7 +189,7 @@ BEGIN {
 
 =item aggregator
 
-A list of interval specs that tell the aggregator which recentfiles
+A list of interval specs that tell the aggregator which I<recentfile>s
 are to be produced.
 
 =item canonize
@@ -203,7 +203,7 @@ A comment about this tree and setup.
 
 =item filenameroot
 
-The (prefix of the) filename we use for this recentfile. Defaults to
+The (prefix of the) filename we use for this I<recentfile>. Defaults to
 C<RECENT>.
 
 =item ignore_link_stat_errors
@@ -215,7 +215,7 @@ recommended to set this value to true.
 
 =item locktimeout
 
-After how many seconds shall we die if we cannot lock a recentfile?
+After how many seconds shall we die if we cannot lock a I<recentfile>?
 Defaults to 600 seconds.
 
 =item max_files_per_connection
@@ -251,7 +251,7 @@ File::Rsync object used to run the mirror.
 
 =item serializer_suffix
 
-Untested accessor. The only tested format for recentfiles at the
+Untested accessor. The only tested format for I<recentfile>s at the
 moment is YAML. It is used with YAML::Syck via Data::Serializer. But
 in principle other formats are supported as well. See section
 SERIALIZERS below.
@@ -279,7 +279,7 @@ Takes all intervals that are collected in the accessor called
 aggregator. Sorts them numerically by actual length of the interval.
 Removes those that are shorter than our own interval. Then merges this
 object into the next larger object. The merging continues upwards
-as long as the next recentfiles is old enough to warrant a merge.
+as long as the next I<recentfile>s is old enough to warrant a merge.
 
 If a merge is warranted is decided according to the interval of the
 previous interval so that larger files are not so often updated as
@@ -350,7 +350,7 @@ sub full_mirror {
 
 =head2 $tempfilename = $obj->get_remote_recentfile_as_tempfile
 
-Stores the remote recentfile locally as a tempfile
+Stores the remote I<recentfile> locally as a tempfile
 
 =cut
 
@@ -452,7 +452,7 @@ sub local_event_path {
 =head2 $ret = $obj->local_path($path_found_in_recentfile)
 
 Combines the path to our local mirror and the path of an object found
-in this recentfile. In other words: the target of a mirro operation
+in this I<recentfile>. In other words: the target of a mirro operation
 
 =cut
 
@@ -547,7 +547,7 @@ sub merge {
 =head2 $hashref = $obj->meta_data
 
 Returns the hashref of metadata that the server has to add to the
-recentfile.
+I<recentfile>.
 
 =cut
 
@@ -574,7 +574,7 @@ sub meta_data {
 
 =head2 $success = $obj->mirror
 
-Mirrors the files in this recentfile.
+Mirrors the files in this I<recentfile>.
 
 =cut
 
@@ -643,7 +643,7 @@ sub mirror {
 =head2 $success = $obj->mirror_path ( $arrref | $path )
 
 If the argument is a scalar, fetches a remote path into the local
-copy. $path is the path found in the recentfile, i.e. it is relative
+copy. $path is the path found in the I<recentfile>, i.e. it is relative
 to the root directory of the mirror.
 
 If $path is an array reference then all elements are treated as a path
@@ -714,7 +714,8 @@ sub mirror_path {
 Takes an absolute unix style path as argument and canonicalizes it to
 a shorter path if possible, removing things like double slashes or
 C</./> and removes references to C<../> directories to get a shorter
-unambiguos path.
+unambiguos path. This is used to make the code easier that determines
+if a file passed to C<upgrade()> is indeed below our C<localroot>.
 
 =cut
 
@@ -728,7 +729,7 @@ sub naive_path_normalize {
 
 =head2 $ret = $obj->read_recent_1 ( $recent_data )
 
-Delegate of recent_events() on protocol 1
+Delegate of C<recent_events()> on protocol 1
 
 =cut
 
@@ -793,8 +794,8 @@ sub recentfile {
 
 =head2 $ret = $obj->recentfile_basename
 
-Just the basename of our recentfile, composed from filenameroot,
-interval, and serializer_suffix. E.g. RECENT-6h.yaml
+Just the basename of our I<recentfile>, composed from C<filenameroot>,
+C<interval>, and C<serializer_suffix>. E.g. C<RECENT-6h.yaml>
 
 =cut
 
@@ -832,7 +833,7 @@ sub remotebase {
 
 =head2 my $rfile = $obj->rfile
 
-Returns the full path of the recentfile
+Returns the full path of the I<recentfile>
 
 =cut
 
@@ -887,11 +888,11 @@ sub unlock {
 
 =head2 $ret = $obj->update ($path, $type)
 
-Enter one file into the local recentfile. $path is the (usually
+Enter one file into the local I<recentfile>. $path is the (usually
 absolute) path. If the path is outside the I<our> tree, then it is
 ignored.
 
-$type is one of "new" or "delete".
+$type is one of C<new> or C<delete>.
 
 =cut
 
@@ -934,7 +935,7 @@ sub update {
 
 =head2 $obj->write_recent ($recent_files_arrayref)
 
-Writes a recentfile based on the current reflection of the current
+Writes a I<recentfile> based on the current reflection of the current
 state of the tree limited by the current interval.
 
 =cut
@@ -948,7 +949,7 @@ sub write_recent {
 
 =head2 $obj->write_0 ($recent_files_arrayref)
 
-Delegate of write_recent() on protocol 0
+Delegate of C<write_recent()> on protocol 0
 
 =cut
 
@@ -961,7 +962,7 @@ sub write_0 {
 
 =head2 $obj->write_1 ($recent_files_arrayref)
 
-Delegate of write_recent() on protocol 1
+Delegate of C<write_recent()> on protocol 1
 
 =cut
 
@@ -1044,8 +1045,8 @@ places. Uses a small metadata cocktail and pull technology.
  File::Mirror        JWU/File-Mirror/File-Mirror-0.10.tar.gz only local trees
  Mirror::YAML        ADAMK/Mirror-YAML-0.03.tar.gz           some sort of inner circle
  Net::DownloadMirror KNORR/Net-DownloadMirror-0.04.tar.gz    FTP sites and stuff
- Net::MirrorDir      KNORR/Net-MirrorDir-0.05.tar.gz         "
- Net::UploadMirror   KNORR/Net-UploadMirror-0.06.tar.gz      "
+ Net::MirrorDir      KNORR/Net-MirrorDir-0.05.tar.gz         dito
+ Net::UploadMirror   KNORR/Net-UploadMirror-0.06.tar.gz      dito
  Pushmi::Mirror      CLKAO/Pushmi-v1.0.0.tar.gz              something SVK
 
 =head2 COMPETITORS

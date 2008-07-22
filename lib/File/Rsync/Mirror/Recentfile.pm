@@ -1040,44 +1040,40 @@ places. Uses a small metadata cocktail and pull technology.
 
 =head2 COMPETITORS
 
-When the rsync people announced 3.0 they promised a batch mode for
-large rsynced clusters. The batch mode should solve a common problem
-of clusters and ftp mirrors and otherwise replicated datasets like
-CPAN: to transfer only the diff between two hosts it usually takes
-along time to determine the diff itself.
+The problem to solve which clusters and ftp mirrors and otherwise
+replicated datasets like CPAN share: how to transfer only a minimum
+amount of data to determine the diff between two hosts.
 
-For many years the best solution for this was csync2 which solves the
+Normally it takes a long time to determine the diff itself before it
+can be transferred. Known solutions at the time of this writing are
+csync2, and rsync 3 batch mode.
+
+For many years the best solution was csync2 which solves the
 problem by maintining a sqlite database on both ends and talking a
 highly sophisticated protocol to quickly determine which files to send
-at any given point in time. Csync2 is often inconvenient because the
-act of syncing demands quite an intimate relationship between the
-sender and the receiver and suffers when the number of syncing sites
-is large or connections are unreliable.
+and which to delete at any given point in time. Csync2 is often
+inconvenient because the act of syncing demands quite an intimate
+relationship between the sender and the receiver and suffers when the
+number of syncing sites is large or connections are unreliable.
 
-Rsync 3.0 batch mode works around these problems by providing
-rsync-able batch files which allow receiving nodes to replay the
-history of the other nodes. This reduces the need to have an
-incestuous relation but it has the disadvantage that these batch files
-replicate the contents of the involved files. This seems inappropriate
-when the nodes already have a means of communicating over rsync.
+Rsync 3 batch mode works around these problems by providing rsync-able
+batch files which allow receiving nodes to replay the history of the
+other nodes. This reduces the need to have an incestuous relation but
+it has the disadvantage that these batch files replicate the contents
+of the involved files. This seems inappropriate when the nodes already
+have a means of communicating over rsync.
 
-rersyncrecent solves this problem with a couple of (usually 2-5) index
-files which cover different overlapping time intervals. The master
-writes these files and the clients can construct the full tree from
-the information contained in them. The most recent index file usually
-covers the last seconds or minutes or even hours of the tree and
+rersyncrecent solves this problem with a couple of (usually 2-10)
+index files which cover different overlapping time intervals. The
+master writes these files and the clients can construct the full tree
+from the information contained in them. The most recent index file
+usually covers the last seconds or minutes or hours of the tree and
 depending on the needs, slaves can rsync every few seconds and then
 bring their trees in full sync.
 
 The rersyncrecent mode was developed for CPAN but it seems the most
 convenient and economic solution in many other areas too. I'm looking
 forward to the first FUSE based CPAN filesystem. Anyone?
-
-=head1 BUGS
-
-At the moment we have limited our scope to ordinary files and excluded
-empty directories and symlinks and special files from our
-considerations.
 
 =head1 AUTHOR
 

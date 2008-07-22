@@ -374,7 +374,7 @@ sub get_remote_recentfile_as_tempfile {
     my($self) = @_;
     mkpath $self->localroot;
     my($fh) = File::Temp->new(TEMPLATE => sprintf(".%s-XXXX",
-                                                  $self->filenameroot,
+                                                  $self->recentfile_basename,
                                                  ),
                               DIR => $self->localroot,
                               SUFFIX => $self->serializer_suffix,

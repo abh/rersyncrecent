@@ -336,9 +336,25 @@ sub aggregate {
     }
 }
 
+sub _debug_aggregate {
+    my($self) = @_;
+    my @aggs = sort { $a->{secs} <=> $b->{secs} }
+        map { { interval => $_, secs => $self->interval_secs($_)} }
+            $self->interval, @{$self->aggregator || []};
+    my $report = [];
+    for my $i (0..$#aggs) {
+        my $this = Storable::dclone $self;
+        $this->interval($aggs[$i]{interval});
+        my $rfile = $this->rfile;
+        my @stat = stat $rfile;
+        push @$report, [$rfile, map {$stat[$_]||"undef"} 7,9];
+    }
+    $report;
+}
+
 =head2 $success = $obj->full_mirror
 
-(TBD) Mirrors the whole remote site, starting with the smallest recentfile,
+(TBD) Mirrors the whole remote site, starting with the smallest I<recentfile>,
 switching to larger ones ...
 
 =cut

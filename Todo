@@ -1,26 +1,9 @@
-2008-07-21  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+2008-07-22  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
-	* remember that aggregate() shall only merge after a certain amount of
-	time in order to not only reduce costs of syncing but also to not steal
-	time from the origin server. If a minute has a few thousand new files
-	and there are many recentfiles and we rewrite all of them every minute,
-	this would cause a high burden. I'd say, given aggregators
-
-	1h 1d 1W 1M 1Q 1Y Z
-
-	then
-	
-	1h updates 1d on every call to aggregate
-	1d updates 1W earliest after 1h
-	1W updates 1M earliest after 1d
-	1M updates 1Q earliest after 1W
-	1Q updates 1Y earliest after 1M
-	1Y updates  Z earliest after 1Q
-	
+	* deletions of empty directories are currently not sent to the
+	recentfile.
 
 2008-07-20  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
-
-	* test the aggregate method, 02-operation does not yet
 
 	* Fill the Z file. gc or fsck or both. Somehow we must get the old files
 	into Z. We do not need the other files filled up with filesystem
@@ -28,9 +11,6 @@
 
 	* need interface to query for a file in order to NOT call update on
 	PAUSE a second time within a short time.
-
-	* support deletes (within the same routine?). Maybe it works with a
-	simple delete=>true option?
 
 2008-07-19  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 

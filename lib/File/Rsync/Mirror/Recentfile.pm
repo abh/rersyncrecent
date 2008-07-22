@@ -604,8 +604,8 @@ sub mirror {
     my @collector;
   ITEM: for my $i (0..$#$recent_data) {
         my $recent_event = $recent_data->[$i];
+        my $dst = $self->local_path($recent_event->{path});
         if ($recent_event->{type} eq "new"){
-            my $dst = $self->local_path($recent_event->{path});
             if ($self->verbose) {
                 my $doing = -e $dst ? "Syncing" : "Getting";
                 printf STDERR
@@ -628,7 +628,7 @@ sub mirror {
                     print STDERR "\n";
                 }
                 push @collector, $recent_event->{path};
-                if (@collector == $max_files_per_connection || $i==$#$recent_data) {
+                if (@collector == $max_files_per_connection) {
                     $success = eval { $self->mirror_path(\@collector) };
                     @collector = ();
                     my $sleep = $self->sleep_per_connection;
@@ -647,9 +647,24 @@ sub mirror {
                 print STDERR "DONE\n";
             }
         } elsif ($recent_event->{type} eq "delete") {
-            warn "deletions not yet implemented";
+            if (-l $dst or not -d _) {
+                unlink $dst or warn "error while unlinking '$dst': $!";
+            } else {
+                rmdir $dst or warn "error on rmdir '$dst': $!";
+            }
         } else {
             warn "Warning: invalid upload type '$recent_event->{type}'";
+        }
+    }
+    if (@collector) {
+        my $success = eval { $self->mirror_path(\@collector) };
+        if (!$success || $@) {
+            warn "error while mirroring: $@";
+            push @error, $@;
+            sleep 1;
+        }
+        if ($self->verbose) {
+            print STDERR "DONE\n";
         }
     }
     rename $trecentfile, $self->rfile;

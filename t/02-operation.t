@@ -18,7 +18,11 @@ my $root_to = "t/tb";
     my $rf = File::Rsync::Mirror::Recentfile->new_from_file("t/RECENT-6h.yaml");
     my $recent_events = $rf->recent_events;
     my $recent_events_cnt = scalar @$recent_events;
-    is(56, $recent_events_cnt, "found $recent_events_cnt events");
+    is (
+        92,
+        $recent_events_cnt,
+        "found $recent_events_cnt events",
+       );
     my $rf2 = Storable::dclone($rf);
     $rf2->interval("10s");
     $rf2->localroot($root_from);
@@ -27,12 +31,21 @@ my $root_to = "t/tb";
     $rf2->verbose(0);
     my $start = Time::HiRes::time;
     for my $e (@$recent_events) {
-        my $file_from = sprintf "%s/%s", $root_from, $e->{path};
-        mkpath dirname $file_from;
-        open my $fh, ">", $file_from or die "Could not open '$file_from': $!";
-        print $fh time, ":", $file_from, "\n";
-        close $fh or die "Could not close '$file_from': $!";
-        $rf2->update($file_from,$e->{type});
+        for my $pass (0,1) {
+            my $file = sprintf
+                (
+                 "%s/%s",
+                 $pass==0 ? $root_from : $root_to,
+                 $e->{path},
+                );
+            mkpath dirname $file;
+            open my $fh, ">", $file or die "Could not open '$file': $!";
+            print $fh time, ":", $file, "\n";
+            close $fh or die "Could not close '$file': $!";
+            if ($pass==0) {
+                $rf2->update($file,$e->{type});
+            }
+        }
     }
     $rf2->aggregate;
     my $took = Time::HiRes::time - $start;

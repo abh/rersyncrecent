@@ -388,6 +388,12 @@ sub get_remote_recentfile_as_tempfile {
                               UNLINK => 0,
                              );
     my($trecentfile) = $fh->filename;
+    my $rfile = $self->rfile;
+    if (-e $rfile) {
+        # saving on bandwidth. Might need to be configurable
+        # $self->bandwidth_is_cheap?
+        cp $rfile, $trecentfile or die "Could not copy '$rfile' to '$trecentfile': $!"
+    }
     unless ($self->rsync->exec(
                                src => join("/",
                                            $self->remotebase,

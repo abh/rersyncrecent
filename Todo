@@ -3,9 +3,15 @@
 	* rersyncrecent might be a cronjob with a (locked) state file which
 	contains things like after and maybe last z sync or such?
 
+	rrr-mirror might be an alternative name but how would we justify the
+	three Rs when there is no Re-Rsync-Recent?
+
+	With the --loop parameter it is an endless loop, without it is no loop.
+	At least this is simple.
+
 	* Are we careful enough to make the mirroring of the RECENT file itself
 	efficient? We should make a copy to the tempfile before we call rsync on
-	it.
+	it. NOW we are (git index 72a1b40..201c316)
 
 	* who must make the symlink? If it is just an ordinary method to create
 	the symlink then we leave some burden to the user. From the nature, only

@@ -14,7 +14,7 @@ my $root_from = "t/ta";
 my $root_to = "t/tb";
 
 {
-    BEGIN { $tests += 6 }
+    BEGIN { $tests += 7 }
     my $rf = File::Rsync::Mirror::Recentfile->new_from_file("t/RECENT-6h.yaml");
     my $recent_events = $rf->recent_events;
     my $recent_events_cnt = scalar @$recent_events;
@@ -52,7 +52,7 @@ my $root_to = "t/tb";
     ok $took > 0, "creating the tree and aggregate took $took seconds";
     my $dagg1 = $rf2->_debug_aggregate;
     sleep 1.5;
-    my $file_from = "$root_from/anotherfile";
+    my $file_from = "$root_from/anotherfilefromtesting";
     open my $fh, ">", $file_from or die "Could not open: $!";
     print $fh time, ":", $file_from;
     close $fh or die "Could not close: $!";
@@ -63,6 +63,7 @@ my $root_to = "t/tb";
     ok($dagg1->[1][2] < $dagg2->[1][2], "The 1m file timestamp larger: $dagg1->[1][2] < $dagg2->[1][2]");
     is $dagg1->[2][1], $dagg2->[2][1], "The 2m file size unchanged";
     is $dagg1->[3][2], $dagg2->[3][2], "The 1h file timestamp unchanged";
+    ok -l "t/ta/RECENT.recent", "found the symlink";
 }
 
 {

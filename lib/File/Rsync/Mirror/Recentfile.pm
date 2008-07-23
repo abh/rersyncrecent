@@ -19,6 +19,7 @@ package File::Rsync::Mirror::Recentfile;
 
 use Data::Serializer;
 use File::Basename qw(dirname fileparse);
+use File::Copy qw(cp);
 use File::Path qw(mkpath);
 use File::Rsync;
 use File::Temp;
@@ -357,6 +358,37 @@ sub _debug_aggregate {
         push @$report, [$rfile, map {$stat[$_]||"undef"} 7,9];
     }
     $report;
+}
+
+# (void) $self->_assert_symlink()
+sub _assert_symlink {
+    my($self) = @_;
+    my $symlink = File::Spec->catfile
+        (
+         $self->localroot,
+         sprintf
+         (
+          "%s.recent",
+          $self->filenameroot
+         )
+        );
+    my $howto_create_symlink; # 0=no need; 1=straight symlink; 2=rename symlink
+    if (-l $symlink) {
+        my $found_symlink = readlink $symlink;
+        if ($found_symlink eq $self->recentfile_basename) {
+            return;
+        } else {
+            $howto_create_symlink = 2;
+        }
+    } else {
+        $howto_create_symlink = 1;
+    }
+    if (1 == $howto_create_symlink) {
+        symlink $self->recentfile_basename, $symlink or die "Could not create symlink '$symlink': $!"
+    } else {
+        unlink "$symlink.$$"; # may fail
+        symlink $self->recentfile_basename, "$symlink.$$" or die "Could not create symlink '$symlink.$$': $!";
+        rename "$symlink.$$", $symlink or die "Could not rename '$symlink.$$' to $symlink: $!";    }
 }
 
 =head2 $success = $obj->full_mirror
@@ -869,7 +901,7 @@ sub recentfile {
     Carp::cluck("deprecated method recentfile called. Please use rfile instead!");
     my $recent = File::Spec->catfile(
                                      $self->localroot,
-                                     $self->recentfile_basename(),
+                                     $self->recentfile_basename,
                                     );
     return $recent;
 }
@@ -1011,6 +1043,7 @@ sub update {
 
         unshift @$recent, { epoch => $epoch, path => $path, type => $type };
         $self->write_recent($recent);
+        $self->_assert_symlink;
         $self->unlock;
     }
 }

@@ -218,6 +218,13 @@ recommended to set this value to true.
 After how many seconds shall we die if we cannot lock a I<recentfile>?
 Defaults to 600 seconds.
 
+=item loopinterval
+
+When mirror_loop is called, this accessor can specify how much time
+every loop shall at least take. If the work of a loop is done before
+that time has gone, sleeps for the rest of the time. Defaults to
+arbitrary 42 seconds.
+
 =item max_files_per_connection
 
 Maximum number of files that are transferred on a single rsync call.
@@ -588,14 +595,15 @@ sub meta_data {
     return $ret;
 }
 
-=head2 $success = $obj->mirror
+=head2 $success = $obj->mirror ( %options )
 
-Mirrors the files in this I<recentfile>.
+Mirrors the files in this I<recentfile>. If $options{after} is
+specified, only file events after this timestamp are being mirrored.
 
 =cut
 
 sub mirror {
-    my($self) = @_;
+    my($self, %options) = @_;
     my $trecentfile = $self->get_remote_recentfile_as_tempfile();
     my ($recent_data) = $self->recent_events_from_tempfile();
     my $i = 0;
@@ -604,6 +612,9 @@ sub mirror {
     my @collector;
   ITEM: for my $i (0..$#$recent_data) {
         my $recent_event = $recent_data->[$i];
+        if (exists $options{after} && $recent_event->{epoch} <= $options{after}) {
+            next ITEM;
+        }
         my $dst = $self->local_path($recent_event->{path});
         if ($recent_event->{type} eq "new"){
             if ($self->verbose) {
@@ -669,6 +680,40 @@ sub mirror {
     }
     rename $trecentfile, $self->rfile;
     return !@error;
+}
+
+=head2 (void) $obj->mirror_loop
+
+Run mirror in an endless loop. See the accessor loopinterval. XXX What
+happens if we miss the interval during a single loop?
+
+=cut
+
+sub mirror_loop {
+    my($self) = @_;
+    my $iteration_start = time;
+
+    my $Signal = 0;
+    $SIG{INT} = sub { $Signal++ };
+    my $loopinterval = $self->loopinterval || 42;
+    my $after = -999999999;
+  LOOP: while () {
+        $self->mirror($after);
+        last LOOP if $Signal;
+        my $re = $self->recent_events;
+        $after = $re->[0]{epoch};
+        if ($self->verbose) {
+            local $| = 1;
+            print "($after)";
+        }
+        if (time - $iteration_start < $loopinterval) {
+            sleep $iteration_start + $loopinterval - time;
+        }
+        if ($self->verbose) {
+            local $| = 1;
+            print "~";
+        }
+    }
 }
 
 =head2 $success = $obj->mirror_path ( $arrref | $path )

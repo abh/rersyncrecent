@@ -1,5 +1,8 @@
 2008-07-23  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
+	* rersyncrecent might be a cronjob with a (locked) state file which
+	contains things like after and maybe last z sync or such?
+
 	* Are we careful enough to make the mirroring of the RECENT file itself
 	efficient? We should make a copy to the tempfile before we call rsync on
 	it.

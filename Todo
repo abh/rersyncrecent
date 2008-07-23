@@ -20,7 +20,7 @@
 	in the symlink. RECENT.recent? RE.CENT is wrong because we must keep the
 	basename in case somebody maintains multiple recentfiles with different
 	basenames, like, say, security relevant files vs. full coverage. Or one
-	with symlink trees. Or one with pruned trees.
+	with symlink trees. Or one with pruned trees. DONE in commit 00c3a95.
 
 	* new accssor z-interval specifies how often the Z file is updated
 	against the filesystem. We probably want no epoch stamp on these
@@ -30,7 +30,7 @@
 2008-07-22  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* deletions of empty directories are currently not sent to the
-	recentfile.
+	recentfile. NOTTRUE!
 
 2008-07-20  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 

@@ -1,3 +1,23 @@
+2008-07-23  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* Are we careful enough to make the mirroring of the RECENT file itself
+	efficient? We should make a copy to the tempfile before we call rsync on
+	it.
+
+	* who must make the symlink? If it is just an ordinary method to create
+	the symlink then we leave some burden to the user. From the nature, only
+	update() is a candidate to do it. When the user switches the call to
+	update from one interval to another, we should immediately reflect that
+	in the symlink. RECENT.recent? RE.CENT is wrong because we must keep the
+	basename in case somebody maintains multiple recentfiles with different
+	basenames, like, say, security relevant files vs. full coverage. Or one
+	with symlink trees. Or one with pruned trees.
+
+	* new accssor z-interval specifies how often the Z file is updated
+	against the filesystem. We probably want no epoch stamp on these
+	entries. And we want to be able to filter the entries (e.g. no
+	by-modules and by-category tree)
+
 2008-07-22  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* deletions of empty directories are currently not sent to the

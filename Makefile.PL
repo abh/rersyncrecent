@@ -37,6 +37,7 @@ WriteMakefile
       'Time::HiRes'      => 0,
       'YAML::Syck'       => 0,
      },
+     EXE_FILES    => [qw(bin/rrr-aggregate)],
      dist => {
               DIST_DEFAULT => join(" ", # note: order matters!
                                    "Makefile",

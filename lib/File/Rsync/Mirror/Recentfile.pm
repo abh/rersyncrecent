@@ -601,6 +601,7 @@ sub merge {
             unshift @$recent, { epoch => $ev->{epoch}, path => $path, type => $ev->{type} };
         }
     }
+    # sort?
     $self->write_recent($recent);
     $self->unlock;
 }
@@ -1042,6 +1043,7 @@ sub update {
         $recent = [ grep { $_->{path} ne $path } @$recent ];
 
         unshift @$recent, { epoch => $epoch, path => $path, type => $type };
+        # sort?
         $self->write_recent($recent);
         $self->_assert_symlink;
         $self->unlock;
@@ -1094,6 +1096,63 @@ sub write_1 {
 BEGIN {
     my @pod_lines = 
         split /\n/, <<'=cut'; %serializers = map { eval } grep {s/^=item\s+C<<(.+)>>$/$1/} @pod_lines; }
+
+=head1 THE ARCHITECTURE OF A RECENTFILE
+
+A I<recentfile> consists of a hash that has two keys: C<meta> and
+C<recent>. The C<meta> part has metadata and the C<recent> part has a
+list of filenames.
+
+=head2 META PART
+
+Here we find things that are pretty much self explaining: all
+lowercase attributes are accessors and as such are explained somewhere
+above in this manpage. The uppercase attribute C<Producers> contains
+version information about involved software components. Nothing to
+worry about as I believe.
+
+=head2 RECENT PART
+
+This is the really interesting part. Every entry refers to some change
+in the filesystem. Better yet: to the discovery of a change in the
+filesystem. Do not be tempted to believe that the entry has a direct
+relation to something like modification time or change time on the
+filesystem level. The timestamp (I<epoch element>) of every entry does
+not necessarily correspond to the facts that the filesystem records
+but rather to the time when some process discovered the fact that
+something has changed or rather I<when> this somebody succeeded to
+report it to the I<recentfile> mechanism. This is why many parts of
+the code refer to I<events>, because we merely try to record the event
+of the discovery of a change, not the time of the change itself.
+
+All these entries can be devided into two types (denoted by the
+C<type> attribute): C<new>s and C<delete>s. Changes and creations are
+C<new>s. Deletes are C<delete>s.
+
+Besides an C<epoch> and a C<type> attribute we find a third one:
+C<path>. This path is relative to the directory we find the
+I<recentfile> in.
+
+The order of the entries in the I<recentfile> is by decreasing epoch
+attribute. These are either 0 or a unique floating point number. They
+are zero for events that were happening either before the time that
+the I<recentfile> mechanism was set up or were left undiscovered for a
+while. They are a floating point number for all events that were
+regularly discovered. and when the time machine of the kernel has not
+played foul, they are uniq. This means that when the admin of the
+upstream server carefully runs ntp, then the timestamps are
+decreasing.
+
+XXX do we want a guarantee that the epoch attr is unique? It would
+cost but it would be convenient for software running downstream. We
+could make the exception for timestamps of zero. So we could simply
+set timestamps to zero when we cannot keep the promise. XXX ???
+Remember that we hate promises that may or may not be kept. Keep in
+mind that at the moment we do not guarantee unique timestamps. But
+that a sane environment does work well. The stupid thing about I<a
+sane environment> is that it's impossible to diagnose if we have it or
+not. XXX ??? And when we make it configurable then the consumer would
+still have to program both options. Sigh. ??? XXX
 
 =head1 SERIALIZERS
 

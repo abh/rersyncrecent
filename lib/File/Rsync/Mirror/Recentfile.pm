@@ -1113,17 +1113,18 @@ worry about as I believe.
 
 =head2 RECENT PART
 
-This is the really interesting part. Every entry refers to some change
-in the filesystem. Better yet: to the discovery of a change in the
+This is the interesting part. Every entry refers to some change in the
+filesystem. Better yet: to the discovery of a change in the
 filesystem. Do not be tempted to believe that the entry has a direct
 relation to something like modification time or change time on the
 filesystem level. The timestamp (I<epoch element>) of every entry does
-not necessarily correspond to the facts that the filesystem records
-but rather to the time when some process discovered the fact that
-something has changed or rather I<when> this somebody succeeded to
+not necessarily correspond to the facts recorded by the filesystem but
+rather to the time when some process discovered the fact that
+something has changed or rather when this somebody I<succeeded> to
 report it to the I<recentfile> mechanism. This is why many parts of
-the code refer to I<events>, because we merely try to record the event
-of the discovery of a change, not the time of the change itself.
+the code refer to I<events>, because we merely try to record the
+I<event> of the discovery of a change, not the time of the change
+itself.
 
 All these entries can be devided into two types (denoted by the
 C<type> attribute): C<new>s and C<delete>s. Changes and creations are
@@ -1134,12 +1135,12 @@ C<path>. This path is relative to the directory we find the
 I<recentfile> in.
 
 The order of the entries in the I<recentfile> is by decreasing epoch
-attribute. These are either 0 or a unique floating point number. They
-are zero for events that were happening either before the time that
-the I<recentfile> mechanism was set up or were left undiscovered for a
-while. They are a floating point number for all events that were
+attribute. These are either 0 or a unique (?) floating point number.
+They are zero for events that were happening either before the time
+that the I<recentfile> mechanism was set up or were left undiscovered
+for a while. They are a floating point number for all events that were
 regularly discovered. and when the time machine of the kernel has not
-played foul, they are uniq. This means that when the admin of the
+played foul, they are unique. This means that when the admin of the
 upstream server carefully runs ntp, then the timestamps are
 decreasing.
 

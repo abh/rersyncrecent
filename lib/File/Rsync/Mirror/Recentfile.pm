@@ -556,15 +556,16 @@ sub lock {
 Bulk update of this object with another one. It's intended (but not
 enforced) to only merge smaller and younger $other objects into the
 current one. If the other file is a C<Z> file, then we do not merge in
-objects of type C<delete>.
+objects of type C<delete>. But if we encounter an object of type
+delete we delete the corresponding C<add> object.
 
 =cut
 
 sub merge {
     my($self,$other) = @_;
-    my $meth = $self->canonize;
-    unless ($meth) {
-        $meth = "naive_path_normalize";
+    my $canonmeth = $self->canonize;
+    unless ($canonmeth) {
+        $canonmeth = "naive_path_normalize";
     }
     my $lrd = $self->localroot;
     my $other_recent_events = $other->recent_events;
@@ -583,7 +584,7 @@ sub merge {
     # right
     for my $ev (reverse @$other_recent_events) {
         my $path = $ev->{path};
-        $path = $self->$meth($path);
+        $path = $self->$canonmeth($path);
         unless ($epoch) {
             $epoch = $ev->{epoch};
             $oldest_allowed = $epoch-$secs;
@@ -1097,38 +1098,72 @@ BEGIN {
     my @pod_lines = 
         split /\n/, <<'=cut'; %serializers = map { eval } grep {s/^=item\s+C<<(.+)>>$/$1/} @pod_lines; }
 
-=head1 THE ARCHITECTURE OF A RECENTFILE
+=head1 THE ARCHITECTURE OF A COLLECTION OF RECENTFILES
+
+The idea is that we want to have a short file that records really
+recent changes. So that a fresh mirror can be kept fresh as long as
+the connectivity is given. Then we want longer files that record the
+history before. So when the mirrot falls behind the update period
+reflected in the shortest file, it can switch to the next one. And if
+this is not long enough we want another one, again a bit longer. And
+we want one that completes the history back to the oldest file. For
+practical reasons the timespans of these files must overlap a bit and
+to keep the keep the bandwidth necessities low they must not be
+updated with the same frequency. That's the basic idea. The following
+example represents a tree that has a few updates every day:
+
+ RECENT-1h.yaml
+ RECENT-6h.yaml
+ RECENT-1d.yaml
+ RECENT-1M.yaml
+ RECENT-1W.yaml
+ RECENT-1Q.yaml
+ RECENT-1Y.yaml
+ RECENT-Z.yaml
+
+The last file, the Z file, contains the complementary files that are
+in none of the other files. It does never contain C<deletes>. Besides
+this it serves the role of a recovery mechanism or spill over pond.
+When things go wrong, it's a valuable controlling instance to hold the
+differences between the collection of limited interval files and the
+actual filesystem.
+
+=head2 A SINGLE RECENTFILE
 
 A I<recentfile> consists of a hash that has two keys: C<meta> and
 C<recent>. The C<meta> part has metadata and the C<recent> part has a
-list of filenames.
+list of fileobjects.
 
 =head2 THE META PART
 
 Here we find things that are pretty much self explaining: all
-lowercase attributes are accessors and as such are explained somewhere
+lowercase attributes are accessors and as such explained somewhere
 above in this manpage. The uppercase attribute C<Producers> contains
 version information about involved software components. Nothing to
 worry about as I believe.
 
 =head2 THE RECENT PART
 
-This is the interesting part. Every entry refers to some change in the
-filesystem. Better yet: to the discovery of a change in the
-filesystem. Do not be tempted to believe that the entry has a direct
-relation to something like modification time or change time on the
-filesystem level. The timestamp (I<epoch element>) of every entry does
-not necessarily correspond to the facts recorded by the filesystem but
-rather to the time when some process discovered the fact that
-something has changed or rather when this somebody I<succeeded> to
-report it to the I<recentfile> mechanism. This is why many parts of
-the code refer to I<events>, because we merely try to record the
-I<event> of the discovery of a change, not the time of the change
-itself.
+This is the interesting part. Every entry refers to some filesystem
+change (with path, epoch, type). The epoch value is the point in time
+when some change was I<registered>. Do not be tempted to believe that
+the entry has a direct relation to something like modification time or
+change time on the filesystem level. The timestamp (I<epoch> element)
+is a floating point number and does practically never correspond
+exactly to the data recorded in the filesystem but rather to the time
+when some process succeeded to report to the I<recentfile> mechanism
+that something has changed. This is why many parts of the code refer
+to I<events>, because we merely try to record the I<event> of the
+discovery of a change, not the time of the change itself.
 
 All these entries can be devided into two types (denoted by the
 C<type> attribute): C<new>s and C<delete>s. Changes and creations are
 C<new>s. Deletes are C<delete>s.
+
+Another distinction is for objects with an epoch timestamp and others
+without. All files that were already existing on the filesystem before
+the I<recentfile> mechanism was installed, get recorded with a
+timestamp of zero.
 
 Besides an C<epoch> and a C<type> attribute we find a third one:
 C<path>. This path is relative to the directory we find the

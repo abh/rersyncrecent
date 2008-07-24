@@ -1103,7 +1103,7 @@ A I<recentfile> consists of a hash that has two keys: C<meta> and
 C<recent>. The C<meta> part has metadata and the C<recent> part has a
 list of filenames.
 
-=head2 META PART
+=head2 THE META PART
 
 Here we find things that are pretty much self explaining: all
 lowercase attributes are accessors and as such are explained somewhere
@@ -1111,7 +1111,7 @@ above in this manpage. The uppercase attribute C<Producers> contains
 version information about involved software components. Nothing to
 worry about as I believe.
 
-=head2 RECENT PART
+=head2 THE RECENT PART
 
 This is the interesting part. Every entry refers to some change in the
 filesystem. Better yet: to the discovery of a change in the
@@ -1138,22 +1138,29 @@ The order of the entries in the I<recentfile> is by decreasing epoch
 attribute. These are either 0 or a unique (?) floating point number.
 They are zero for events that were happening either before the time
 that the I<recentfile> mechanism was set up or were left undiscovered
-for a while. They are a floating point number for all events that were
-regularly discovered. and when the time machine of the kernel has not
-played foul, they are unique. This means that when the admin of the
-upstream server carefully runs ntp, then the timestamps are
-decreasing.
+for a while and never handed over to update(). They are floating point
+numbers for all events being regularly handed to update(). And when
+the server has ntp running correctly, then the timestamps are
+decreasing and unique.
 
-XXX do we want a guarantee that the epoch attr is unique? It would
-cost but it would be convenient for software running downstream. We
-could make the exception for timestamps of zero. So we could simply
-set timestamps to zero when we cannot keep the promise. XXX ???
-Remember that we hate promises that may or may not be kept. Keep in
-mind that at the moment we do not guarantee unique timestamps. But
-that a sane environment does work well. The stupid thing about I<a
+XXX do we want a guarantee that the epoch attr is decreasing and
+unique? It would cost but it would be convenient for software running
+downstream. We could make the exception for timestamps of zero. So we
+could simply set timestamps to zero when we cannot keep the promise.
+XXX ??? Remember that we hate promises that may or may not be kept.
+Keep in mind that at the moment we do not guarantee unique timestamps.
+But that a sane environment does work well. The stupid thing about I<a
 sane environment> is that it's impossible to diagnose if we have it or
 not. XXX ??? And when we make it configurable then the consumer would
-still have to program both options. Sigh. ??? XXX
+still have to program both options. Sigh. ??? XXX What to do if a call
+to time gives a value that is not greater than the previous? How would
+we communicate this fact to subsequent calls to update() and to
+downstream servers? Just an entry in the meta section? Collect events
+in a separate storage area? Reinvent NTP badly? We can document that
+the origin server must run ntp. There cannot be sanctions for not
+running it. But how can we recover? Recovering happens peacefully in
+the Z loops. Without Z loop no sanity. This is valid not only for time
+running backwards. Need a chapter on corruption. XXX
 
 =head1 SERIALIZERS
 

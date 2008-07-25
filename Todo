@@ -1,5 +1,12 @@
 2008-07-25  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
+	* if there were a filesystem based on this, it would have a slow access
+	to inexistent files. It would probably provide wrong readdir (only based
+	on current content) or also a slow one (based on a recentfile written
+	after the call). But it would provide fast access to existing files. Or
+	one would deliberately allow slightly blurred answers based on some
+	sqlite reflection of the recentfiles.
+
 	* todo: write a variant of mirror() that compines two or more
 	recentfiles and treats them like one
 

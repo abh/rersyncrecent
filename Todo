@@ -1,3 +1,31 @@
+2008-07-25  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* todo: write a variant of mirror() that compines two or more
+	recentfiles and treats them like one
+
+	* todo: signal handler to remove the tempfile
+
+2008-07-24  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* now that we have the symlink I forgot how it should be used in
+	practice.
+
+	* the z loop: add missing files to Z file. Just append them (instead of
+	prepending). So one guy prepends something from the Y file from time to
+	time and another guy appends something rather frequently. Collecting
+	pond. When Y merges into Z, things get epoch and the collecting pond
+	gets smaller. What exactly are "missing files"?
+
+	take note of current epoch of the alpha file, let's call it the
+	recent-ts
+
+	find all files on disk
+
+	remove all files registered in the recentworld up to recent-ts
+
+	remove all files that have been deleted after recent-ts according to
+	recentworld
+
 2008-07-23  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* rersyncrecent might be a cronjob with a (locked) state file which
@@ -9,28 +37,10 @@
 	With the --loop parameter it is an endless loop, without it is no loop.
 	At least this is simple.
 
-	* Are we careful enough to make the mirroring of the RECENT file itself
-	efficient? We should make a copy to the tempfile before we call rsync on
-	it. NOW we are (git index 72a1b40..201c316)
-
-	* who must make the symlink? If it is just an ordinary method to create
-	the symlink then we leave some burden to the user. From the nature, only
-	update() is a candidate to do it. When the user switches the call to
-	update from one interval to another, we should immediately reflect that
-	in the symlink. RECENT.recent? RE.CENT is wrong because we must keep the
-	basename in case somebody maintains multiple recentfiles with different
-	basenames, like, say, security relevant files vs. full coverage. Or one
-	with symlink trees. Or one with pruned trees. DONE in commit 00c3a95.
-
-	* new accssor z-interval specifies how often the Z file is updated
+	* todo: new accssor z-interval specifies how often the Z file is updated
 	against the filesystem. We probably want no epoch stamp on these
 	entries. And we want to be able to filter the entries (e.g. no
 	by-modules and by-category tree)
-
-2008-07-22  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
-
-	* deletions of empty directories are currently not sent to the
-	recentfile. NOTTRUE!
 
 2008-07-20  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
@@ -45,23 +55,6 @@
 
 	* recommended update interval? Makes no sense, is different for
 	different users.
-
-	* I just asked http://filext.com/file-extension/cent to discover that
-	.cent would be unused:) RE.CENT is a symlink to (RECENT.yaml is a
-	symlink to)? RECENT-1h.yaml? Doesn't sound completely useless.
-
-	* I keep changing my mind about what the best shortest File is on my
-	box. I see that the shortest file needs a special name like the zero
-	file (A?). And that the user must get the effective interval from
-	within. I want to call it RECENT.yaml. It could always be a symlink to
-	our current favourite, right? Maybe need some symlink juggling?
-
-2008-07-08  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
-
-	* find out what it would need to implement and decide if we want to
-	support symlinks, directories, sockets, etc. Update 2008-07-20: nothing!
-	rsync supports them and if the user writes symlinks and directories into
-	the RECENT file, it should JUST WORK. (untested)
 
 	* Moosify
 

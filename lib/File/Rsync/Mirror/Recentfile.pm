@@ -1107,13 +1107,13 @@ BEGIN {
 The idea is that we want to have a short file that records really
 recent changes. So that a fresh mirror can be kept fresh as long as
 the connectivity is given. Then we want longer files that record the
-history before. So when the mirrot falls behind the update period
+history before. So when the mirror falls behind the update period
 reflected in the shortest file, it can switch to the next one. And if
 this is not long enough we want another one, again a bit longer. And
 we want one that completes the history back to the oldest file. For
 practical reasons the timespans of these files must overlap a bit and
-to keep the keep the bandwidth necessities low they must not be
-updated with the same frequency. That's the basic idea. The following
+to keep the bandwidth necessities low they must not be
+updated too frequently. That's the basic idea. The following
 example represents a tree that has a few updates every day:
 
  RECENT-1h.yaml
@@ -1174,32 +1174,27 @@ C<path>. This path is relative to the directory we find the
 I<recentfile> in.
 
 The order of the entries in the I<recentfile> is by decreasing epoch
-attribute. These are either 0 or a unique (?) floating point number.
-They are zero for events that were happening either before the time
-that the I<recentfile> mechanism was set up or were left undiscovered
-for a while and never handed over to update(). They are floating point
+attribute. These are either 0 or a unique floating point number. They
+are zero for events that were happening either before the time that
+the I<recentfile> mechanism was set up or were left undiscovered for a
+while and never handed over to update(). They are floating point
 numbers for all events being regularly handed to update(). And when
 the server has ntp running correctly, then the timestamps are
-decreasing and unique.
+actually decreasing and unique.
 
-XXX do we want a guarantee that the epoch attr is decreasing and
-unique? It would cost but it would be convenient for software running
-downstream. We could make the exception for timestamps of zero. So we
-could simply set timestamps to zero when we cannot keep the promise.
-XXX ??? Remember that we hate promises that may or may not be kept.
-Keep in mind that at the moment we do not guarantee unique timestamps.
-But that a sane environment does work well. The stupid thing about I<a
-sane environment> is that it's impossible to diagnose if we have it or
-not. XXX ??? And when we make it configurable then the consumer would
-still have to program both options. Sigh. ??? XXX What to do if a call
-to time gives a value that is not greater than the previous? How would
-we communicate this fact to subsequent calls to update() and to
-downstream servers? Just an entry in the meta section? Collect events
-in a separate storage area? Reinvent NTP badly? We can document that
-the origin server must run ntp. There cannot be sanctions for not
-running it. But how can we recover? Recovering happens peacefully in
-the Z loops. Without Z loop no sanity. This is valid not only for time
-running backwards. Need a chapter on corruption. XXX
+head1 CORRUPTION AND RECOVERY
+
+If the origin host breaks the promise to deliver consistent and
+complete I<recentfiles> then the way back to sanity shall be achieved
+through either the C<zloop> (still TBD) or traditional rsyncing
+between the hosts. For example, if the origin server forgets to deploy
+ntp and the clock on it jumps backwards some day, then this would
+probably go unnoticed for a while and many software components that
+rely on the time never running backwards will make wrong decisions.
+After some time this accident would probably still be found in one of
+the I<recentfiles> but would become meaningless as soon as a mirror
+has run through the sanitizing procedures. Same goes for origin hosts
+that forget to include or deliberately omit some files.
 
 =head1 SERIALIZERS
 

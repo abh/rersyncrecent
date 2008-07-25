@@ -1,5 +1,7 @@
 2008-07-25  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
+	* a second rsync server with access control for PAUSE
+
 	* if there were a filesystem based on this, it would have a slow access
 	to inexistent files. It would probably provide wrong readdir (only based
 	on current content) or also a slow one (based on a recentfile written

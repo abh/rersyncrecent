@@ -455,6 +455,10 @@ sub interval {
         $self->_rfile(undef);
     }
     $interval = $self->_interval;
+    unless (defined $interval) {
+        die "Alert: interval undefined for recentfile '".$self->rfile."'. Cannot continue.";
+    }
+    return $interval;
 }
 
 =head2 $secs = $obj->interval_secs ( $interval_spec )

@@ -1182,7 +1182,7 @@ numbers for all events being regularly handed to update(). And when
 the server has ntp running correctly, then the timestamps are
 actually decreasing and unique.
 
-head1 CORRUPTION AND RECOVERY
+=head1 CORRUPTION AND RECOVERY
 
 If the origin host breaks the promise to deliver consistent and
 complete I<recentfiles> then the way back to sanity shall be achieved
@@ -1298,9 +1298,10 @@ usually covers the last seconds or minutes or hours of the tree and
 depending on the needs, slaves can rsync every few seconds and then
 bring their trees in full sync.
 
-The rersyncrecent mode was developed for CPAN but it seems the most
-convenient and economic solution in many other areas too. I'm looking
-forward to the first FUSE based CPAN filesystem. Anyone?
+The rersyncrecent mode was developed for CPAN but I hope it is a
+convenient and economic general purpose solution. I'm looking forward
+to see a CPAN backbone that is only a few seconds behind PAUSE. And
+then ... the first FUSE based CPAN filesystem anyone?
 
 =head1 AUTHOR
 

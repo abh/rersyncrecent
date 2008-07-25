@@ -1198,7 +1198,7 @@ that forget to include or deliberately omit some files.
 
 =head1 SERIALIZERS
 
-The following suffixes are supported and trigger the user of these
+The following suffixes are supported and trigger the use of these
 serializers:
 
 =over 4

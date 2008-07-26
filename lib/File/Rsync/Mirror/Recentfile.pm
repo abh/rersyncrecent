@@ -456,7 +456,8 @@ sub interval {
     }
     $interval = $self->_interval;
     unless (defined $interval) {
-        die "Alert: interval undefined for recentfile '".$self->rfile."'. Cannot continue.";
+        # do not ask the $self too much, it recurses!
+        die "Alert: interval undefined for '".$self."'. Cannot continue.";
     }
     return $interval;
 }

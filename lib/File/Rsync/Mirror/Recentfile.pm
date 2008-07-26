@@ -658,8 +658,15 @@ sub mirror {
     my $last_item = $#$recent_data;
     if (defined $options{after}) {
         if ($recent_data->[0]{epoch} > $options{after}) {
-            my $f = first {$recent_data->[$_]{epoch} <= $options{after}} 0..$#$recent_data;
-            $last_item = $f-1 if defined $f;
+            if (
+                my $f = first
+                        {$recent_data->[$_]{epoch} <= $options{after}}
+                        0..$#$recent_data
+               ) {
+                $last_item = $f-1;
+            }
+        } else {
+            $last_item = -1;
         }
     }
   ITEM: for my $i (0..$last_item) {

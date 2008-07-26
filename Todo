@@ -1,3 +1,14 @@
+2008-07-26  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* it just occurred to me that mirroring hosts can help out each other
+	even without rewriting the recentfile. Just fetch the stuff to mirror
+	from several places, bingo. But that's something that should rather live
+	in a separate package or in rsync directly.
+
+	* cronjobs are unsuited because with ntp they would all come at the full
+	minute and disturb each other. Besides that I'd hate to have a backbone
+	with more than a few seconds latency.
+
 2008-07-25  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* a second rsync server with access control for PAUSE
@@ -9,7 +20,7 @@
 	one would deliberately allow slightly blurred answers based on some
 	sqlite reflection of the recentfiles.
 
-	* todo: write a variant of mirror() that compines two or more
+	* todo: write a variant of mirror() that combines two or more
 	recentfiles and treats them like one
 
 	* todo: signal handler to remove the tempfile

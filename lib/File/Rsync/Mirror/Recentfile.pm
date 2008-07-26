@@ -23,6 +23,7 @@ use File::Copy qw(cp);
 use File::Path qw(mkpath);
 use File::Rsync;
 use File::Temp;
+use List::Util qw(first);
 use Scalar::Util qw(reftype);
 use Storable;
 use Time::HiRes qw();
@@ -653,13 +654,16 @@ sub mirror {
     my ($recent_data) = $self->recent_events_from_tempfile();
     my $i = 0;
     my @error;
-    my $total = @$recent_data;
     my @collector;
-  ITEM: for my $i (0..$#$recent_data) {
-        my $recent_event = $recent_data->[$i];
-        if (exists $options{after} && $recent_event->{epoch} <= $options{after}) {
-            next ITEM;
+    my $last_item = $#$recent_data;
+    if (defined $options{after}) {
+        if ($recent_data->[0]{epoch} > $options{after}) {
+            my $f = first {$recent_data->[$_]{epoch} <= $options{after}} 0..$#$recent_data;
+            $last_item = $f-1 if defined $f;
         }
+    }
+  ITEM: for my $i (0..$last_item) {
+        my $recent_event = $recent_data->[$i];
         my $dst = $self->local_path($recent_event->{path});
         if ($recent_event->{type} eq "new"){
             if ($self->verbose) {
@@ -669,7 +673,7 @@ sub mirror {
                      "%s (%d/%d) %s ... ",
                      $doing,
                      1+$i,
-                     $total,
+                     1+$last_item,
                      $recent_event->{path},
                     );
             }

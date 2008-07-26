@@ -67,24 +67,35 @@ my $root_to = "t/tb";
 }
 
 {
-    BEGIN { $tests += 1 }
+    BEGIN { $tests += 2 }
     my $rf = File::Rsync::Mirror::Recentfile->new
         (
-         filenameroot => "RECENT",
-         interval => q(1m),
-         remote_dir => $root_from,
-         localroot => $root_to,
-         rsync_options => {
-                           compress => 0,
-                           'rsync-path' => '/usr/bin/rsync',
-                           links => 1,
-                           times => 1,
-                           'omit-dir-times' => 1,
-                           checksum => 0,
+         filenameroot   => "RECENT",
+         interval       => q(1m),
+         remote_dir     => $root_from,
+         localroot      => $root_to,
+         # verbose        => 1,
+         rsync_options  => {
+                           compress          => 0,
+                           'rsync-path'      => '/usr/bin/rsync',
+                           links             => 1,
+                           times             => 1,
+                           'omit-dir-times'  => 1,
+                           checksum          => 0,
                           },
         );
-    my $success = $rf->mirror;
-    ok($success, "mirrored with success");
+    my $somefile_epoch;
+    for my $pass (0,1) {
+        my $success;
+        if (0 == $pass) {
+            $success = $rf->mirror;
+            my $re = $rf->recent_events;
+            $somefile_epoch = $re->[24]{epoch};
+        } elsif (1 == $pass) {
+            $success = $rf->mirror(after => $somefile_epoch);
+        }
+        ok($success, "mirrored with success");
+    }
 }
 
 

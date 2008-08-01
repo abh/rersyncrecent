@@ -427,15 +427,15 @@ sub get_remote_recentfile_as_tempfile {
         # $self->bandwidth_is_cheap?
         cp $rfile, $trecentfile or die "Could not copy '$rfile' to '$trecentfile': $!"
     }
-    unless ($self->rsync->exec(
+    while (!$self->rsync->exec(
                                src => join("/",
                                            $self->remotebase,
                                            $self->recentfile_basename),
                                dst => $trecentfile,
                               )) {
-        unlink $trecentfile or die "Couldn't unlink '$trecentfile': $!";
-        die sprintf "Error while rsyncing: %s", $self->rsync->err;
+        $self->register_rsync_error ($self->rsync->err);
     }
+    $self->un_register_rsync_error ();
     my $mode = 0644;
     chmod $mode, $trecentfile or die "Could not chmod $mode '$trecentfile': $!";
     $self->_current_tempfile ($trecentfile);
@@ -726,7 +726,7 @@ sub mirror {
     if (@collector) {
         my $success = eval { $self->mirror_path(\@collector) };
         if (!$success || $@) {
-            warn "error while mirroring: $@";
+            warn "Warning: Unknown error while mirroring: $@";
             push @error, $@;
             sleep 1;
         }
@@ -800,14 +800,14 @@ sub mirror_path {
         }
         $fh->flush;
         $fh->unlink_on_destroy(1);
-        unless ($self->rsync->exec
-                (
-                 src => join("/",
-                             $self->remotebase,
-                            ),
-                 dst => $dst,
-                 'files-from' => $fh->filename,
-                )) {
+        while (!$self->rsync->exec
+               (
+                src => join("/",
+                            $self->remotebase,
+                           ),
+                dst => $dst,
+                'files-from' => $fh->filename,
+               )) {
             my($err) = $self->rsync->err;
             if ($self->ignore_link_stat_errors && $err =~ m{^ rsync: \s link_stat }x ) {
                 if ($self->verbose) {
@@ -815,18 +815,19 @@ sub mirror_path {
                 }
                 return 1;
             }
-            die sprintf "Error: %s", $err;
+            $self->register_rsync_error ($err);
         }
+        $self->un_register_rsync_error ();
     } else {
         my $dst = $self->local_path($path);
         mkpath dirname $dst;
-        unless ($self->rsync->exec
-                (
-                 src => join("/",
-                             $self->remotebase,
-                             $path
-                            ),
-                 dst => $dst,
+        while (!$self->rsync->exec
+               (
+                src => join("/",
+                            $self->remotebase,
+                            $path
+                           ),
+                dst => $dst,
                 )) {
             my($err) = $self->rsync->err;
             if ($self->ignore_link_stat_errors && $err =~ m{^ rsync: \s link_stat }x ) {
@@ -835,10 +836,11 @@ sub mirror_path {
                 }
                 return 1;
             }
-            die sprintf "Error: %s", $err;
+            $self->register_rsync_error ($err);
         }
-        return 1;
+        $self->un_register_rsync_error ();
     }
+    return 1;
 }
 
 =head2 $path = $obj->naive_path_normalize ($path)
@@ -1003,6 +1005,34 @@ sub rsync {
     return $rsync;
 }
 
+=head2 (void) $obj->register_rsync_error($err)
+
+=head2 (void) $obj->un_register_rsync_error()
+
+Called whenever the File::Rsync object fails to execute with the
+server. Issues a warning and sleeps for an increasing amount of time.
+un_register_rsync_error resets the sleep time;
+
+=cut
+
+{
+    my $no_success_count = 0;
+    my $no_success_time = 0;
+    sub register_rsync_error {
+        my($self, $err) = @_;
+        $no_success_time = time;
+        $no_success_count++;
+        my $sleep = 12 * $no_success_count;
+        $sleep = 120 if $sleep > 120;
+        warn sprintf "Warning: %s, Error while rsyncing: '%s', sleeping %d", scalar(localtime($no_success_time)), $err, $sleep;
+        sleep $sleep
+    }
+    sub un_register_rsync_error {
+        my($self) = @_;
+        $no_success_time = 0;
+        $no_success_count = 0;
+    }
+}
 =head2 (void) $obj->unlock
 
 Unlocking is implemented with an C<rmdir> on a locking directory

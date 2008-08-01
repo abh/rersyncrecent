@@ -1,3 +1,12 @@
+2008-08-01  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* 1217622571.0889 - 1217597432.86734 = 25138.2215600014
+
+	25138.2215600014/3600 = 6.98283932222261
+
+	It jumps into the eye that this is ~ 7 hours, not ~6, so there seems to
+	be a bug in the aggregator.
+
 2008-07-27  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* e.g. id/Y/YE/YEWENBIN/Emacs-PDE-0.2.16.tar.gz: Do we have it, should

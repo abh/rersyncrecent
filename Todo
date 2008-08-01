@@ -1,9 +1,27 @@
+2008-07-27  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* e.g. id/Y/YE/YEWENBIN/Emacs-PDE-0.2.16.tar.gz: Do we have it, should
+	we have it, can we mirror it, mirror it!
+
+	I fear this needs a new class which might be called
+	File::Rsync::Mirror::Recent. It would collect all recentfiles of a kind
+	and treat them as an entity. I realize that a single recentfile may be
+	sufficient for certain tasks and that it is handy for the low level
+	programmer but it is not nice to use. If there is a delete in the 1h
+	file then the 6h file still contains it. Seekers of the best information
+	need to combine at least some of the recentfiles most of the time.
+
+	There is the place for the Z loop!
+
+	But the combination is something to collect in a database, isn't it. Did
+	csync2 just harrumph?
+
 2008-07-26  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
-	* it just occurred to me that mirroring hosts can help out each other
-	even without rewriting the recentfile. Just fetch the stuff to mirror
-	from several places, bingo. But that's something that should rather live
-	in a separate package or in rsync directly.
+	* it just occurred to me that hosts in the same mirroring pool could
+	help out each other even without rewriting the recentfile. Just fetch
+	the stuff to mirror from several places, bingo. But that's something
+	that should rather live in a separate package or in rsync directly.
 
 	* cronjobs are unsuited because with ntp they would all come at the full
 	minute and disturb each other. Besides that I'd hate to have a backbone
@@ -11,7 +29,8 @@
 
 2008-07-25  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
-	* a second rsync server with access control for PAUSE
+	* a second rsync server with access control for PAUSE. Port? 873 is the
+	standard port, let's take 8873.
 
 	* if there were a filesystem based on this, it would have a slow access
 	to inexistent files. It would probably provide wrong readdir (only based

@@ -23,12 +23,11 @@ my $root_to = "t/tb";
         $recent_events_cnt,
         "found $recent_events_cnt events",
        );
-    my $rf2 = Storable::dclone($rf);
-    $rf2->interval("10s");
-    $rf2->localroot($root_from);
-    $rf2->comment("produced during the test 02-operation.t");
-    $rf2->aggregator([qw(1m 2m 1h Z)]);
-    $rf2->verbose(0);
+    $rf->interval("10s");
+    $rf->localroot($root_from);
+    $rf->comment("produced during the test 02-operation.t");
+    $rf->aggregator([qw(1m 2m 1h Z)]);
+    $rf->verbose(0);
     my $start = Time::HiRes::time;
     for my $e (@$recent_events) {
         for my $pass (0,1) {
@@ -43,22 +42,22 @@ my $root_to = "t/tb";
             print $fh time, ":", $file, "\n";
             close $fh or die "Could not close '$file': $!";
             if ($pass==0) {
-                $rf2->update($file,$e->{type});
+                $rf->update($file,$e->{type});
             }
         }
     }
-    $rf2->aggregate;
+    $rf->aggregate;
     my $took = Time::HiRes::time - $start;
     ok $took > 0, "creating the tree and aggregate took $took seconds";
-    my $dagg1 = $rf2->_debug_aggregate;
+    my $dagg1 = $rf->_debug_aggregate;
     sleep 1.5;
     my $file_from = "$root_from/anotherfilefromtesting";
     open my $fh, ">", $file_from or die "Could not open: $!";
     print $fh time, ":", $file_from;
     close $fh or die "Could not close: $!";
-    $rf2->update($file_from,"new");
-    $rf2->aggregate;
-    my $dagg2 = $rf2->_debug_aggregate;
+    $rf->update($file_from,"new");
+    $rf->aggregate;
+    my $dagg2 = $rf->_debug_aggregate;
     ok($dagg1->[0][1] < $dagg2->[0][1], "The 10s file size larger: $dagg1->[0][1] < $dagg2->[0][1]");
     ok($dagg1->[1][2] < $dagg2->[1][2], "The 1m file timestamp larger: $dagg1->[1][2] < $dagg2->[1][2]");
     is $dagg1->[2][1], $dagg2->[2][1], "The 2m file size unchanged";

@@ -605,9 +605,9 @@ sub merge {
             push @$recent, { epoch => $ev->{epoch}, path => $path, type => $ev->{type} };
         }
     }
-    push @$recent, @$my_recent;
-    $self->recent_events($recent);
-    $self->write_recent($recent);
+    unshift @$my_recent, @$recent;
+    $self->recent_events($my_recent);
+    $self->write_recent($my_recent);
     $self->unlock;
 }
 

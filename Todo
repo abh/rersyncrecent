@@ -1,5 +1,22 @@
 2008-08-02  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
+	* To get merge operation faster would need a good benchmark test. What
+	02 spits out isn't reliable enough and is dominated by many other
+	things. Between
+
+	commit 10176bf6b79865d4fe9f46e3857a3b8669fa7961
+	Author: Andreas J. Koenig <k@k75.(none)>
+	Date:   Sat Aug 2 07:58:04 2008 +0200
+
+	and
+
+	commit 3243120a0c120aaddcd9b1f4db6689ff12ed2523
+	Author: Andreas J. Koenig <k@k75.(none)>
+	Date:   Sat Aug 2 11:40:29 2008 +0200
+
+	there was a lot of trying but the effect is hardly measurable with
+	current tests.	
+
 	* overhead of connecting seems high. When setting
 	max_files_per_connection to 1 we see that.
 
@@ -10,7 +27,7 @@
 	25138.2215600014/3600 = 6.98283932222261
 
 	It jumps into the eye that this is ~ 7 hours, not ~6, so there seems to
-	be a bug in the aggregator.
+	be a bug in the aggregator. FIXED
 
 2008-07-27  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 

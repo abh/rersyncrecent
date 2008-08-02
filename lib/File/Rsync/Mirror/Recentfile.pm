@@ -569,10 +569,6 @@ delete we delete the corresponding C<add> object.
 
 sub merge {
     my($self,$other) = @_;
-    my $canonmeth = $self->canonize;
-    unless ($canonmeth) {
-        $canonmeth = "naive_path_normalize";
-    }
     my $lrd = $self->localroot;
     my $other_recent = $other->recent_events || [];
     $self->lock;
@@ -594,7 +590,6 @@ sub merge {
     my $recent = [];
     for my $ev (@$other_recent) {
         my $path = $ev->{path};
-        $path = $self->$canonmeth($path);
         next if $have{$path}++;
         if ($self->interval eq "Z" and $ev->{type} eq "delete") {
         } else {
@@ -1065,11 +1060,11 @@ sub update {
     die "update called without path argument" unless defined $path;
     die "update called without type argument" unless defined $type;
     die "update called with illegal type argument: $type" unless $type =~ /(new|delete)/;
-    my $meth = $self->canonize;
-    unless ($meth) {
-        $meth = "naive_path_normalize";
+    my $canonmeth = $self->canonize;
+    unless ($canonmeth) {
+        $canonmeth = "naive_path_normalize";
     }
-    $path = $self->$meth($path);
+    $path = $self->$canonmeth($path);
     my $lrd = $self->localroot;
     if ($path =~ s|^\Q$lrd\E||) {
         $path =~ s|^/||;

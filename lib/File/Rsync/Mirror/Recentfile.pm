@@ -1009,9 +1009,10 @@ sub rsync {
 
 =head2 (void) $obj->un_register_rsync_error()
 
-Called whenever the File::Rsync object fails to execute with the
-server. Issues a warning and sleeps for an increasing amount of time.
-un_register_rsync_error resets the sleep time;
+Register_rsync_error is called whenever the File::Rsync object fails
+on an exec (say, connection doesn't succeed). It issues a warning and
+sleeps for an increasing amount of time. Un_register_rsync_error
+resets the sleep time.
 
 =cut
 
@@ -1024,7 +1025,13 @@ un_register_rsync_error resets the sleep time;
         $no_success_count++;
         my $sleep = 12 * $no_success_count;
         $sleep = 120 if $sleep > 120;
-        warn sprintf "Warning: %s, Error while rsyncing: '%s', sleeping %d", scalar(localtime($no_success_time)), $err, $sleep;
+        warn sprintf
+            (
+             "Warning: %s, Error while rsyncing: '%s', sleeping %d",
+             scalar(localtime($no_success_time)),
+             $err,
+             $sleep,
+            );
         sleep $sleep
     }
     sub un_register_rsync_error {

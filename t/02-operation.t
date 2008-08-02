@@ -14,9 +14,7 @@ use YAML::Syck;
 my $root_from = "t/ta";
 my $root_to = "t/tb";
 for my $root ($root_from, $root_to) {
-    for my $lockfile (<$root/*.lock>) {
-        rmdir $lockfile or die "Could not unlink '$lockfile': $!";
-    }
+    rmtree $root;
 }
 
 {
@@ -76,7 +74,7 @@ for my $root ($root_from, $root_to) {
             (
              "%s/secscnt%03d",
              $root_from,
-             $i,
+             $i % 12,
             );
         open my $fh, ">", $file or die "Could not open '$file': $!";
         print $fh time, ":", $file, "\n";

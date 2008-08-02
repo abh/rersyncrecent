@@ -63,6 +63,8 @@ my $root_to = "t/tb";
     is $dagg1->[2][1], $dagg2->[2][1], "The 2m file size unchanged";
     is $dagg1->[3][2], $dagg2->[3][2], "The 1h file timestamp unchanged";
     ok -l "t/ta/RECENT.recent", "found the symlink";
+    my $have_slept = my $have_worked = 0;
+    $start = Time::HiRes::time;
     for my $i (0..30) {
         my $file = sprintf
             (
@@ -70,7 +72,6 @@ my $root_to = "t/tb";
              $root_from,
              $i,
             );
-        mkpath dirname $file;
         open my $fh, ">", $file or die "Could not open '$file': $!";
         print $fh time, ":", $file, "\n";
         close $fh or die "Could not close '$file': $!";
@@ -80,8 +81,9 @@ my $root_to = "t/tb";
         my $rece = $rf2->recent_events;
         my $rececnt = @$rece;
         my $span = $rece->[0]{epoch} - $rece->[-1]{epoch};
-        ok($span < 30, "i[$i] cnt[$rececnt] span[$span]");
-        sleep 1;
+        $have_worked = Time::HiRes::time - $start - $have_slept;
+        ok($span < 30, "i[$i] cnt[$rececnt] span[$span] worked[$have_worked]");
+        $have_slept += Time::HiRes::sleep 1;
     }
 }
 

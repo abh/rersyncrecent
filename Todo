@@ -1,3 +1,8 @@
+2008-08-02  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* overhead of connecting seems high. When setting
+	max_files_per_connection to 1 we see that.
+
 2008-08-01  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* 1217622571.0889 - 1217597432.86734 = 25138.2215600014

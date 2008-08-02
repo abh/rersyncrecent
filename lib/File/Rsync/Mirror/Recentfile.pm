@@ -591,10 +591,8 @@ sub merge {
     for my $ev (reverse @$other_recent_events) {
         my $path = $ev->{path};
         $path = $self->$canonmeth($path);
-        unless ($epoch) {
-            $epoch = $ev->{epoch};
-            $oldest_allowed = $epoch-$secs;
-        }
+        $epoch = $ev->{epoch};
+        $oldest_allowed = $epoch-$secs;
         # smells of inefficiency
         while (@$recent && $recent->[-1]{epoch} < $oldest_allowed) {
             pop @$recent;

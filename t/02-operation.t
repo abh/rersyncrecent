@@ -14,7 +14,7 @@ my $root_from = "t/ta";
 my $root_to = "t/tb";
 
 {
-    BEGIN { $tests += 7 }
+    BEGIN { $tests += 38 }
     my $rf = File::Rsync::Mirror::Recentfile->new_from_file("t/RECENT-6h.yaml");
     my $recent_events = $rf->recent_events;
     my $recent_events_cnt = scalar @$recent_events;
@@ -26,7 +26,7 @@ my $root_to = "t/tb";
     $rf->interval("10s");
     $rf->localroot($root_from);
     $rf->comment("produced during the test 02-operation.t");
-    $rf->aggregator([qw(1m 2m 1h Z)]);
+    $rf->aggregator([qw(30s 1m 2m 1h Z)]);
     $rf->verbose(0);
     my $start = Time::HiRes::time;
     for my $e (@$recent_events) {
@@ -63,6 +63,26 @@ my $root_to = "t/tb";
     is $dagg1->[2][1], $dagg2->[2][1], "The 2m file size unchanged";
     is $dagg1->[3][2], $dagg2->[3][2], "The 1h file timestamp unchanged";
     ok -l "t/ta/RECENT.recent", "found the symlink";
+    for my $i (0..30) {
+        my $file = sprintf
+            (
+             "%s/secscnt%03d",
+             $root_from,
+             $i,
+            );
+        mkpath dirname $file;
+        open my $fh, ">", $file or die "Could not open '$file': $!";
+        print $fh time, ":", $file, "\n";
+        close $fh or die "Could not close '$file': $!";
+        $rf->update($file,"new");
+        $rf->aggregate;
+        my $rf2 = File::Rsync::Mirror::Recentfile->new_from_file("$root_from/RECENT-30s.yaml");
+        my $rece = $rf2->recent_events;
+        my $rececnt = @$rece;
+        my $span = $rece->[0]{epoch} - $rece->[-1]{epoch};
+        ok($span < 30, "i[$i] cnt[$rececnt] span[$span]");
+        sleep 1;
+    }
 }
 
 {

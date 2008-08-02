@@ -561,7 +561,7 @@ sub lock {
 
 Bulk update of this object with another one. It's intended (but not
 enforced) to only merge smaller and younger $other objects into the
-current one. If the other file is a C<Z> file, then we do not merge in
+current one. If this file is a C<Z> file, then we do not merge in
 objects of type C<delete>. But if we encounter an object of type
 delete we delete the corresponding C<add> object.
 
@@ -574,39 +574,39 @@ sub merge {
         $canonmeth = "naive_path_normalize";
     }
     my $lrd = $self->localroot;
-    my $other_recent_events = $other->recent_events;
+    my $other_recent = $other->recent_events || [];
     $self->lock;
     my $interval = $self->interval;
     my $secs = $self->interval_secs();
-    my $recent = $self->recent_events;
-    unless (@$recent) {
-        $recent = [];
-        $self->recent_events($recent);
+    my $my_recent = $self->recent_events || [];
+
+    # calculate the target time span
+    my $epoch = $other_recent->[0] ? $other_recent->[0]{epoch} : $my_recent->[0] ? $my_recent->[0]{epoch} : undef;
+    if ($epoch) {
+        my $oldest_allowed = $epoch - $secs;
+        # throw away outsiders
+        while (@$my_recent && $my_recent->[-1]{epoch} < $oldest_allowed) {
+            pop @$my_recent;
+        }
     }
-    my($epoch,$oldest_allowed);
-    # reverse combined with unshift smells. This can be done by
-    # starting with hashifying both lists, concatenation, and removing
-    # the duplicates. Need to write better tests to make sure I get it
-    # right
-    for my $ev (reverse @$other_recent_events) {
+
+    # speed up the following elimination
+    my %my_recent = map {($_->{path} => 1)} @$my_recent;
+
+    my $recent = [];
+    for my $ev (@$other_recent) {
         my $path = $ev->{path};
         $path = $self->$canonmeth($path);
-        $epoch = $ev->{epoch};
-        $oldest_allowed = $epoch-$secs;
-        # smells of inefficiency
-        while (@$recent && $recent->[-1]{epoch} < $oldest_allowed) {
-            pop @$recent;
+        if (exists $my_recent{$path}) {
+            $my_recent = [ grep { $_->{path} ne $path } @$my_recent ];
         }
-        # more smells:
-        $recent = [ grep { $_->{path} ne $path } @$recent ];
-        # stinking:
         if ($self->interval eq "Z" and $ev->{type} eq "delete") {
-            # a Z file has no deletes, only living objects
         } else {
-            unshift @$recent, { epoch => $ev->{epoch}, path => $path, type => $ev->{type} };
+            push @$recent, { epoch => $ev->{epoch}, path => $path, type => $ev->{type} };
         }
     }
-    # sort?
+    push @$recent, @$my_recent;
+    $self->recent_events($recent);
     $self->write_recent($recent);
     $self->unlock;
 }
@@ -1066,9 +1066,9 @@ $type is one of C<new> or C<delete>.
 
 sub update {
     my($self,$path,$type) = @_;
-    die "write_recent called without path argument" unless defined $path;
-    die "write_recent called without type argument" unless defined $type;
-    die "write_recent called with illegal type argument: $type" unless $type =~ /(new|delete)/;
+    die "update called without path argument" unless defined $path;
+    die "update called without type argument" unless defined $type;
+    die "update called with illegal type argument: $type" unless $type =~ /(new|delete)/;
     my $meth = $self->canonize;
     unless ($meth) {
         $meth = "naive_path_normalize";

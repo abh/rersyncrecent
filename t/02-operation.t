@@ -1,4 +1,5 @@
 use Test::More;
+use strict;
 my $tests;
 BEGIN { $tests = 0 }
 use lib "lib";
@@ -12,6 +13,11 @@ use YAML::Syck;
 
 my $root_from = "t/ta";
 my $root_to = "t/tb";
+for my $root ($root_from, $root_to) {
+    for my $lockfile (<$root/*.lock>) {
+        rmdir $lockfile or die "Could not unlink '$lockfile': $!";
+    }
+}
 
 {
     BEGIN { $tests += 38 }
@@ -82,7 +88,7 @@ my $root_to = "t/tb";
         my $rececnt = @$rece;
         my $span = $rece->[0]{epoch} - $rece->[-1]{epoch};
         $have_worked = Time::HiRes::time - $start - $have_slept;
-        ok($span < 30, "i[$i] cnt[$rececnt] span[$span] worked[$have_worked]");
+        ok($rececnt > 0 && $span < 30, "i[$i] cnt[$rececnt] span[$span] worked[$have_worked]");
         $have_slept += Time::HiRes::sleep 1;
     }
 }

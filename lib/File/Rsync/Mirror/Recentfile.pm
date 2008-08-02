@@ -1038,7 +1038,8 @@ resets the sleep time.
         $no_success_count = 0;
     }
 }
-=head2 (void) $obj->unlock
+
+=head2 (void) $obj->unlock()
 
 Unlocking is implemented with an C<rmdir> on a locking directory
 (C<.lock> appended to $rfile).

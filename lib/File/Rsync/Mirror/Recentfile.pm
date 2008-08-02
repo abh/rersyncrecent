@@ -590,24 +590,20 @@ sub merge {
         }
     }
 
-    # speed up the following elimination
-    my %my_recent = map {($_->{path} => 1)} @$my_recent;
-
+    my %have;
     my $recent = [];
     for my $ev (@$other_recent) {
         my $path = $ev->{path};
         $path = $self->$canonmeth($path);
-        if (exists $my_recent{$path}) {
-            $my_recent = [ grep { $_->{path} ne $path } @$my_recent ];
-        }
+        next if $have{$path}++;
         if ($self->interval eq "Z" and $ev->{type} eq "delete") {
         } else {
             push @$recent, { epoch => $ev->{epoch}, path => $path, type => $ev->{type} };
         }
     }
-    unshift @$my_recent, @$recent;
-    $self->recent_events($my_recent);
-    $self->write_recent($my_recent);
+    push @$recent, grep { !$have{$_->{path}}++ } @$my_recent;
+    $self->recent_events($recent);
+    $self->write_recent($recent);
     $self->unlock;
 }
 

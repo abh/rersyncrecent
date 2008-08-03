@@ -442,6 +442,28 @@ sub get_remote_recentfile_as_tempfile {
     return $trecentfile;
 }
 
+=head2 $localpath = $obj->get_remotefile ( $relative_path )
+
+Rsyncs one single remote file to local filesystem.
+
+=cut
+
+sub get_remotefile {
+    my($self, $path) = @_;
+    my $lfile = File::Spec->catfile($self->localroot, $path);
+    mkpath dirname $lfile;
+    while (!$self->rsync->exec(
+                               src => join("/",
+                                           $self->remotebase,
+                                           $path),
+                               dst => $lfile,
+                              )) {
+        $self->register_rsync_error ($self->rsync->err);
+    }
+    $self->un_register_rsync_error ();
+    return $lfile;
+}
+
 =head2 $obj->interval ( $interval_spec )
 
 Get/set accessor. $interval_spec is a string and described below in
@@ -519,7 +541,7 @@ sub local_event_path {
 =head2 $ret = $obj->local_path($path_found_in_recentfile)
 
 Combines the path to our local mirror and the path of an object found
-in this I<recentfile>. In other words: the target of a mirro operation
+in this I<recentfile>. In other words: the target of a mirror operation.
 
 =cut
 
@@ -934,12 +956,19 @@ sub recentfile_basename {
 
 =head2 $str = $obj->remotebase
 
-Returns the composed prefix needed when rsyncing from a remote module.
+=head2 (void) $obj->remotebase ( $set )
+
+Get/Set the composed prefix needed when rsyncing from a remote module.
+If remote_host, remote_module, and remote_dir are set, it is composed
+from these.
 
 =cut
 
 sub remotebase {
-    my($self) = @_;
+    my($self, $set) = @_;
+    if (defined $set) {
+        $self->_remotebase($set);
+    }
     my $remotebase = $self->_remotebase;
     unless (defined $remotebase) {
         $remotebase = sprintf

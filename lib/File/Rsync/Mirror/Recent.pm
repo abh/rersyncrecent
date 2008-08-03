@@ -2,6 +2,7 @@ package File::Rsync::Mirror::Recent;
 
 # use warnings;
 use strict;
+use File::Rsync::Mirror::Recentfile;
 
 =encoding utf-8
 
@@ -57,10 +58,8 @@ Reader/mirrorer:
        remote => "pause.perl.org::authors/RECENT.recent",
        rsync_options => {
                          compress => 1,
-                         'rsync-path' => '/usr/bin/rsync',
                          links => 1,
                          times => 1,
-                         'omit-dir-times' => 1,
                          checksum => 1,
                         },
        verbose => 1,
@@ -106,6 +105,14 @@ BEGIN {
 
 =over 4
 
+=item ignore_link_stat_errors
+
+as in F:R:M:Recentfile
+
+=item localroot
+
+XXX: this is (ATM) different from localroot in Recentfile!!!
+
 =item loopinterval
 
 When mirror_loop is called, this accessor can specify how much time
@@ -122,7 +129,16 @@ Defaults to the arbitrary value 42.
 
 =item remote
 
-Rsync address of the remote recentfile. Maybe a symlink.
+TBD
+
+=item remotebase
+
+XXX: this is (ATM) different from Recentfile!!!
+
+=item remote_recentfile
+
+Rsync address of the remote C<RECENT.recent> symlink or whichever name
+the main driving remote recentfile has.
 
 =item rsync_options
 
@@ -143,19 +159,79 @@ use accessors @accessors;
 
 =head2 $success = $obj->rmirror ( %options )
 
-Mirrors all recentfiles of the I<remote> address and works through all
-of them.
+Mirrors all recentfiles of the I<remote> address.
+
+XXX WORK IN PROGRESS XXX
+
+XXX Afterwards it should work through all of them, but not blindly,
+rather by merging first and mirroring then XXX
+
+Testing this ATM with:
+
+  perl -Ilib -e '
+  use File::Rsync::Mirror::Recent;
+  my $rrr = File::Rsync::Mirror::Recent->new(
+         ignore_link_stat_errors => 1,
+         localroot => "/home/ftp/pub/PAUSE/authors",
+         remote => "pause.perl.org::authors/RECENT.recent",
+         rsync_options => {
+                           compress => 1,
+                           links => 1,
+                           times => 1,
+                           checksum => 1,
+                          },
+         verbose => 1,
+
+  );
+  $rrr->rmirror
+  '
+
 
 =cut
 
 sub rmirror {
     my($self, %options) = @_;
 
-    # get the remote
+    # get the remote remotefile
+    my $rrfile = $self->remote;
+    my($remotebase,$recentfile_basename) = $rrfile =~ m{(.+)/([^/]+)};
+    $self->remotebase($remotebase);
+    my @need_args =
+        (
+         "localroot",
+         "remotebase",
+         "rsync_options",
+         "verbose",
+        );
+    my $rf0 = File::Rsync::Mirror::Recentfile->new (map {($_ => $self->$_)} @need_args);
+    my $lfile = $rf0->get_remotefile ($recentfile_basename);
     # while it is a symlink, resolve it
-    # get all recentfiles
-    # loop somehow
-    die "FIXME";
+    while (-l $lfile) {
+        my $symlink = readlink $lfile;
+        if ($symlink =~ m|/|) {
+            die "FIXME: filenames containing '/' not supported, got $symlink";
+        }
+        $lfile = $rf0->get_remotefile ($symlink);
+    }
+    $rf0 = File::Rsync::Mirror::Recentfile->new_from_file ( $lfile );
+    for my $need_arg (@need_args) {
+        $rf0->$need_arg ( $self->$need_arg );
+    }
+    my $aggregator = $rf0->aggregator;
+    my @rf = $rf0;
+    for my $agg (@$aggregator) {
+        my $nrf = Storable::dclone ( $rf0 );
+        $nrf->interval ( $agg );
+        my $nlfile = $rf0->get_remotefile ( $nrf->recentfile_basename );
+        push @rf, $nrf;
+    }
+    warn sprintf "Got %d recentfiles\n", scalar @rf;
+    for my $rf (@rf) {
+        die "FIXME: merge and then mirror";
+        $rf->mirror ( ); # XXX needs "before", not "after"
+        my $re = $rf->recent_events;
+        warn sprintf "Mirrored from %s up to %s/%s\n", $rf->rfile, $re->[0]{path}, $re->[0]{epoch};
+    }
 }
 
 =head2 (void) $obj->rmirror_loop

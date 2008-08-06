@@ -27,7 +27,7 @@ WriteMakefile
      PL_FILES            => {},
      PREREQ_PM =>
      {
-      'Data::Serializer' => 0.46,
+      # 'Data::Serializer' => 0.46, # restricted to YAML without it
       'File::Rsync'      => 0,
       'Test::More'       => 0,
       'File::Basename'   => 0,

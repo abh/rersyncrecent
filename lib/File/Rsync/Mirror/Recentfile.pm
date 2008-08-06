@@ -17,11 +17,13 @@ Version 0.0.1
 
 package File::Rsync::Mirror::Recentfile;
 
-use Data::Serializer;
+my $HAVE = {};
+for my $package (qw( Data::Serializer File::Rsync )) {
+    $HAVE->{$package} = eval qq{ require $package; };
+}
 use File::Basename qw(dirname fileparse);
 use File::Copy qw(cp);
 use File::Path qw(mkpath);
-use File::Rsync;
 use File::Temp;
 use List::Util qw(first);
 use Scalar::Util qw(reftype);
@@ -146,16 +148,24 @@ sub new_from_file {
     $self->serializer_suffix($suffix);
     $self->localroot($path);
     die "Could not determine file format from suffix" unless $suffix;
-    my $serializer = Data::Serializer->new
-        (
-         serializer => $serializers{$suffix},
-         secret     => undef,
-         compress   => 0,
-         digest     => 0,
-         portable   => 0,
-         encoding   => "raw",
-        );
-    my $deserialized = $serializer->deserialize($serialized);
+    my $deserialized;
+    if ($HAVE->{"Data::Serializer"}) {
+        my $serializer = Data::Serializer->new
+            (
+             serializer => $serializers{$suffix},
+             secret     => undef,
+             compress   => 0,
+             digest     => 0,
+             portable   => 0,
+             encoding   => "raw",
+            );
+        $deserialized = $serializer->deserialize($serialized);
+    } else {
+        die "Data::Serializer not installed, cannot proceed with suffix '$suffix'"
+            unless $suffix eq ".yaml";
+        require YAML::Syck;
+        $deserialized = YAML::Syck::LoadFile($file);
+    }
     while (my($k,$v) = each %{$deserialized->{meta}}) {
         next if $k ne lc $k; # "Producers"
         $self->$k($v);
@@ -1017,8 +1027,12 @@ sub rsync {
     my $rsync = $self->_rsync;
     unless (defined $rsync) {
         my $rsync_options = $self->rsync_options || {};
-        $rsync = File::Rsync->new($rsync_options);
-        $self->_rsync($rsync);
+        if ($HAVE->{"File::Rsync"}) {
+            $rsync = File::Rsync->new($rsync_options);
+            $self->_rsync($rsync);
+        } else {
+            die "File::Rsync required for rsync operations. Cannot continue";
+        }
     }
     return $rsync;
 }
@@ -1427,3 +1441,8 @@ under the same terms as Perl itself.
 =cut
 
 1; # End of File::Rsync::Mirror::Recentfile
+
+# Local Variables:
+# mode: cperl
+# cperl-indent-level: 4
+# End:

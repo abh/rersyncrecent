@@ -420,7 +420,7 @@ switching to larger ones ...
 
 sub full_mirror {
     my($self) = @_;
-    warn "Not yet implemented";
+    die "FIXME: Not yet implemented";
 }
 
 =head2 $tempfilename = $obj->get_remote_recentfile_as_tempfile
@@ -736,7 +736,7 @@ sub mirror {
                 }
             }
             if (!$success || $@) {
-                warn "error while mirroring: $@";
+                warn "Warning: Error while mirroring: $@";
                 push @error, $@;
                 sleep 1;
             }
@@ -745,9 +745,9 @@ sub mirror {
             }
         } elsif ($recent_event->{type} eq "delete") {
             if (-l $dst or not -d _) {
-                unlink $dst or warn "error while unlinking '$dst': $!";
+                unlink $dst or warn "Warning: Error while unlinking '$dst': $!";
             } else {
-                rmdir $dst or warn "error on rmdir '$dst': $!";
+                rmdir $dst or warn "Warning: Error on rmdir '$dst': $!";
             }
         } else {
             warn "Warning: invalid upload type '$recent_event->{type}'";

@@ -1,3 +1,8 @@
+2008-08-06  Andreas Koenig  <k@andreas-koenigs-computer.local>
+
+	* We should probably guarantee that no duplicates enter the aggregator
+	array.
+
 2008-08-02  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* To get merge operation faster would need a good benchmark test. What

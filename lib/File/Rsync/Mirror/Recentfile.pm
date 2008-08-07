@@ -244,6 +244,12 @@ Setting it higher means higher performance at the price of holding
 connections longer and potentially disturbing other users in the pool.
 Defaults to the arbitrary value 42.
 
+=item max_rsync_errors
+
+When rsync operations encounter that many errors without any resetting
+success in between, then we die. Defaults to -1 which means we run
+forever ignoring all rsync errors.
+
 =item protocol
 
 When the RECENT file format changes, we increment the protocol. We try
@@ -1052,7 +1058,7 @@ sub rsync {
 Register_rsync_error is called whenever the File::Rsync object fails
 on an exec (say, connection doesn't succeed). It issues a warning and
 sleeps for an increasing amount of time. Un_register_rsync_error
-resets the sleep time.
+resets the error count. See also accessor C<max_rsync_errors>.
 
 =cut
 
@@ -1061,8 +1067,19 @@ resets the sleep time.
     my $no_success_time = 0;
     sub register_rsync_error {
         my($self, $err) = @_;
+        chomp $err;
         $no_success_time = time;
         $no_success_count++;
+        my $max_rsync_errors = $self->max_rsync_errors;
+        $max_rsync_errors = -1 unless defined $max_rsync_errors;
+        if ($max_rsync_errors>=0 && $no_success_count >= $max_rsync_errors) {
+            die sprintf
+                (
+                 "Alert: Error while rsyncing: '%s', error count: %d, exiting now,",
+                 $err,
+                 $no_success_count,
+                );
+        }
         my $sleep = 12 * $no_success_count;
         $sleep = 120 if $sleep > 120;
         warn sprintf

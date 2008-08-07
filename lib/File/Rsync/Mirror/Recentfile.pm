@@ -295,10 +295,10 @@ use accessors @accessors;
 =head2 (void) $obj->aggregate
 
 Takes all intervals that are collected in the accessor called
-aggregator. Sorts them numerically by actual length of the interval.
+aggregator. Sorts them by actual length of the interval.
 Removes those that are shorter than our own interval. Then merges this
 object into the next larger object. The merging continues upwards
-as long as the next I<recentfile>s is old enough to warrant a merge.
+as long as the next I<recentfile> is old enough to warrant a merge.
 
 If a merge is warranted is decided according to the interval of the
 previous interval so that larger files are not so often updated as
@@ -316,6 +316,9 @@ then
   1M updates 1Q earliest after 1W
   1Q updates 1Y earliest after 1M
   1Y updates  Z earliest after 1Q
+
+Note that all but the smallest recentfile get updated at an arbitrary
+rate and as such are quite useless on their own.
 
 =cut
 
@@ -761,8 +764,8 @@ sub mirror {
 
 =head2 (void) $obj->mirror_loop
 
-Run mirror in an endless loop. See the accessor loopinterval. XXX What
-happens if we miss the interval during a single loop?
+Run mirror in an endless loop. See the accessor C<loopinterval>. XXX
+What happens/should happen if we miss the interval during a single loop?
 
 =cut
 
@@ -795,18 +798,23 @@ sub mirror_loop {
 
 =head2 $success = $obj->mirror_path ( $arrref | $path )
 
-If the argument is a scalar, fetches a remote path into the local
-copy. $path is the path found in the I<recentfile>, i.e. it is relative
-to the root directory of the mirror.
+If the argument is a scalar it is treated as a path. The remote path
+is mirrored into the local copy. $path is the path found in the
+I<recentfile>, i.e. it is relative to the root directory of the
+mirror.
 
-If $path is an array reference then all elements are treated as a path
-below the current tree and all are rsynced with a single command (and
-a single connection).
+If the argument is an array reference then all elements are treated as
+a path below the current tree and all are rsynced with a single
+command (and a single connection).
 
 =cut
 
 sub mirror_path {
     my($self,$path) = @_;
+    # XXX simplify the two branches such that $path is treated as
+    # [$path] maybe even demand the argument as an arrayref to
+    # simplify docs and code. (rsync-over-recentfile-2.pl uses the
+    # interface)
     if (ref $path and ref $path eq "ARRAY") {
         my $dst = $self->local_path();
         mkpath dirname $dst;

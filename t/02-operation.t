@@ -97,17 +97,18 @@ for my $root ($root_from, $root_to) {
         (
          filenameroot   => "RECENT",
          interval       => q(1m),
-         remote_dir     => $root_from,
          localroot      => $root_to,
+         max_rsync_errors  => 0,
+         remote_dir     => $root_from,
          # verbose        => 1,
          rsync_options  => {
-                           compress          => 0,
-                           'rsync-path'      => '/usr/bin/rsync',
-                           links             => 1,
-                           times             => 1,
-                           'omit-dir-times'  => 1,
-                           checksum          => 0,
-                          },
+                            compress          => 0,
+                            'rsync-path'      => '/usr/bin/rsync',
+                            links             => 1,
+                            times             => 1,
+                            # not available in rsync 3.0.3: 'omit-dir-times'  => 1,
+                            checksum          => 0,
+                           },
         );
     my $somefile_epoch;
     for my $pass (0,1) {

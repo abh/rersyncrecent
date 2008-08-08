@@ -236,7 +236,7 @@ sub rmirror {
 
 =head2 (void) $obj->rmirror_loop
 
-Run rmirror in an endless loop.
+(TBD) Run rmirror in an endless loop.
 
 =cut
 

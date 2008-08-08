@@ -25,7 +25,7 @@ use File::Basename qw(dirname fileparse);
 use File::Copy qw(cp);
 use File::Path qw(mkpath);
 use File::Temp;
-use List::Util qw(first);
+use List::Util qw(first min);
 use Scalar::Util qw(reftype);
 use Storable;
 use Time::HiRes qw();
@@ -249,6 +249,11 @@ Defaults to the arbitrary value 42.
 When rsync operations encounter that many errors without any resetting
 success in between, then we die. Defaults to -1 which means we run
 forever ignoring all rsync errors.
+
+=item merged
+
+Hashref denoting when this recentfile has been merged into some other
+at which epoch.
 
 =item protocol
 
@@ -499,7 +504,8 @@ sub interval {
     $interval = $self->_interval;
     unless (defined $interval) {
         # do not ask the $self too much, it recurses!
-        die "Alert: interval undefined for '".$self."'. Cannot continue.";
+        require Carp;
+        Carp::confess("Alert: interval undefined for '".$self."'. Cannot continue.");
     }
     return $interval;
 }
@@ -604,23 +610,26 @@ Bulk update of this object with another one. It's intended (but not
 enforced) to only merge smaller and younger $other objects into the
 current one. If this file is a C<Z> file, then we do not merge in
 objects of type C<delete>. But if we encounter an object of type
-delete we delete the corresponding C<add> object.
+delete we delete the corresponding C<new> object.
 
 =cut
 
 sub merge {
     my($self,$other) = @_;
-    my $lrd = $self->localroot;
+    $other->lock;
     my $other_recent = $other->recent_events || [];
     $self->lock;
-    my $interval = $self->interval;
-    my $secs = $self->interval_secs();
     my $my_recent = $self->recent_events || [];
 
     # calculate the target time span
     my $epoch = $other_recent->[0] ? $other_recent->[0]{epoch} : $my_recent->[0] ? $my_recent->[0]{epoch} : undef;
+    my $oldest_allowed = 0;
     if ($epoch) {
-        my $oldest_allowed = $epoch - $secs;
+        $DB::single++;
+        if (my $merged = $self->merged) {
+            my $secs = $self->interval_secs();
+            $oldest_allowed = min($epoch - $secs, $merged->{epoch});
+        }
         # throw away outsiders
         while (@$my_recent && $my_recent->[-1]{epoch} < $oldest_allowed) {
             pop @$my_recent;
@@ -630,9 +639,12 @@ sub merge {
     my %have;
     my $recent = [];
     for my $ev (@$other_recent) {
+        my $epoch = $ev->{epoch} || 0;
+        next if $epoch < $oldest_allowed;
         my $path = $ev->{path};
         next if $have{$path}++;
-        if ($self->interval eq "Z" and $ev->{type} eq "delete") {
+        if (    $self->interval eq "Z"
+            and $ev->{type}     eq "delete") {
         } else {
             push @$recent, { epoch => $ev->{epoch}, path => $path, type => $ev->{type} };
         }
@@ -641,6 +653,13 @@ sub merge {
     $self->recent_events($recent);
     $self->write_recent($recent);
     $self->unlock;
+    $other->merged({
+                    time => Time::HiRes::time, # not used anywhere
+                    epoch => $epoch, # used in oldest_allowed
+                    interval => $self->interval, # not used anywhere
+                   });
+    $other->write_recent($other_recent);
+    $other->unlock;
 }
 
 =head2 $hashref = $obj->meta_data
@@ -658,10 +677,14 @@ sub meta_data {
                "canonize",
                "comment",
                "filenameroot",
+               "merged",
                "interval",
                "protocol",
               ) {
-        $ret->{$m} = $self->$m;
+        my $v = $self->$m;
+        if (defined $v) {
+            $ret->{$m} = $v;
+        }
     }
     # XXX need to reset the Producer if I am a writer, keep it when I
     # am a reader
@@ -910,7 +933,9 @@ sub read_recent_1 {
 =head2 $array_ref = $obj->recent_events
 
 Note: the code relies on the resource being written atomically. We
-cannot lock because we may have no write access.
+cannot lock because we may have no write access. If the caller has
+write access (eg. aggregate() or update()), it has to care for any
+necessary locking.
 
 =cut
 
@@ -1139,7 +1164,12 @@ sub update {
         my $interval = $self->interval;
         my $secs = $self->interval_secs();
         my $epoch = Time::HiRes::time;
-        my $oldest_allowed = $epoch-$secs;
+        # XXX next four lines copy&paste from merge()
+        my $oldest_allowed = 0;
+        if (my $merged = $self->merged) {
+            my $secs = $self->interval_secs();
+            $oldest_allowed = min($epoch - $secs, $merged->{epoch});
+        }
 
         $self->lock;
         my $recent = $self->recent_events;
@@ -1155,7 +1185,6 @@ sub update {
         $recent = [ grep { $_->{path} ne $path } @$recent ];
 
         unshift @$recent, { epoch => $epoch, path => $path, type => $type };
-        # sort?
         $self->write_recent($recent);
         $self->_assert_symlink;
         $self->unlock;

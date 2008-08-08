@@ -1,3 +1,10 @@
+2008-08-07  Andreas Koenig  <k@andreas-koenigs-computer.local>
+
+	* There must be an allow-me-to-truncate flag in every recentfile.
+	Without it one could construct a sequence of updates winning the locking
+	battle against the aggregator. Only if an aggregator has managed to
+	merge data over to the next level, truncating can be allowed.
+
 2008-08-06  Andreas Koenig  <k@andreas-koenigs-computer.local>
 
 	* We should probably guarantee that no duplicates enter the aggregator

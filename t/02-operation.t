@@ -13,9 +13,74 @@ use YAML::Syck;
 
 my $root_from = "t/ta";
 my $root_to = "t/tb";
-for my $root ($root_from, $root_to) {
-    rmtree $root;
+rmtree [$root_from, $root_to];
+
+{
+    my @intervals;
+    BEGIN {
+        $tests += 13;
+        @intervals = qw( 2s 4s 8s 16s 32s Z );
+    }
+    is 6, scalar @intervals, "array has 6 elements: @intervals";
+    my $rf0 = File::Rsync::Mirror::Recentfile->new
+        (
+         aggregator     => [@intervals[1..$#intervals]],
+         interval       => $intervals[0],
+         localroot      => $root_from,
+         rsync_options  => {
+                            compress          => 0,
+                            links             => 1,
+                            times             => 1,
+                            checksum          => 0,
+                           },
+        );
+    for my $iv (@intervals) {
+        for my $i (0..3) {
+            my $file = sprintf
+                (
+                 "%s/A%s-%02d",
+                 $root_from,
+                 $iv,
+                 $i,
+                );
+            mkpath dirname $file;
+            open my $fh, ">", $file or die "Could not open '$file': $!";
+            print $fh time, ":", $file, "\n";
+            close $fh or die "Could not close '$file': $!";
+            $rf0->update($file,"new");
+        }
+    }
+    my $recent_events = $rf0->recent_events;
+    # faking internals as if the contents were wide-spread in time
+    for my $evi (0..$#$recent_events) {
+        my $ev = $recent_events->[$evi];
+        $ev->{epoch} -= 2**($evi*.25);
+    }
+    $rf0->write_recent($recent_events);
+    $rf0->aggregate;
+    for my $iv (@intervals) {
+        my $rf = "$root_from/RECENT-$iv.yaml";
+        my $filesize = -s $rf;
+        # now they have 1700+ bytes because they were merged for the
+        # first time ever and could not be truncated for this reason.
+        ok(1700 < $filesize, "file $iv has good size[$filesize]");
+        utime 0, 0, $rf; # so that the next aggregate isn't skipped
+    }
+    open my $fh, ">", "$root_from/finissage" or die "Could not open: $!";
+    print $fh "fin";
+    close $fh or die "Could not close: $!";
+    $rf0->update("$root_from/finissage","new");
+    $rf0 = File::Rsync::Mirror::Recentfile->new_from_file("$root_from/RECENT-2s.yaml");
+    $rf0->aggregate;
+    for my $iv (@intervals) {
+        my $filesize = -s "$root_from/RECENT-$iv.yaml";
+        # now they have <1700 bytes because the second aggregate could
+        # truncate them
+        ok($iv eq "Z" || 1700 > $filesize, "file $iv has good size[$filesize]");
+    }
 }
+
+rmtree [$root_from, $root_to];
 
 {
     BEGIN { $tests += 38 }
@@ -31,7 +96,7 @@ for my $root ($root_from, $root_to) {
     $rf->localroot($root_from);
     $rf->comment("produced during the test 02-operation.t");
     $rf->aggregator([qw(30s 1m 2m 1h Z)]);
-    $rf->verbose(0);
+    $rf->verbose(1);
     my $start = Time::HiRes::time;
     for my $e (@$recent_events) {
         for my $pass (0,1) {
@@ -87,7 +152,7 @@ for my $root ($root_from, $root_to) {
         my $span = $rece->[0]{epoch} - $rece->[-1]{epoch};
         $have_worked = Time::HiRes::time - $start - $have_slept;
         ok($rececnt > 0 && $span < 30, "i[$i] cnt[$rececnt] span[$span] worked[$have_worked]");
-        $have_slept += Time::HiRes::sleep 1;
+        $have_slept += Time::HiRes::sleep 0.99;
     }
 }
 
@@ -100,10 +165,9 @@ for my $root ($root_from, $root_to) {
          localroot      => $root_to,
          max_rsync_errors  => 0,
          remote_dir     => $root_from,
-         # verbose        => 1,
+         verbose        => 1,
          rsync_options  => {
                             compress          => 0,
-                            'rsync-path'      => '/usr/bin/rsync',
                             links             => 1,
                             times             => 1,
                             # not available in rsync 3.0.3: 'omit-dir-times'  => 1,
@@ -123,7 +187,6 @@ for my $root ($root_from, $root_to) {
         ok($success, "mirrored with success");
     }
 }
-
 
 rmtree [$root_from, $root_to];
 

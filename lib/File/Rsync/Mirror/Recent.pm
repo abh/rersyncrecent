@@ -230,7 +230,13 @@ sub rmirror {
         die "FIXME: merge and then mirror";
         $rf->mirror ( ); # XXX needs "before", not "after"
         my $re = $rf->recent_events;
-        warn sprintf "Mirrored from %s up to %s/%s\n", $rf->rfile, $re->[0]{path}, $re->[0]{epoch};
+        warn sprintf
+            (
+             "Mirrored from %s up to %s/%s\n",
+             $rf->rfile,
+             $re->[0]{path},
+             $re->[0]{epoch},
+            );
     }
 }
 

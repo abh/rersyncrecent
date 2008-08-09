@@ -989,7 +989,7 @@ sub recentfile {
 =head2 $ret = $obj->recentfile_basename
 
 Just the basename of our I<recentfile>, composed from C<filenameroot>,
-C<interval>, and C<serializer_suffix>. E.g. C<RECENT-6h.yaml>
+a dash, C<interval>, and C<serializer_suffix>. E.g. C<RECENT-6h.yaml>
 
 =cut
 

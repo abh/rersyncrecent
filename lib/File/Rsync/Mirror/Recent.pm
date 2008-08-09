@@ -251,6 +251,19 @@ sub rmirror_loop {
     die "FIXME";
 }
 
+=head2 $hash = $obj->verify
+
+(TBD) Runs find on the tree, collects all existing files from
+recentfiles, compares their names. The returned hash contains the keys
+C<todelete> and C<toadd>.
+
+=cut
+
+sub verify {
+    my($self) = @_;
+    die "FIXME";
+}
+
 =head1 AUTHOR
 
 Andreas König

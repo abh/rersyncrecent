@@ -1,9 +1,47 @@
+2008-08-09  Andreas Koenig  <k@andreas-koenigs-computer.local>
+
+	* remotebase and recentfile_basename are ugly names. Now that we need a
+	word for the shortest/principal/driving recentfile too we should do
+	something about it.
+
+	localroot is good. rfile is good. local_path() is bad, local_path($path)
+	is medium, filenameroot() is bad, remotebase is bad, recentfile is
+	already deprecated.
+
+	Up to now remotebase was the string that described the remote root
+	directory in rsync notation, like pause.perl.org::authors. And
+	recentfile_basename was "RECENT-1h.yaml".
+
+2008-08-08  Andreas Koenig  <k@andreas-koenigs-computer.local>
+
+	* The test that was added in today's checkin is a good start for a test
+	of rmirror. We should have more methods in Recent.pm: verify,
+	addmissingfiles. We should verify the current tree, then rmirror it and
+	then verifytree the copy. We could then add some arbitrary file and let
+	it be discovered by addmissingfiles , then rmirror again and then
+	verifytree the copy again.
+
+	Then we could start stealing from csync2 sqlite database and fill a
+	local DB. And methods to compare the database with the recentfiles. Our
+	strength is that in principle we could maintain state with a single
+	float. We have synced up to 1234567890.123456. If the Z file does not
+	add new files all we have to do is mirror the new ones and delete the
+	goners.
+
+	This makes it clear that we should extend current protocol and declare
+	that we cheat when we add files too late, just to help the other end
+	keeping track. Ah yes, that's what was meant when zloop was mentioned
+	earlier.
+
+	Maybe need to revisit File::Mirror to help me with this task.
+
 2008-08-07  Andreas Koenig  <k@andreas-koenigs-computer.local>
 
 	* There must be an allow-me-to-truncate flag in every recentfile.
 	Without it one could construct a sequence of updates winning the locking
 	battle against the aggregator. Only if an aggregator has managed to
-	merge data over to the next level, truncating can be allowed.
+	merge data over to the next level, truncating can be allowed. DONE with
+	accessor merged.
 
 2008-08-06  Andreas Koenig  <k@andreas-koenigs-computer.local>
 

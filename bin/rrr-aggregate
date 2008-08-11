@@ -18,7 +18,7 @@ my $optpod = <<'=back';
 
 =item B<--dry-run!>
 
-Do not really run the command, ...
+(TBD) Do not really run the command, ...
 
 =item B<--help|h>
 
@@ -41,7 +41,9 @@ trees over multiple hosts. It maintains a collection of files with
 metadata (so called recentfiles) that represent overlapping timespans
 of file change events.
 
-rrr-aggregate merges the recentfiles that describe a tree.
+rrr-aggregate merges the recentfiles that describe a tree. The file
+argument is the path to the principal (the shortest) in a collection
+of recentfiles.
 
 =cut
 

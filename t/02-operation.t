@@ -96,7 +96,7 @@ rmtree [$root_from, $root_to];
     $rf->localroot($root_from);
     $rf->comment("produced during the test 02-operation.t");
     $rf->aggregator([qw(30s 1m 2m 1h Z)]);
-    $rf->verbose(1);
+    $rf->verbose(0);
     my $start = Time::HiRes::time;
     for my $e (@$recent_events) {
         for my $pass (0,1) {
@@ -165,7 +165,7 @@ rmtree [$root_from, $root_to];
          localroot      => $root_to,
          max_rsync_errors  => 0,
          remote_dir     => $root_from,
-         verbose        => 1,
+         # verbose        => 1,
          rsync_options  => {
                             compress          => 0,
                             links             => 1,

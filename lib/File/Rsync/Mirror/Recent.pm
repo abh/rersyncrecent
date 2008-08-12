@@ -46,8 +46,8 @@ File::Rsync::Mirror::Recentfile. File::Rsync::Mirror::Recent
 establishes a view on a collection of recentfile objects and provides
 abstractions spanning multiple intervals associated with those.
 
-B<Unimplemented as of yet>. Will need to shift some accessors from
-recentfile to recent.
+B<Mostly unimplemented as of yet>. Will need to shift some accessors
+from recentfile to recent.
 
 Reader/mirrorer:
 

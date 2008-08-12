@@ -430,7 +430,8 @@ sub full_mirror {
 
 =head2 $tempfilename = $obj->get_remote_recentfile_as_tempfile
 
-Stores the remote I<recentfile> locally as a tempfile
+Stores the remote I<recentfile> locally as a tempfile. The caller is
+responsible to remove the file after use.
 
 =cut
 
@@ -787,7 +788,18 @@ sub mirror {
             print STDERR "DONE\n";
         }
     }
-    rename $trecentfile, $self->rfile;
+    my $rfile = $self->rfile;
+    if ($rfile eq $trecentfile) {
+        unless (unlink $trecentfile) {
+            require Carp;
+            Carp::confess("Could not unlink '$trecentfile': $!");
+        }
+    } else {
+        unless (rename $trecentfile, $rfile) {
+            require Carp;
+            Carp::confess("Could not rename '$trecentfile' to '$rfile': $!");
+        }
+    }
     return !@error;
 }
 

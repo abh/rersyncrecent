@@ -1,4 +1,4 @@
-rersyncrecent / File-Rsync-Mirror-Recentfile
+rersyncrecent / File-Rsync-Mirror-Recent
 
 This is about speeding up rsync operation on large trees to many
 places. Uses a small metadata cocktail and pull technology.
@@ -17,22 +17,27 @@ SUPPORT AND DOCUMENTATION
 After installing, you can find documentation for this module with the
 perldoc command.
 
-    perldoc File::Rsync::Mirror::Recentfile
+    perldoc File::Rsync::Mirror::Recent
 
 You can also look for information at:
 
     RT, CPAN's request tracker
-        http://rt.cpan.org/NoAuth/Bugs.html?Dist=File-Rsync-Mirror-Recentfile
+        http://rt.cpan.org/NoAuth/Bugs.html?Dist=File-Rsync-Mirror-Recent
 
     AnnoCPAN, Annotated CPAN documentation
-        http://annocpan.org/dist/File-Rsync-Mirror-Recentfile
+        http://annocpan.org/dist/File-Rsync-Mirror-Recent
 
     CPAN Ratings
-        http://cpanratings.perl.org/d/File-Rsync-Mirror-Recentfile
+        http://cpanratings.perl.org/d/File-Rsync-Mirror-Recent
 
     Search CPAN
-        http://search.cpan.org/dist/File-Rsync-Mirror-Recentfile
+        http://search.cpan.org/dist/File-Rsync-Mirror-Recent
 
+REPOSITORY
+
+Recent changes can be (re)viewed in the public GIT repository at
+
+    git://repo.or.cz/rersyncrecent.git
 
 COPYRIGHT AND LICENCE
 

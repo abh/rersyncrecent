@@ -4,7 +4,7 @@ use ExtUtils::MakeMaker;
 
 my @sign = (MM->can("signature_target") ? (SIGN => 1) : ());
 my $version_diff = 0; # we'll have to die if this becomes true
-my $version_from = 'lib/File/Rsync/Mirror/Recentfile.pm';
+my $version_from = 'lib/File/Rsync/Mirror/Recent.pm';
 if ($ARGV[0] && $ARGV[0] eq "--setversion") {
     eval {  require $version_from; };
     open my $fh, "make the-release-name|" or die;
@@ -21,7 +21,7 @@ if ($ARGV[0] && $ARGV[0] eq "--setversion") {
 
 WriteMakefile
     (
-     NAME                => 'File::Rsync::Mirror::Recentfile',
+     NAME                => 'File::Rsync::Mirror::Recent',
      AUTHOR              => 'Andreas König <andreas.koenig.7os6VVqR@franz.ak.mind.de>',
      VERSION_FROM        => $version_from,
      PL_FILES            => {},
@@ -49,7 +49,7 @@ WriteMakefile
               COMPRESS => 'gzip -9',
              },
      @sign,
-     clean               => { FILES => 'File-Rsync-Mirror-Recentfile-*' },
+     clean               => { FILES => 'File-Rsync-Mirror-Recent-*' },
     );
 
 if ($version_diff){

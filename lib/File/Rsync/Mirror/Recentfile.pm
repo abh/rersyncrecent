@@ -691,6 +691,8 @@ sub meta_data {
     # am a reader
     $ret->{Producers} ||= {
                            __PACKAGE__, "$VERSION", # stringified it looks better
+                           '$0', $0,
+                           'time', Time::HiRes::time,
                           };
     return $ret;
 }

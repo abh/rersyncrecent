@@ -1,3 +1,14 @@
+2008-08-13  Andreas Koenig  <k@andreas-koenigs-computer.local>
+
+	* On OSes not supporting symlinks we expect that RECENT.recent contains
+	the contents of the principal recentfile. Actually this is identical on
+	systems supporting symlinks. Simple, what follows from that is that we
+	need to keep the serializer in the metadata because we cannot read it
+	from the filename, doesn't it? Of course not. It's a chicken and egg
+	problem. This leaves us with the problem to actually parse the
+	serialized data to find out in which format it is. So who can do the 4
+	or 5 magics we wanted to support?
+
 2008-08-09  Andreas Koenig  <k@andreas-koenigs-computer.local>
 
 	* remotebase and recentfile_basename are ugly names. Now that we need a
@@ -18,15 +29,15 @@
 	of rmirror. We should have more methods in Recent.pm: verify,
 	addmissingfiles. We should verify the current tree, then rmirror it and
 	then verifytree the copy. We could then add some arbitrary file and let
-	it be discovered by addmissingfiles , then rmirror again and then
+	it be discovered by addmissingfiles, then rmirror again and then
 	verifytree the copy again.
 
-	Then we could start stealing from csync2 sqlite database and fill a
-	local DB. And methods to compare the database with the recentfiles. Our
-	strength is that in principle we could maintain state with a single
-	float. We have synced up to 1234567890.123456. If the Z file does not
-	add new files all we have to do is mirror the new ones and delete the
-	goners.
+	Then we could start stealing from csync2 sqlite database [no port to
+	OSX!] and fill a local DB. And methods to compare the database with the
+	recentfiles. Our strength is that in principle we could maintain state
+	with a single float. We have synced up to 1234567890.123456. If the Z
+	file does not add new files all we have to do is mirror the new ones and
+	delete the goners.
 
 	This makes it clear that we should extend current protocol and declare
 	that we cheat when we add files too late, just to help the other end

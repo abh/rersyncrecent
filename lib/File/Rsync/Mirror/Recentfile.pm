@@ -144,6 +144,9 @@ sub new_from_file {
                            local $/;
                            <$fh>;
                        };
+    # XXX: we can skip this step when the metadata are sufficient, but
+    # we cannot parse the file without some magic stuff about
+    # serialized formats
     my($name,$path,$suffix) = fileparse $file, keys %serializers;
     $self->serializer_suffix($suffix);
     $self->localroot($path);
@@ -681,6 +684,7 @@ sub meta_data {
                "merged",
                "interval",
                "protocol",
+               "serializer_suffix",
               ) {
         my $v = $self->$m;
         if (defined $v) {

@@ -58,12 +58,13 @@ rmtree [$root_from, $root_to];
     }
     $rf0->write_recent($recent_events);
     $rf0->aggregate;
+    my $filesize_threshold = 1750; # XXX may be system dependent
     for my $iv (@intervals) {
         my $rf = "$root_from/RECENT-$iv.yaml";
         my $filesize = -s $rf;
-        # now they have 1700+ bytes because they were merged for the
+        # now they have $filesize_threshold+ bytes because they were merged for the
         # first time ever and could not be truncated for this reason.
-        ok(1700 < $filesize, "file $iv has good size[$filesize]");
+        ok($filesize_threshold < $filesize, "file $iv has good size[$filesize]");
         utime 0, 0, $rf; # so that the next aggregate isn't skipped
     }
     open my $fh, ">", "$root_from/finissage" or die "Could not open: $!";
@@ -74,9 +75,9 @@ rmtree [$root_from, $root_to];
     $rf0->aggregate;
     for my $iv (@intervals) {
         my $filesize = -s "$root_from/RECENT-$iv.yaml";
-        # now they have <1700 bytes because the second aggregate could
+        # now they have <$filesize_threshold bytes because the second aggregate could
         # truncate them
-        ok($iv eq "Z" || 1700 > $filesize, "file $iv has good size[$filesize]");
+        ok($iv eq "Z" || $filesize_threshold > $filesize, "file $iv has good size[$filesize]");
     }
 }
 

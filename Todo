@@ -1,3 +1,21 @@
+2008-08-17  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* I like the portability that Data::Serializer brings us but the price
+	is that some day we might find out that it is slowing us a bit. We'll
+	see.
+
+2008-08-16  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* should we not enter the interval of the principal (or the interval of
+	the merging file?) in every aggregated/merged file?
+
+	* we should aim at a first release and give up on thinking about
+	sanitizing stuff and zloop. Let's just admit that a full traditional
+	rsync is the only available sanitizer ATM. Otherwise it's complicated
+	stuff: sanitizing on the origin server, sanitizing on the slaves,
+	sanitizing forgotten files, broken timestamps, etc. Let's delay it and
+	get the basics out before this becomes a major cause for mess.
+
 2008-08-13  Andreas Koenig  <k@andreas-koenigs-computer.local>
 
 	* On OSes not supporting symlinks we expect that RECENT.recent contains
@@ -7,7 +25,7 @@
 	from the filename, doesn't it? Of course not. It's a chicken and egg
 	problem. This leaves us with the problem to actually parse the
 	serialized data to find out in which format it is. So who can do the 4
-	or 5 magics we wanted to support?
+	or 5 magics we wanted to support? File::LibMagic?
 
 2008-08-09  Andreas Koenig  <k@andreas-koenigs-computer.local>
 

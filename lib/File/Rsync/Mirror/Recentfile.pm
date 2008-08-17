@@ -18,9 +18,13 @@ Version 0.0.1
 package File::Rsync::Mirror::Recentfile;
 
 my $HAVE = {};
-for my $package (qw( Data::Serializer File::Rsync )) {
+for my $package (
+                 "Data::Serializer",
+                 "File::Rsync"
+                ) {
     $HAVE->{$package} = eval qq{ require $package; };
 }
+use Config;
 use File::Basename qw(dirname fileparse);
 use File::Copy qw(cp);
 use File::Path qw(mkpath);
@@ -152,22 +156,15 @@ sub new_from_file {
     $self->localroot($path);
     die "Could not determine file format from suffix" unless $suffix;
     my $deserialized;
-    if ($HAVE->{"Data::Serializer"}) {
-        my $serializer = Data::Serializer->new
-            (
-             serializer => $serializers{$suffix},
-             secret     => undef,
-             compress   => 0,
-             digest     => 0,
-             portable   => 0,
-             encoding   => "raw",
-            );
-        $deserialized = $serializer->deserialize($serialized);
-    } else {
-        die "Data::Serializer not installed, cannot proceed with suffix '$suffix'"
-            unless $suffix eq ".yaml";
+    if ($suffix eq ".yaml") {
         require YAML::Syck;
         $deserialized = YAML::Syck::LoadFile($file);
+    } elsif ($HAVE->{"Data::Serializer"}) {
+        my $serializer = Data::Serializer->new
+            ( serializer => $serializers{$suffix} );
+        $deserialized = $serializer->raw_deserialize($serialized);
+    } else {
+        die "Data::Serializer not installed, cannot proceed with suffix '$suffix'";
     }
     while (my($k,$v) = each %{$deserialized->{meta}}) {
         next if $k ne lc $k; # "Producers"
@@ -284,10 +281,10 @@ File::Rsync object used to run the mirror.
 
 =item serializer_suffix
 
-Untested accessor. The only tested format for I<recentfile>s at the
-moment is YAML. It is used with YAML::Syck via Data::Serializer. But
-in principle other formats are supported as well. See section
-SERIALIZERS below.
+Mostly untested accessor. The only well tested format for
+I<recentfile>s at the moment is YAML. It is used with YAML::Syck via
+Data::Serializer. But in principle other formats are supported as
+well. See section SERIALIZERS below.
 
 =item sleep_per_connection
 
@@ -391,7 +388,7 @@ sub _debug_aggregate {
 # (void) $self->_assert_symlink()
 sub _assert_symlink {
     my($self) = @_;
-    my $symlink = File::Spec->catfile
+    my $recentrecentfile = File::Spec->catfile
         (
          $self->localroot,
          sprintf
@@ -400,23 +397,31 @@ sub _assert_symlink {
           $self->filenameroot
          )
         );
-    my $howto_create_symlink; # 0=no need; 1=straight symlink; 2=rename symlink
-    if (-l $symlink) {
-        my $found_symlink = readlink $symlink;
-        if ($found_symlink eq $self->recentfile_basename) {
-            return;
+    if ($Config{d_symlink} eq "define") {
+        my $howto_create_symlink; # 0=no need; 1=straight symlink; 2=rename symlink
+        if (-l $recentrecentfile) {
+            my $found_symlink = readlink $recentrecentfile;
+            if ($found_symlink eq $self->recentfile_basename) {
+                return;
+            } else {
+                $howto_create_symlink = 2;
+            }
         } else {
-            $howto_create_symlink = 2;
+            $howto_create_symlink = 1;
+        }
+        if (1 == $howto_create_symlink) {
+            symlink $self->recentfile_basename, $recentrecentfile or die "Could not create symlink '$recentrecentfile': $!"
+        } else {
+            unlink "$recentrecentfile.$$"; # may fail
+            symlink $self->recentfile_basename, "$recentrecentfile.$$" or die "Could not create symlink '$recentrecentfile.$$': $!";
+            rename "$recentrecentfile.$$", $recentrecentfile or die "Could not rename '$recentrecentfile.$$' to $recentrecentfile: $!";
         }
     } else {
-        $howto_create_symlink = 1;
+        warn "Warning: symlinks not supported on this system, doing a copy instead\n";
+        unlink "$recentrecentfile.$$"; # may fail
+        cp $self->recentfile_basename, "$recentrecentfile.$$" or die "Could not copy to '$recentrecentfile.$$': $!";
+        rename "$recentrecentfile.$$", $recentrecentfile or die "Could not rename '$recentrecentfile.$$' to $recentrecentfile: $!";
     }
-    if (1 == $howto_create_symlink) {
-        symlink $self->recentfile_basename, $symlink or die "Could not create symlink '$symlink': $!"
-    } else {
-        unlink "$symlink.$$"; # may fail
-        symlink $self->recentfile_basename, "$symlink.$$" or die "Could not create symlink '$symlink.$$': $!";
-        rename "$symlink.$$", $symlink or die "Could not rename '$symlink.$$' to $symlink: $!";    }
 }
 
 =head2 $success = $obj->full_mirror
@@ -960,7 +965,25 @@ necessary locking.
 sub recent_events {
     my ($self) = @_;
     my $rfile = $self->rfile;
-    my ($data) = eval {YAML::Syck::LoadFile($rfile);};
+    my $suffix = $self->serializer_suffix;
+    my ($data) = eval {
+        if ($suffix eq ".yaml") {
+            require YAML::Syck;
+            YAML::Syck::LoadFile($rfile);
+        } elsif ($HAVE->{"Data::Serializer"}) {
+            my $serializer = Data::Serializer->new
+                ( serializer => $serializers{$suffix} );
+            my $serialized = do
+                {
+                    open my $fh, $rfile or die "Could not open: $!";
+                    local $/;
+                    <$fh>;
+                };
+            $serializer->raw_deserialize($serialized);
+        } else {
+            die "Data::Serializer not installed, cannot proceed with suffix '$suffix'";
+        }
+    };
     my $err = $@;
     if ($err or !$data) {
         return [];
@@ -1245,10 +1268,24 @@ Delegate of C<write_recent()> on protocol 1
 sub write_1 {
     my ($self,$recent) = @_;
     my $rfile = $self->rfile;
-    YAML::Syck::DumpFile("$rfile.new",{
-                                       meta => $self->meta_data,
-                                       recent => $recent,
-                                      });
+    my $suffix = $self->serializer_suffix;
+    my $data = {
+                meta => $self->meta_data,
+                recent => $recent,
+               };
+    my $serialized;
+    if ($suffix eq ".yaml") {
+        $serialized = YAML::Syck::Dump($data);
+    } elsif ($HAVE->{"Data::Serializer"}) {
+        my $serializer = Data::Serializer->new
+            ( serializer => $serializers{$suffix} );
+        $serialized = $serializer->raw_serialize($data);
+    } else {
+        die "Data::Serializer not installed, cannot proceed with suffix '$suffix'";
+    }
+    open my $fh, ">", "$rfile.new" or die "Could not open >'$rfile.new': $!";
+    print $fh $serialized;
+    close $fh or die "Could not close '$rfile.new': $!";
     rename "$rfile.new", $rfile or die "Could not rename to '$rfile': $!";
 }
 
@@ -1270,7 +1307,7 @@ to keep the bandwidth necessities low they must not be
 updated too frequently. That's the basic idea. The following
 example represents a tree that has a few updates every day:
 
- RECENT-1h.yaml
+ RECENT.recent -> RECENT-1h.yaml
  RECENT-6h.yaml
  RECENT-1d.yaml
  RECENT-1M.yaml
@@ -1278,6 +1315,12 @@ example represents a tree that has a few updates every day:
  RECENT-1Q.yaml
  RECENT-1Y.yaml
  RECENT-Z.yaml
+
+The first file is the principal file, in so far it is the one that is
+written first after a filesystem change. Usually a symlink links to it
+with a filename that has the same filenameroot and the suffix
+C<.recent>. On systems that do not support symlinks there is a plain
+copy maintained instead.
 
 The last file, the Z file, contains the complementary files that are
 in none of the other files. It does never contain C<deletes>. Besides

@@ -3,6 +3,20 @@ use strict;
 my $tests;
 BEGIN { $tests = 0 }
 use lib "lib";
+
+
+my $HAVE;
+BEGIN {
+    # neither LibMagic nor MMagic tell them apart
+    for my $package (
+                     # "File::LibMagic",
+                     "File::MMagic",
+                    ) {
+        $HAVE->{$package} = eval qq{ require $package; };
+    }
+}
+
+use Dumpvalue;
 use File::Basename qw(dirname);
 use File::Copy qw(cp);
 use File::Path qw(mkpath rmtree);
@@ -13,6 +27,59 @@ use YAML::Syck;
 
 my $root_from = "t/ta";
 my $root_to = "t/tb";
+rmtree [$root_from, $root_to];
+
+{
+    my @serializers;
+    BEGIN {
+        @serializers = (
+                        ".yaml",
+                        ".json",
+                        ".sto",
+                        ".dd",
+                       );
+        $tests += @serializers;
+        if ($HAVE->{"File::LibMagic"}||$HAVE->{"File::MMagic"}) {
+            $tests += @serializers;
+        }
+    }
+    mkpath $root_from;
+    my $ttt = "$root_from/ttt";
+    open my $fh, ">", $ttt or die "Could not open: $!";
+    print $fh time;
+    close $fh or die "Could not close: $!";
+    my $fm;
+    if ($HAVE->{"File::LibMagic"}) {
+        $fm = File::LibMagic->new();
+    } elsif ($HAVE->{"File::MMagic"}) {
+        $fm = File::MMagic->new();
+    }
+    for my $s (@serializers) {
+        my $rf = File::Rsync::Mirror::Recentfile->new
+            (
+             filenameroot   => "RECENT",
+             interval       => q(1m),
+             localroot      => $root_from,
+             serializer_suffix => $s,
+            );
+        $rf->update($ttt,"new");
+        if ($fm) {
+            my $magic = $fm->checktype_filename("$root_from/RECENT-1m$s");
+            ok($magic, sprintf
+               ("Got a magic[%s] for s[%s]: [%s]",
+                ref $fm,
+                $s,
+                $magic,
+               ));
+        }
+        my $content = do {open my $fh, "$root_from/RECENT-1m$s";local $/;<$fh>};
+        $content = Dumpvalue->new()->stringify($content);
+        my $want_length = 42; # or maybe 3 more
+        substr($content,$want_length) = "..." if length $content > 3+$want_length;
+        ok($content, "Got a substr for s[$s]: [$content]");
+    }
+}
+
 rmtree [$root_from, $root_to];
 
 {

@@ -131,7 +131,7 @@ Defaults to the arbitrary value 42.
 
 TBD
 
-=item remotebase
+=item remoteroot
 
 XXX: this is (ATM) different from Recentfile!!!
 
@@ -194,17 +194,17 @@ sub rmirror {
 
     # get the remote remotefile
     my $rrfile = $self->remote;
-    my($remotebase,$recentfile_basename) = $rrfile =~ m{(.+)/([^/]+)};
-    $self->remotebase($remotebase);
+    my($remoteroot,$rfilename) = $rrfile =~ m{(.+)/([^/]+)};
+    $self->remoteroot($remoteroot);
     my @need_args =
         (
          "localroot",
-         "remotebase",
+         "remoteroot",
          "rsync_options",
          "verbose",
         );
     my $rf0 = File::Rsync::Mirror::Recentfile->new (map {($_ => $self->$_)} @need_args);
-    my $lfile = $rf0->get_remotefile ($recentfile_basename);
+    my $lfile = $rf0->get_remotefile ($rfilename);
     # while it is a symlink, resolve it
     while (-l $lfile) {
         my $symlink = readlink $lfile;
@@ -222,7 +222,7 @@ sub rmirror {
     for my $agg (@$aggregator) {
         my $nrf = Storable::dclone ( $rf0 );
         $nrf->interval ( $agg );
-        my $nlfile = $rf0->get_remotefile ( $nrf->recentfile_basename );
+        my $nlfile = $rf0->get_remotefile ( $nrf->rfilename );
         push @rf, $nrf;
     }
     warn sprintf "Got %d recentfiles\n", scalar @rf;

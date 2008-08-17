@@ -1,5 +1,15 @@
 2008-08-17  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
+	* grand renaming plan
+
+	remotebase          => remoteroot   to fit well with localroot        DONE
+	local_path()        => localroot    seems to me should already work   DONE
+	recentfile_basename => rfilename    no need to stress it has no slash DONE
+
+	filenameroot??? Doesn't seem too bad to me today. Maybe something like
+	kern? It would anyway need a deprecation cycle because it is an
+	important constructor.
+
 	* I like the portability that Data::Serializer brings us but the price
 	is that some day we might find out that it is slowing us a bit. We'll
 	see.

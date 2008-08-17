@@ -188,7 +188,7 @@ BEGIN {
                   "_interval",
                   "_is_locked",
                   "_localroot",
-                  "_remotebase",
+                  "_remoteroot",
                   "_rfile",
                   "_rsync",
                   "_use_tempfile",
@@ -401,7 +401,7 @@ sub _assert_symlink {
         my $howto_create_symlink; # 0=no need; 1=straight symlink; 2=rename symlink
         if (-l $recentrecentfile) {
             my $found_symlink = readlink $recentrecentfile;
-            if ($found_symlink eq $self->recentfile_basename) {
+            if ($found_symlink eq $self->rfilename) {
                 return;
             } else {
                 $howto_create_symlink = 2;
@@ -410,16 +410,16 @@ sub _assert_symlink {
             $howto_create_symlink = 1;
         }
         if (1 == $howto_create_symlink) {
-            symlink $self->recentfile_basename, $recentrecentfile or die "Could not create symlink '$recentrecentfile': $!"
+            symlink $self->rfilename, $recentrecentfile or die "Could not create symlink '$recentrecentfile': $!"
         } else {
             unlink "$recentrecentfile.$$"; # may fail
-            symlink $self->recentfile_basename, "$recentrecentfile.$$" or die "Could not create symlink '$recentrecentfile.$$': $!";
+            symlink $self->rfilename, "$recentrecentfile.$$" or die "Could not create symlink '$recentrecentfile.$$': $!";
             rename "$recentrecentfile.$$", $recentrecentfile or die "Could not rename '$recentrecentfile.$$' to $recentrecentfile: $!";
         }
     } else {
         warn "Warning: symlinks not supported on this system, doing a copy instead\n";
         unlink "$recentrecentfile.$$"; # may fail
-        cp $self->recentfile_basename, "$recentrecentfile.$$" or die "Could not copy to '$recentrecentfile.$$': $!";
+        cp $self->rfilename, "$recentrecentfile.$$" or die "Could not copy to '$recentrecentfile.$$': $!";
         rename "$recentrecentfile.$$", $recentrecentfile or die "Could not rename '$recentrecentfile.$$' to $recentrecentfile: $!";
     }
 }
@@ -447,7 +447,7 @@ sub get_remote_recentfile_as_tempfile {
     my($self) = @_;
     mkpath $self->localroot;
     my($fh) = File::Temp->new(TEMPLATE => sprintf(".%s-XXXX",
-                                                  $self->recentfile_basename,
+                                                  $self->rfilename,
                                                  ),
                               DIR => $self->localroot,
                               SUFFIX => $self->serializer_suffix,
@@ -462,8 +462,8 @@ sub get_remote_recentfile_as_tempfile {
     }
     while (!$self->rsync->exec(
                                src => join("/",
-                                           $self->remotebase,
-                                           $self->recentfile_basename),
+                                           $self->remoteroot,
+                                           $self->rfilename),
                                dst => $trecentfile,
                               )) {
         $self->register_rsync_error ($self->rsync->err);
@@ -487,7 +487,7 @@ sub get_remotefile {
     mkpath dirname $lfile;
     while (!$self->rsync->exec(
                                src => join("/",
-                                           $self->remotebase,
+                                           $self->remoteroot,
                                            $path),
                                dst => $lfile,
                               )) {
@@ -577,14 +577,18 @@ sub local_event_path {
 Combines the path to our local mirror and the path of an object found
 in this I<recentfile>. In other words: the target of a mirror operation.
 
+Implementation note: We split on slashes and then use
+File::Spec::catfile to adjust to the local operating system.
+
 =cut
 
 sub local_path {
     my($self,$path) = @_;
     unless (defined $path) {
+        # seems like a degenerated case
         return $self->localroot;
     }
-    my @p = split m|/|, $path; # rsync paths are always slash-separated
+    my @p = split m|/|, $path;
     File::Spec->catfile($self->localroot,@p);
 }
 
@@ -868,7 +872,7 @@ sub mirror_path {
     # simplify docs and code. (rsync-over-recentfile-2.pl uses the
     # interface)
     if (ref $path and ref $path eq "ARRAY") {
-        my $dst = $self->local_path();
+        my $dst = $self->localroot;
         mkpath dirname $dst;
         my($fh) = File::Temp->new(TEMPLATE => sprintf(".%s-XXXX",
                                                       lc $self->filenameroot,
@@ -884,7 +888,7 @@ sub mirror_path {
         while (!$self->rsync->exec
                (
                 src => join("/",
-                            $self->remotebase,
+                            $self->remoteroot,
                            ),
                 dst => $dst,
                 'files-from' => $fh->filename,
@@ -905,7 +909,7 @@ sub mirror_path {
         while (!$self->rsync->exec
                (
                 src => join("/",
-                            $self->remotebase,
+                            $self->remoteroot,
                             $path
                            ),
                 dst => $dst,
@@ -1022,19 +1026,19 @@ sub recentfile {
     Carp::cluck("deprecated method recentfile called. Please use rfile instead!");
     my $recent = File::Spec->catfile(
                                      $self->localroot,
-                                     $self->recentfile_basename,
+                                     $self->rfilename,
                                     );
     return $recent;
 }
 
-=head2 $ret = $obj->recentfile_basename
+=head2 $ret = $obj->rfilename
 
 Just the basename of our I<recentfile>, composed from C<filenameroot>,
 a dash, C<interval>, and C<serializer_suffix>. E.g. C<RECENT-6h.yaml>
 
 =cut
 
-sub recentfile_basename {
+sub rfilename {
     my($self) = @_;
     my $file = sprintf("%s-%s%s",
                        $self->filenameroot,
@@ -1044,9 +1048,9 @@ sub recentfile_basename {
     return $file;
 }
 
-=head2 $str = $obj->remotebase
+=head2 $str = $obj->remoteroot
 
-=head2 (void) $obj->remotebase ( $set )
+=head2 (void) $obj->remoteroot ( $set )
 
 Get/Set the composed prefix needed when rsyncing from a remote module.
 If remote_host, remote_module, and remote_dir are set, it is composed
@@ -1054,23 +1058,23 @@ from these.
 
 =cut
 
-sub remotebase {
+sub remoteroot {
     my($self, $set) = @_;
     if (defined $set) {
-        $self->_remotebase($set);
+        $self->_remoteroot($set);
     }
-    my $remotebase = $self->_remotebase;
-    unless (defined $remotebase) {
-        $remotebase = sprintf
+    my $remoteroot = $self->_remoteroot;
+    unless (defined $remoteroot) {
+        $remoteroot = sprintf
             (
              "%s%s%s",
              defined $self->remote_host   ? ($self->remote_host."::")  : "",
              defined $self->remote_module ? ($self->remote_module."/") : "",
              defined $self->remote_dir    ? $self->remote_dir          : "",
             );
-        $self->_remotebase($remotebase);
+        $self->_remoteroot($remoteroot);
     }
-    return $remotebase;
+    return $remoteroot;
 }
 
 =head2 my $rfile = $obj->rfile
@@ -1088,7 +1092,7 @@ sub rfile {
         return $rfile if defined $rfile;
         $rfile = File::Spec->catfile
             ($self->localroot,
-             $self->recentfile_basename,
+             $self->rfilename,
             );
         $self->_rfile ($rfile);
         return $rfile;

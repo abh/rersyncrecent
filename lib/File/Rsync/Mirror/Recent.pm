@@ -159,12 +159,11 @@ use accessors @accessors;
 
 =head2 $success = $obj->rmirror ( %options )
 
-Mirrors all recentfiles of the I<remote> address.
-
 XXX WORK IN PROGRESS XXX
 
-XXX Afterwards it should work through all of them, but not blindly,
-rather by merging first and mirroring then XXX
+Mirrors all recentfiles of the I<remote> address. Afterwards it should
+work through all of them, but not blindly, rather by merging first and
+mirroring then
 
 Testing this ATM with:
 
@@ -253,7 +252,7 @@ sub rmirror_loop {
 
 =head2 $hash = $obj->verify
 
-(TBD) Runs find on the tree, collects all existing files from
+(TBD) Runs find on the local tree, collects all existing files from
 recentfiles, compares their names. The returned hash contains the keys
 C<todelete> and C<toadd>.
 

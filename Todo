@@ -14,6 +14,13 @@
 	08:19:44 2008, that is when I checked out last time, so it seems to be
 	aggregating and never truncating?
 
+	No, correct is: it is never truncating; but wrong is: it is aggregating.
+	It does receive a lot of events from time to time from a larger file.
+	Somehow a large file gets merged into the small one and because the
+	"meta/merged" attribute is missing, nobody is paying attention. I
+	believe that I can fix this by makign sure that metadata are honoured
+	during read. DONE and test adjusted.
+
 2008-08-17  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* grand renaming plan

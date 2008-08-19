@@ -195,6 +195,7 @@ rmtree [$root_from, $root_to];
     $rf->update($file_from,"new");
     $rf->aggregate;
     my $dagg2 = $rf->_debug_aggregate;
+    undef $rf;
     ok($dagg1->[0][1] < $dagg2->[0][1], "The 10s file size larger: $dagg1->[0][1] < $dagg2->[0][1]");
     ok($dagg1->[1][2] < $dagg2->[1][2], "The 1m file timestamp larger: $dagg1->[1][2] < $dagg2->[1][2]");
     is $dagg1->[2][1], $dagg2->[2][1], "The 2m file size unchanged";
@@ -212,8 +213,14 @@ rmtree [$root_from, $root_to];
         open my $fh, ">", $file or die "Could not open '$file': $!";
         print $fh time, ":", $file, "\n";
         close $fh or die "Could not close '$file': $!";
-        $rf->update($file,"new");
-        $rf->aggregate;
+        my $another_rf = File::Rsync::Mirror::Recentfile->new
+            (
+             interval => "10s",
+             localroot => $root_from,
+             aggregator => [qw(30s 1m 2m 1h Z)],
+            );
+        $another_rf->update($file,"new");
+        $another_rf->aggregate;
         my $rf2 = File::Rsync::Mirror::Recentfile->new_from_file("$root_from/RECENT-30s.yaml");
         my $rece = $rf2->recent_events;
         my $rececnt = @$rece;

@@ -39,6 +39,7 @@ use version; our $VERSION = qv('0.0.1');
 
 
 use constant MAX_INT => ~0>>1; # anything better?
+use constant DEFAULT_PROTOCOL => 1;
 
 # cf. interval_secs
 my %seconds;
@@ -112,6 +113,10 @@ No exports.
 Constructor. On every argument pair the key is a method name and the
 value is an argument to that method name.
 
+If a recentfile for this resource already exists, metadata that are
+not defined by the constructor will be fetched from there as soon as
+it is being read by recent_events().
+
 =cut
 
 sub new {
@@ -122,7 +127,7 @@ sub new {
         $self->$method($arg);
     }
     unless (defined $self->protocol) {
-        $self->protocol(1);
+        $self->protocol(DEFAULT_PROTOCOL);
     }
     unless (defined $self->filenameroot) {
         $self->filenameroot("RECENT");
@@ -171,7 +176,7 @@ sub new_from_file {
         $self->$k($v);
     }
     unless (defined $self->protocol) {
-        $self->protocol(1);
+        $self->protocol(DEFAULT_PROTOCOL);
     }
     return $self;
 }
@@ -996,6 +1001,12 @@ sub recent_events {
         return $data;
     } else {
         my $meth = sprintf "read_recent_%d", $data->{meta}{protocol};
+        # we may be reading meta for the first time
+        while (my($k,$v) = each %{$data->{meta}}) {
+            next if $k ne lc $k; # "Producers"
+            next if defined $self->$k;
+            $self->$k($v);
+        }
         return $self->$meth($data);
     }
 }

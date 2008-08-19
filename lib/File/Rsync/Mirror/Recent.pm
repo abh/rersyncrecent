@@ -109,23 +109,14 @@ BEGIN {
 
 as in F:R:M:Recentfile
 
+=item local
+
+Option to specify the local principal file for operations with a local
+collection of recentfiles.
+
 =item localroot
 
-XXX: this is (ATM) different from localroot in Recentfile!!!
-
-=item loopinterval
-
-When mirror_loop is called, this accessor can specify how much time
-every loop shall at least take. If the work of a loop is done before
-that time has gone, sleeps for the rest of the time. Defaults to
-arbitrary 42 seconds.
-
-=item max_files_per_connection
-
-Maximum number of files that are transferred on a single rsync call.
-Setting it higher means higher performance at the price of holding
-connections longer and potentially disturbing other users in the pool.
-Defaults to the arbitrary value 42.
+as in F:R:M:Recentfile
 
 =item remote
 
@@ -138,7 +129,7 @@ XXX: this is (ATM) different from Recentfile!!!
 =item remote_recentfile
 
 Rsync address of the remote C<RECENT.recent> symlink or whichever name
-the main driving remote recentfile has.
+the principal remote recentfile has.
 
 =item rsync_options
 
@@ -156,6 +147,28 @@ Boolean to turn on a bit verbosity.
 use accessors @accessors;
 
 =head1 METHODS
+
+=head2 $arrayref = $obj->news ( %options )
+
+XXX WORK IN PROGRESS XXX
+
+Testing this ATM with:
+
+  perl -Ilib bin/rrr-news \
+       -since 1217200539 \
+       -local /home/ftp/pub/PAUSE/authors/RECENT.recent
+
+  perl -Ilib bin/rrr-news \
+       -since 1217200539 \
+       -localroot /home/ftp/pub/PAUSE/authors/ \
+       -remote pause.perl.org::authors/RECENT.recent
+
+=cut
+
+sub news {
+    my($self, %options) = @_;
+    require YAML::Syck; print STDERR "Line " . __LINE__ . ", File: " . __FILE__ . "\n" . YAML::Syck::Dump(\%options); # XXX
+}
 
 =head2 $success = $obj->rmirror ( %options )
 

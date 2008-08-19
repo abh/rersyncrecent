@@ -638,7 +638,6 @@ sub merge {
     my $epoch = $other_recent->[0] ? $other_recent->[0]{epoch} : $my_recent->[0] ? $my_recent->[0]{epoch} : undef;
     my $oldest_allowed = 0;
     if ($epoch) {
-        $DB::single++;
         if (my $merged = $self->merged) {
             my $secs = $self->interval_secs();
             $oldest_allowed = min($epoch - $secs, $merged->{epoch});
@@ -658,6 +657,7 @@ sub merge {
         next if $have{$path}++;
         if (    $self->interval eq "Z"
             and $ev->{type}     eq "delete") {
+            # do nothing
         } else {
             push @$recent, { epoch => $ev->{epoch}, path => $path, type => $ev->{type} };
         }

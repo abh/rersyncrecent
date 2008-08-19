@@ -1,3 +1,19 @@
+2008-08-19  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* I suspect the treat of metadata is incorrect during read or something.
+	The bug that I am watching is that between 06:08 and 06:09 the 6h file
+	contained more than 6 hours worth of data. At 06:08 we merged into the
+	1d file. We need to take snapshots of the 6h file over the course of an
+	hour or maybe only between XX:08 and XX:09? Nope, the latter is not
+	enough.
+
+	Much worse: watching the 1h file: right at the moment (at 06:35) it
+	covers 1218867584-1219120397 which is 70 hours.
+
+	Something terribly broken. BTW, 1218867584 corresponds to Sat Aug 16
+	08:19:44 2008, that is when I checked out last time, so it seems to be
+	aggregating and never truncating?
+
 2008-08-17  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* grand renaming plan

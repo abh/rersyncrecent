@@ -1220,16 +1220,14 @@ sub update {
         my $interval = $self->interval;
         my $secs = $self->interval_secs();
         my $epoch = Time::HiRes::time;
-        # XXX next four lines copy&paste from merge()
+        $self->lock;
+        my $recent = $self->recent_events;
+        $recent ||= [];
         my $oldest_allowed = 0;
         if (my $merged = $self->merged) {
             my $secs = $self->interval_secs();
             $oldest_allowed = min($epoch - $secs, $merged->{epoch});
         }
-
-        $self->lock;
-        my $recent = $self->recent_events;
-        $recent ||= [];
       TRUNCATE: while (@$recent) {
             if ($recent->[-1]{epoch} < $oldest_allowed) {
                 pop @$recent;

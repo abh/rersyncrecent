@@ -167,7 +167,8 @@ Testing this ATM with:
 
 sub news {
     my($self, %options) = @_;
-    require YAML::Syck; print STDERR "Line " . __LINE__ . ", File: " . __FILE__ . "\n" . YAML::Syck::Dump(\%options); # XXX
+    require YAML::Syck; print STDERR "Line " . __LINE__ . ", File: " . __FILE__ . "\n" . YAML::Syck::Dump(\%options,$self); # XXX
+    +[];
 }
 
 =head2 $success = $obj->rmirror ( %options )

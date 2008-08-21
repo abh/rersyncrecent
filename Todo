@@ -1,3 +1,9 @@
+2008-08-20  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* deletes: if a delete follows an add quickly enough it may happen that
+	a downstream mirror did not see the add at all! It seems this needs to
+	be mentioned somewhere.
+
 2008-08-19  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* I suspect the treat of metadata is incorrect during read or something.

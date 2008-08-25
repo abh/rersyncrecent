@@ -48,6 +48,13 @@ WriteMakefile
                                   ),
               COMPRESS => 'gzip -9',
              },
+     # I took it from RT-CPAN ticket 30098:
+     ($ExtUtils::MakeMaker::VERSION >= 6.3002 ?
+      (EXTRA_META => <<EMETA,
+# write: git push git+ssh://repo.or.cz/srv/git/rersyncrecent.git master
+repository: "git://repo.or.cz/rersyncrecent.git"
+EMETA
+      ) : ()),
      @sign,
      clean               => { FILES => 'File-Rsync-Mirror-Recent-*' },
     );

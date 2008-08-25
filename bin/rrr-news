@@ -136,7 +136,7 @@ if ($rf->remote) {
     }
 } elsif ($rf->local) {
 } else {
-    die
+    die "need either --local option or both of --remote and --localroot";
 }
 if (my $tout = $Opt{locktimeout}) {
     $rf->locktimeout($tout);

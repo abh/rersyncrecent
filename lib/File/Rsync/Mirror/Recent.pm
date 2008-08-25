@@ -97,6 +97,8 @@ my @accessors;
 
 BEGIN {
     @accessors = (
+                  "_principal_recentfile",
+                  "_recentfiles",
                   "_rsync",
                  );
 
@@ -166,9 +168,80 @@ Testing this ATM with:
 =cut
 
 sub news {
-    my($self, %options) = @_;
-    require YAML::Syck; print STDERR "Line " . __LINE__ . ", File: " . __FILE__ . "\n" . YAML::Syck::Dump(\%options,$self); # XXX
+    my($self, %opt) = @_;
+    my $local = $self->local;
+    if ($local) {
+        # will read below
+    } else {
+        if (my $remote = $self->remote) {
+            my $localroot;
+            if ($localroot = $self->localroot) {
+                # nice, they know what they are doing
+            } else {
+                die "FIXME: remote called without localroot should trigger File::Temp.... TBD, sorry";
+            }
+            my $rfs = $self->recentfiles;
+        } else {
+            die "Alert: neither local nor remote specified, cannot continue";
+        }
+    }
+    require YAML::Syck; print STDERR "Line " . __LINE__ . ", File: " . __FILE__ . "\n" . YAML::Syck::Dump(\%opt,$self); # XXX
     +[];
+}
+
+=head2 $recentfile = $obj->principal_recentfile ()
+
+XXX WORK IN PROGRESS XXX
+
+returns the principal recentfile of this tree. If we have already
+collected all recentfile objects for this tree, we return the first
+element of the list, otherwise we determine exactly this single object
+and return it.
+
+=cut
+
+sub principal_recentfile {
+    my($self) = @_;
+    my $rfs = $self->_recentfiles;
+    return $rfs->[0] if defined $rfs;
+    my $prfs = $self->_principal_recentfile;
+    return $prfs if defined $prfs;
+    my $local = $self->local;
+    if ($local) {
+        # will read below
+    } else {
+        if (my $remote = $self->remote) {
+            my $localroot;
+            if ($localroot = $self->localroot) {
+                # nice, they know what they are doing
+            } else {
+                die "FIXME: remote called without localroot should trigger File::Temp.... TBD, sorry";
+            }
+            die "FIXME: determine a preliminary recentfile which may be anything and will be deposited soonish";
+        } else {
+            die "Alert: neither local nor remote specified, cannot continue";
+        }
+    }
+    die "FIXME: determine the principal";
+    return $prfs;
+}
+
+=head2 $recentfiles_arrayref = $obj->recentfiles ()
+
+XXX WORK IN PROGRESS XXX
+
+returns a reference to the complete list of recentfiles that
+describe this tree.
+
+=cut
+
+sub recentfiles {
+    my($self) = @_;
+    my $rfs = $self->_recentfiles;
+    return $rfs if defined $rfs;
+    my $princrfs = $self->principal_recentfile;
+    die "FIXME: have the princrfs, need the rest of the gang";
+    return $rfs;
 }
 
 =head2 $success = $obj->rmirror ( %options )

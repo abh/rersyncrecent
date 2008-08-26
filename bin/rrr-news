@@ -48,6 +48,14 @@ Specifies the remote principal file in rsync notation. This implies
 that the necessary remote files will be mirrored before constructing
 the list.
 
+=item B<--rsync_options|rsync=s@>
+
+Multiple options in the form of key=value pairs. E.g.
+
+  --rsync=compress=1 --rsync=links=1
+
+The options are passed to the underlying L<File::Rsync> objects.
+
 =item B<--since=s>
 
 List all new files since this point in time. The format of the
@@ -140,6 +148,14 @@ if ($rf->remote) {
 }
 if (my $tout = $Opt{locktimeout}) {
     $rf->locktimeout($tout);
+}
+{
+    my %rsopt;
+    for my $rsopt (@{$Opt{rsync_options}||[]}) {
+        my($key,$value) = $rsopt =~ /([^=]+)=(.+)/s;
+        $rsopt{$key} = $value;
+    }
+    $rf->rsync_options(\%rsopt);
 }
 my @nopt;
 for my $opt (qw(max since upto)) {

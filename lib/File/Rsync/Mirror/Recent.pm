@@ -162,8 +162,11 @@ Testing this ATM with:
 
   perl -Ilib bin/rrr-news \
        -since 1217200539 \
+       --rsync=compress=1 \
+       --rsync=links=1 \
        -localroot /home/ftp/pub/PAUSE/authors/ \
        -remote pause.perl.org::authors/RECENT.recent
+       -verbose
 
 =cut
 

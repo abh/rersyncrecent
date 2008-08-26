@@ -1,3 +1,11 @@
+2008-08-26  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* rsync options: it's a bit of a pain that we usually need several rsync
+	options, like compress, links, times, checksum and that there is no
+	reasonable default except the original rsync default. I think wee can
+	afely assume that the rsync options are shared between all recentfile
+	instances within one recent tree.
+
 2008-08-20  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* deletes: if a delete follows an add quickly enough it may happen that

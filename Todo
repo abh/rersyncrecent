@@ -1,5 +1,9 @@
 2008-08-26  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
+	* tempted to refactor rmirror into resolve_symlink, localize, etc.
+	Curious if rsync_options=links equal 0 vs. 1 will make the expected
+	difference.
+
 	* rsync options: it's a bit of a pain that we usually need several rsync
 	options, like compress, links, times, checksum and that there is no
 	reasonable default except the original rsync default. I think wee can

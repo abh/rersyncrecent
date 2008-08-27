@@ -146,8 +146,13 @@ if ($rf->remote) {
 } else {
     die "need either --local option or both of --remote and --localroot";
 }
-if (my $tout = $Opt{locktimeout}) {
-    $rf->locktimeout($tout);
+for my $passthrough (
+                     "locktimeout",
+                     "verbose",
+                    ) {
+    if (my $x = $Opt{$passthrough}) {
+        $rf->$passthrough($x);
+    }
 }
 {
     my %rsopt;

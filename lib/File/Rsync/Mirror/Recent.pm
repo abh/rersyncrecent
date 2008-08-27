@@ -207,11 +207,13 @@ sub principal_recentfile {
     my($self) = @_;
     my $rfs = $self->_recentfiles;
     return $rfs->[0] if defined $rfs;
-    my $prfs = $self->_principal_recentfile;
-    return $prfs if defined $prfs;
+    my $prince = $self->_principal_recentfile;
+    return $prince if defined $prince;
     my $local = $self->local;
     if ($local) {
-        # will read below
+        die "FIXME: have local[$local], need the rf object";
+
+        $prince = somethingtodowith($local);
     } else {
         if (my $remote = $self->remote) {
             my $localroot;
@@ -220,13 +222,13 @@ sub principal_recentfile {
             } else {
                 die "FIXME: remote called without localroot should trigger File::Temp.... TBD, sorry";
             }
-            die "FIXME: determine a preliminary recentfile which may be anything and will be deposited soonish";
+            my $rf0 = $self->_recentfile_object_for_remote;
+            $prince = $rf0;
         } else {
             die "Alert: neither local nor remote specified, cannot continue";
         }
     }
-    die "FIXME: determine the principal";
-    return $prfs;
+    return $prince;
 }
 
 =head2 $recentfiles_arrayref = $obj->recentfiles ()
@@ -243,7 +245,7 @@ sub recentfiles {
     my $rfs = $self->_recentfiles;
     return $rfs if defined $rfs;
     my $princrfs = $self->principal_recentfile;
-    die "FIXME: have the princrfs, need the rest of the gang";
+    die "FIXME: determine the full array of recentfile objects we might need";
     return $rfs;
 }
 
@@ -281,8 +283,35 @@ Testing this ATM with:
 sub rmirror {
     my($self, %options) = @_;
 
-    # get the remote remotefile
-    my $rrfile = $self->remote;
+    my $rf0 = $self->_recentfile_object_for_remote;
+    my $aggregator = $rf0->aggregator;
+    my @rf = $rf0;
+    for my $agg (@$aggregator) {
+        my $nrf = Storable::dclone ( $rf0 );
+        $nrf->interval ( $agg );
+        my $nlfile = $rf0->get_remotefile ( $nrf->rfilename );
+        push @rf, $nrf;
+    }
+    warn sprintf "Got %d recentfiles\n", scalar @rf;
+    for my $rf (@rf) {
+        die "FIXME: merge and then mirror";
+        $rf->mirror ( ); # XXX needs "before", not "after"
+        my $re = $rf->recent_events;
+        warn sprintf
+            (
+             "Mirrored from %s up to %s/%s\n",
+             $rf->rfile,
+             $re->[0]{path},
+             $re->[0]{epoch},
+            );
+    }
+}
+
+# mirrors the recentfile and instantiates the recentfile object
+sub _recentfile_object_for_remote {
+    my($self) = @_;
+    # get the remote recentfile
+    my $rrfile = $self->remote or die "Alert: cannot construct a recentfile object without the 'remote' attribute";
     my($remoteroot,$rfilename) = $rrfile =~ m{(.+)/([^/]+)};
     $self->remoteroot($remoteroot);
     my @need_args =
@@ -306,27 +335,7 @@ sub rmirror {
     for my $need_arg (@need_args) {
         $rf0->$need_arg ( $self->$need_arg );
     }
-    my $aggregator = $rf0->aggregator;
-    my @rf = $rf0;
-    for my $agg (@$aggregator) {
-        my $nrf = Storable::dclone ( $rf0 );
-        $nrf->interval ( $agg );
-        my $nlfile = $rf0->get_remotefile ( $nrf->rfilename );
-        push @rf, $nrf;
-    }
-    warn sprintf "Got %d recentfiles\n", scalar @rf;
-    for my $rf (@rf) {
-        die "FIXME: merge and then mirror";
-        $rf->mirror ( ); # XXX needs "before", not "after"
-        my $re = $rf->recent_events;
-        warn sprintf
-            (
-             "Mirrored from %s up to %s/%s\n",
-             $rf->rfile,
-             $re->[0]{path},
-             $re->[0]{epoch},
-            );
-    }
+    return $rf0;
 }
 
 =head2 (void) $obj->rmirror_loop

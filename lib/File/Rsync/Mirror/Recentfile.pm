@@ -156,6 +156,14 @@ sub new_from_file {
     # XXX: we can skip this step when the metadata are sufficient, but
     # we cannot parse the file without some magic stuff about
     # serialized formats
+    while (-l $file) {
+        my($name,$path) = fileparse $file;
+        my $symlink = readlink $file;
+        if ($symlink =~ m|/|) {
+            die "FIXME: filenames containing '/' not supported, got $symlink";
+        }
+        $file = File::Spec->catfile ( $path, $symlink );
+    }
     my($name,$path,$suffix) = fileparse $file, keys %serializers;
     $self->serializer_suffix($suffix);
     $self->localroot($path);

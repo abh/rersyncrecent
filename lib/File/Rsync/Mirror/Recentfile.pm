@@ -484,22 +484,37 @@ sub get_remote_recentfile_as_tempfile {
 
 Rsyncs one single remote file to local filesystem.
 
+Note: no locking is done on this file. Any number of processes may
+mirror this object.
+
 =cut
 
 sub get_remotefile {
     my($self, $path) = @_;
-    my $lfile = File::Spec->catfile($self->localroot, $path);
-    mkpath dirname $lfile;
+    my $dst = File::Spec->catfile($self->localroot, $path);
+    mkpath dirname $dst;
+    if ($self->verbose) {
+        my $doing = -e $dst ? "Syncing" : "Getting";
+        printf STDERR
+            (
+             "%s (1/1) %s ... ",
+             $doing,
+             $path,
+            );
+    }
     while (!$self->rsync->exec(
                                src => join("/",
                                            $self->remoteroot,
                                            $path),
-                               dst => $lfile,
+                               dst => $dst,
                               )) {
         $self->register_rsync_error ($self->rsync->err);
     }
     $self->un_register_rsync_error ();
-    return $lfile;
+    if ($self->verbose) {
+        print STDERR "DONE\n";
+    }
+    return $dst;
 }
 
 =head2 $obj->interval ( $interval_spec )

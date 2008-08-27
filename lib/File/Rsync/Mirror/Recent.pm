@@ -173,9 +173,7 @@ Testing this ATM with:
 sub news {
     my($self, %opt) = @_;
     my $local = $self->local;
-    if ($local) {
-        # will read below
-    } else {
+    unless ($local) {
         if (my $remote = $self->remote) {
             my $localroot;
             if ($localroot = $self->localroot) {
@@ -183,12 +181,12 @@ sub news {
             } else {
                 die "FIXME: remote called without localroot should trigger File::Temp.... TBD, sorry";
             }
-            my $rfs = $self->recentfiles;
         } else {
             die "Alert: neither local nor remote specified, cannot continue";
         }
     }
-    require YAML::Syck; print STDERR "Line " . __LINE__ . ", File: " . __FILE__ . "\n" . YAML::Syck::Dump(\%opt,$self); # XXX
+    my $rfs = $self->recentfiles;
+    require YAML::Syck; print STDERR "Line " . __LINE__ . ", File: " . __FILE__ . "\n" . YAML::Syck::Dump({opts => \%opt, recentfiles => $rfs}); # XXX
     +[];
 }
 
@@ -211,9 +209,7 @@ sub principal_recentfile {
     return $prince if defined $prince;
     my $local = $self->local;
     if ($local) {
-        die "FIXME: have local[$local], need the rf object";
-
-        $prince = somethingtodowith($local);
+        $prince = File::Rsync::Mirror::Recentfile->new_from_file ($local);
     } else {
         if (my $remote = $self->remote) {
             my $localroot;

@@ -231,6 +231,16 @@ A comment about this tree and setup.
 The (prefix of the) filename we use for this I<recentfile>. Defaults to
 C<RECENT>.
 
+=item have_mirrored
+
+Timestamp remembering when we mirrored this recentfile the last time.
+Only relevant for slaves.
+
+=item have_read
+
+Timestamp remembering when we read the recent_events from this file
+the last time.
+
 =item ignore_link_stat_errors
 
 If set to true, rsync errors are ignored that complain about link stat
@@ -454,6 +464,11 @@ sub full_mirror {
 Stores the remote I<recentfile> locally as a tempfile. The caller is
 responsible to remove the file after use.
 
+Note: if you're intending to act as an rsync server for other slaves,
+then you must prefer this method to mirror (and read) recentfiles over
+get_remotefile(). Otherwise downstream mirrors would expect you to
+have files that you do not have yet.
+
 =cut
 
 sub get_remote_recentfile_as_tempfile {
@@ -481,6 +496,7 @@ sub get_remote_recentfile_as_tempfile {
                               )) {
         $self->register_rsync_error ($self->rsync->err);
     }
+    $self->have_mirrored (Time::HiRes::time);
     $self->un_register_rsync_error ();
     my $mode = 0644;
     chmod $mode, $trecentfile or die "Could not chmod $mode '$trecentfile': $!";
@@ -691,13 +707,12 @@ sub merge {
         }
     }
     push @$recent, grep { !$have{$_->{path}}++ } @$my_recent;
-    $self->recent_events($recent);
     $self->write_recent($recent);
     $self->unlock;
     $other->merged({
                     time => Time::HiRes::time, # not used anywhere
                     epoch => $epoch, # used in oldest_allowed
-                    interval => $self->interval, # not used anywhere
+                    into_interval => $self->interval, # not used anywhere
                    });
     $other->write_recent($other_recent);
     $other->unlock;
@@ -974,14 +989,14 @@ sub naive_path_normalize {
     $path;
 }
 
-=head2 $ret = $obj->read_recent_1 ( $recent_data )
+=head2 $ret = $obj->read_recent_1 ( $data )
 
 Delegate of C<recent_events()> on protocol 1
 
 =cut
 
 sub read_recent_1 {
-    my($self,$data) = @_;
+    my($self, $data) = @_;
     return $data->{recent};
 }
 
@@ -1030,7 +1045,8 @@ sub recent_events {
             next if defined $self->$k;
             $self->$k($v);
         }
-        return $self->$meth($data);
+        $self->have_read (Time::HiRes::time);
+        return $self->$meth ($data);
     }
 }
 

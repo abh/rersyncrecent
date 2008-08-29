@@ -158,6 +158,7 @@ Testing this ATM with:
 
   perl -Ilib bin/rrr-news \
        -since 1217200539 \
+       -max 12 \
        -local /home/ftp/pub/PAUSE/authors/RECENT.recent
 
   perl -Ilib bin/rrr-news \
@@ -186,7 +187,7 @@ sub news {
         }
     }
     my $rfs = $self->recentfiles;
-    require YAML::Syck; print STDERR "Line " . __LINE__ . ", File: " . __FILE__ . "\n" . YAML::Syck::Dump({opts => \%opt, recentfiles => $rfs}); # XXX
+    die "FIXME: now need to read one after the other according to our optiones: " . YAML::Syck::Dump(\%opt);
     +[];
 }
 
@@ -229,22 +230,9 @@ sub principal_recentfile {
 
 =head2 $recentfiles_arrayref = $obj->recentfiles ()
 
-XXX WORK IN PROGRESS XXX
-
-returns a reference to the complete list of recentfiles that
-describe this tree.
-
-Note: returns the whole list and potentially mirrors the recentfiles
-themselves and reads them immediately. Instead, for efficiency, the
-list should be lazy and only mirror and read on demand.
-
-Note II: it's unclear how we make sure the mirroring happens again in
-time in a job that runs longer than just an rrr-news.
-
-Note III: nonsense, we must not read and mirror at this point in time.
-Reading and mirroring must be done later and recentfiles must know
-when they have read their disk representation. Will change immediately
-after a checkin.
+returns a reference to the complete list of recentfile objects that
+describe this tree. No guarantee is given that the represented
+recentfiles exist or have been read. They are just bare objects.
 
 =cut
 
@@ -257,17 +245,12 @@ sub recentfiles {
     my @rf = $rf0;
     for my $agg (@$aggregator) {
         my $nrf = Storable::dclone ( $rf0 );
-        $nrf->interval ( $agg );
-        my $rf;
-        if ($self->remote) {
-            $rf = $rf0->get_remotefile ( $nrf->rfilename );
-        } else {
-            $rf = $nrf->rfile;
-        }
-        my $rfX = File::Rsync::Mirror::Recentfile->new_from_file ( $rf );
-        push @rf, $rfX;
+        $nrf->interval      ( $agg );
+        $nrf->have_read     ( 0    );
+        $nrf->have_mirrored ( 0    );
+        push @rf, $nrf;
     }
-    warn sprintf "Got %d recentfiles\n", scalar @rf;
+    $self->_recentfiles(\@rf);
     return \@rf;
 }
 
@@ -336,6 +319,7 @@ sub _recentfile_object_for_remote {
          "verbose",
         );
     my $rf0 = File::Rsync::Mirror::Recentfile->new (map {($_ => $self->$_)} @need_args);
+    die "FIXME: XXX must use get_remote_recentfile_as_tempfile instead of get_remotefile XXX";
     my $lfile = $rf0->get_remotefile ($rfilename);
     # while it is a symlink, resolve it
     while (-l $lfile) {

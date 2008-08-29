@@ -234,15 +234,41 @@ XXX WORK IN PROGRESS XXX
 returns a reference to the complete list of recentfiles that
 describe this tree.
 
+Note: returns the whole list and potentially mirrors the recentfiles
+themselves and reads them immediately. Instead, for efficiency, the
+list should be lazy and only mirror and read on demand.
+
+Note II: it's unclear how we make sure the mirroring happens again in
+time in a job that runs longer than just an rrr-news.
+
+Note III: nonsense, we must not read and mirror at this point in time.
+Reading and mirroring must be done later and recentfiles must know
+when they have read their disk representation. Will change immediately
+after a checkin.
+
 =cut
 
 sub recentfiles {
     my($self) = @_;
     my $rfs = $self->_recentfiles;
     return $rfs if defined $rfs;
-    my $princrfs = $self->principal_recentfile;
-    die "FIXME: determine the full array of recentfile objects we might need";
-    return $rfs;
+    my $rf0 = $self->principal_recentfile;
+    my $aggregator = $rf0->aggregator;
+    my @rf = $rf0;
+    for my $agg (@$aggregator) {
+        my $nrf = Storable::dclone ( $rf0 );
+        $nrf->interval ( $agg );
+        my $rf;
+        if ($self->remote) {
+            $rf = $rf0->get_remotefile ( $nrf->rfilename );
+        } else {
+            $rf = $nrf->rfile;
+        }
+        my $rfX = File::Rsync::Mirror::Recentfile->new_from_file ( $rf );
+        push @rf, $rfX;
+    }
+    warn sprintf "Got %d recentfiles\n", scalar @rf;
+    return \@rf;
 }
 
 =head2 $success = $obj->rmirror ( %options )
@@ -280,16 +306,8 @@ sub rmirror {
     my($self, %options) = @_;
 
     my $rf0 = $self->_recentfile_object_for_remote;
-    my $aggregator = $rf0->aggregator;
-    my @rf = $rf0;
-    for my $agg (@$aggregator) {
-        my $nrf = Storable::dclone ( $rf0 );
-        $nrf->interval ( $agg );
-        my $nlfile = $rf0->get_remotefile ( $nrf->rfilename );
-        push @rf, $nrf;
-    }
-    warn sprintf "Got %d recentfiles\n", scalar @rf;
-    for my $rf (@rf) {
+    my $rfs = $self->recentfiles;
+    for my $rf (@$rfs) {
         die "FIXME: merge and then mirror";
         $rf->mirror ( ); # XXX needs "before", not "after"
         my $re = $rf->recent_events;

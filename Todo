@@ -1,3 +1,10 @@
+2008-08-29  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* apropos missing: we have no push, we never know the downstream
+	servers. People who know their downstream hosts and want to ascertain
+	something will want additional methods we have never thought about, like
+	update or delete a certain file.
+
 2008-08-26  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* tempted to refactor rmirror into resolve_symlink, localize, etc.
@@ -7,14 +14,16 @@
 	* rsync options: it's a bit of a pain that we usually need several rsync
 	options, like compress, links, times, checksum and that there is no
 	reasonable default except the original rsync default. I think wee can
-	afely assume that the rsync options are shared between all recentfile
+	safely assume that the rsync options are shared between all recentfile
 	instances within one recent tree.
 
 2008-08-20  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* deletes: if a delete follows an add quickly enough it may happen that
 	a downstream mirror did not see the add at all! It seems this needs to
-	be mentioned somewhere.
+	be mentioned somewhere. The point here is that even if the downstream is
+	never missing the principal timeframe it may encounter a "delete" that
+	has no complimentary "add" anywhere.
 
 2008-08-19  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 

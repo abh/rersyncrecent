@@ -227,7 +227,7 @@ rmtree [$root_from, $root_to];
         my $span = $rece->[0]{epoch} - $rece->[-1]{epoch};
         $have_worked = Time::HiRes::time - $start - $have_slept;
         ok($rececnt > 0 && $span < 30, "i[$i] cnt[$rececnt] span[$span] worked[$have_worked]");
-        $have_slept += Time::HiRes::sleep 0.99;
+        $have_slept += Time::HiRes::sleep 0.9;
     }
 }
 

@@ -485,10 +485,8 @@ have files that you do not have yet.
 sub get_remote_recentfile_as_tempfile {
     my($self, $rfilename) = @_;
     mkpath $self->localroot;
-    my $unlink = 0;
     if ($rfilename) {
         $self->_use_tempfile (1);
-        $unlink = 1; # expecting that this guy wants self destruction
     } else {
         $rfilename = $self->rfilename;
     }
@@ -498,32 +496,46 @@ sub get_remote_recentfile_as_tempfile {
                                                  ),
                               DIR => $self->localroot,
                               SUFFIX => $self->serializer_suffix,
-                              UNLINK => $unlink,
+                              UNLINK => $self->_use_tempfile,
                              );
-    if ($unlink) {
+    if ($self->_use_tempfile) {
         $self->_current_tempfile_fh ($fh); # delay self destruction
     }
-    my($trecentfile) = $fh->filename;
-    $self->_current_tempfile ($trecentfile);
+    my($dst) = $fh->filename;
+    $self->_current_tempfile ($dst);
     my $rfile = $self->rfile;
-    if (-e $rfile) {
+    if (-e $rfile and $dst ne $rfile) {
         # saving on bandwidth. Might need to be configurable
         # $self->bandwidth_is_cheap?
-        cp $rfile, $trecentfile or die "Could not copy '$rfile' to '$trecentfile': $!"
+        cp $rfile, $dst or die "Could not copy '$rfile' to '$dst': $!"
+    }
+    my $src = join ("/",
+                    $self->remoteroot,
+                    $rfilename,
+                   );
+    if ($self->verbose) {
+        my $doing = -e $dst ? "Syncing" : "Getting";
+        printf STDERR
+            (
+             "%s (1/1) temporary %s ... ",
+             $doing,
+             $rfilename,
+            );
     }
     while (!$self->rsync->exec(
-                               src => join("/",
-                                           $self->remoteroot,
-                                           $rfilename),
-                               dst => $trecentfile,
+                               src => $src,
+                               dst => $dst,
                               )) {
         $self->register_rsync_error ($self->rsync->err);
     }
     $self->have_mirrored (Time::HiRes::time);
     $self->un_register_rsync_error ();
+    if ($self->verbose) {
+        print STDERR "DONE\n";
+    }
     my $mode = 0644;
-    chmod $mode, $trecentfile or die "Could not chmod $mode '$trecentfile': $!";
-    return $trecentfile;
+    chmod $mode, $dst or die "Could not chmod $mode '$dst': $!";
+    return $dst;
 }
 
 =head2 $localpath = $obj->get_remotefile ( $relative_path )
@@ -1040,7 +1052,7 @@ sub recent_events {
     my ($self) = @_;
     if ($self->is_slave
         and (!$self->have_mirrored || Time::HiRes::time-$self->have_mirrored>42)) {
-        die "must mirror before reading this file";
+        $self->get_remote_recentfile_as_tempfile;
     }
     my $rfile = $self->rfile;
     my $suffix = $self->serializer_suffix;
@@ -1247,6 +1259,36 @@ resets the error count. See also accessor C<max_rsync_errors>.
         $no_success_time = 0;
         $no_success_count = 0;
     }
+}
+
+=head2 $clone = $obj->_sparse_clone
+
+Clones just as much from itself that it does not hurt. Experimental method.
+
+=cut
+
+sub _sparse_clone {
+    my($self) = @_;
+    my $new = bless {}, ref $self;
+    for my $m (qw(
+                  _interval
+                  _localroot
+                  _remoteroot
+                  _rfile
+                  _use_tempfile
+                  aggregator
+                  filenameroot
+                  is_slave
+                  protocol
+                  rsync_options
+                  serializer_suffix
+                  verbose
+                 )) {
+        my $o = $self->$m;
+        $o = Storable::dclone $o if ref $o;
+        $new->$m($o);
+    }
+    $new;
 }
 
 =head2 (void) $obj->unlock()

@@ -187,29 +187,23 @@ sub news {
         }
     }
     my $rfs = $self->recentfiles;
+    my $ret = [];
     for my $rf (@$rfs) {
         my $res = $rf->recent_events;
         require YAML::Syck; print STDERR "Line " . __LINE__ . ", File: " . __FILE__ . "\n" . YAML::Syck::Dump($rf->interval, $res->[0]{epoch}, $res->[-1]{epoch}, $res->[0]{epoch}-$res->[-1]{epoch}); # XXX
+        last if $rf->interval_secs > 86400;
     }
-    die "FIXME: now need to read one after the other according to our optiones: " . YAML::Syck::Dump(\%opt);
-    +[];
+    $ret;
 }
 
 =head2 $recentfile = $obj->principal_recentfile ()
 
-XXX WORK IN PROGRESS XXX
-
-returns the principal recentfile of this tree. If we have already
-collected all recentfile objects for this tree, we return the first
-element of the list, otherwise we determine exactly this single object
-and return it.
+returns the principal recentfile of this tree.
 
 =cut
 
 sub principal_recentfile {
     my($self) = @_;
-    my $rfs = $self->_recentfiles;
-    return $rfs->[0] if defined $rfs;
     my $prince = $self->_principal_recentfile;
     return $prince if defined $prince;
     my $local = $self->local;
@@ -229,6 +223,7 @@ sub principal_recentfile {
             die "Alert: neither local nor remote specified, cannot continue";
         }
     }
+    $self->_principal_recentfile($prince);
     return $prince;
 }
 
@@ -248,7 +243,7 @@ sub recentfiles {
     my $aggregator = $rf0->aggregator;
     my @rf = $rf0;
     for my $agg (@$aggregator) {
-        my $nrf = Storable::dclone ( $rf0 );
+        my $nrf = $rf0->_sparse_clone;
         $nrf->interval      ( $agg );
         $nrf->have_read     ( 0    );
         $nrf->have_mirrored ( 0    );
@@ -332,7 +327,10 @@ sub _recentfile_object_for_remote {
         }
         $lfile = $rf0->get_remote_recentfile_as_tempfile ($symlink);
     }
-    $rf0 = File::Rsync::Mirror::Recentfile->new_from_file ( $lfile );
+    my $rfpeek = File::Rsync::Mirror::Recentfile->new_from_file ( $lfile );
+    for my $peek (qw(_interval aggregator filenameroot protocol serializer_suffix)) {
+        $rf0->$peek($rfpeek->$peek);
+    }
     for my $need_arg (@need_args) {
         $rf0->$need_arg ( $self->$need_arg );
     }

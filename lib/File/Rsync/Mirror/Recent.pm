@@ -336,6 +336,7 @@ sub _recentfile_object_for_remote {
     for my $need_arg (@need_args) {
         $rf0->$need_arg ( $self->$need_arg );
     }
+    $rf0->is_slave (1);
     return $rf0;
 }
 

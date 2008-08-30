@@ -249,6 +249,12 @@ errors. These seem to happen only when there are files missing at the
 origin. In race conditions this can always happen, so it is
 recommended to set this value to true.
 
+=item is_slave
+
+If set to true, this object will fetch a new recentfile from remote
+when the timespan between the last mirror (see have_mirrored) and now
+is too large (currently hardcoded arbitrary 42 seconds).
+
 =item locktimeout
 
 After how many seconds shall we die if we cannot lock a I<recentfile>?
@@ -481,9 +487,8 @@ sub get_remote_recentfile_as_tempfile {
     mkpath $self->localroot;
     my $unlink = 0;
     if ($rfilename) {
-        warn "FIXME: expecting failure later due to missing interval or something could be repaired now";
-        $self->_use_tempfile(1);
-        $unlink = 1;
+        $self->_use_tempfile (1);
+        $unlink = 1; # expecting that this guy wants self destruction
     } else {
         $rfilename = $self->rfilename;
     }
@@ -496,7 +501,7 @@ sub get_remote_recentfile_as_tempfile {
                               UNLINK => $unlink,
                              );
     if ($unlink) {
-        $self->_current_tempfile_fh ($fh);
+        $self->_current_tempfile_fh ($fh); # delay self destruction
     }
     my($trecentfile) = $fh->filename;
     $self->_current_tempfile ($trecentfile);
@@ -1033,6 +1038,10 @@ necessary locking.
 
 sub recent_events {
     my ($self) = @_;
+    if ($self->is_slave
+        and (!$self->have_mirrored || Time::HiRes::time-$self->have_mirrored>42)) {
+        die "must mirror before reading this file";
+    }
     my $rfile = $self->rfile;
     my $suffix = $self->serializer_suffix;
     my ($data) = eval {

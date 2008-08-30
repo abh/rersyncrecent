@@ -198,6 +198,7 @@ my @accessors;
 BEGIN {
     @accessors = (
                   "_current_tempfile",
+                  "_current_tempfile_fh",
                   "_interval",
                   "_is_locked",
                   "_localroot",
@@ -459,10 +460,14 @@ sub full_mirror {
     die "FIXME: Not yet implemented";
 }
 
-=head2 $tempfilename = $obj->get_remote_recentfile_as_tempfile
+=head2 $tempfilename = $obj->get_remote_recentfile_as_tempfile ($rfilename)
 
-Stores the remote I<recentfile> locally as a tempfile. The caller is
-responsible to remove the file after use.
+=head2 $tempfilename = $obj->get_remote_recentfile_as_tempfile ()
+
+Stores the remote I<recentfile> locally as a tempfile. $rfilename must
+be a plain filename without path separators. The second form fetches
+the file with the default name. The caller is responsible to remove
+the file after use.
 
 Note: if you're intending to act as an rsync server for other slaves,
 then you must prefer this method to mirror (and read) recentfiles over
@@ -472,16 +477,29 @@ have files that you do not have yet.
 =cut
 
 sub get_remote_recentfile_as_tempfile {
-    my($self) = @_;
+    my($self, $rfilename) = @_;
     mkpath $self->localroot;
+    my $unlink = 0;
+    if ($rfilename) {
+        warn "FIXME: expecting failure later due to missing interval or something could be repaired now";
+        $self->_use_tempfile(1);
+        $unlink = 1;
+    } else {
+        $rfilename = $self->rfilename;
+    }
+    die "Alert: illegal filename[$rfilename] contains a slash" if $rfilename =~ m|/|;
     my($fh) = File::Temp->new(TEMPLATE => sprintf(".%s-XXXX",
-                                                  $self->rfilename,
+                                                  $rfilename,
                                                  ),
                               DIR => $self->localroot,
                               SUFFIX => $self->serializer_suffix,
-                              UNLINK => 0,
+                              UNLINK => $unlink,
                              );
+    if ($unlink) {
+        $self->_current_tempfile_fh ($fh);
+    }
     my($trecentfile) = $fh->filename;
+    $self->_current_tempfile ($trecentfile);
     my $rfile = $self->rfile;
     if (-e $rfile) {
         # saving on bandwidth. Might need to be configurable
@@ -491,7 +509,7 @@ sub get_remote_recentfile_as_tempfile {
     while (!$self->rsync->exec(
                                src => join("/",
                                            $self->remoteroot,
-                                           $self->rfilename),
+                                           $rfilename),
                                dst => $trecentfile,
                               )) {
         $self->register_rsync_error ($self->rsync->err);
@@ -500,7 +518,6 @@ sub get_remote_recentfile_as_tempfile {
     $self->un_register_rsync_error ();
     my $mode = 0644;
     chmod $mode, $trecentfile or die "Could not chmod $mode '$trecentfile': $!";
-    $self->_current_tempfile ($trecentfile);
     return $trecentfile;
 }
 
@@ -510,6 +527,11 @@ Rsyncs one single remote file to local filesystem.
 
 Note: no locking is done on this file. Any number of processes may
 mirror this object.
+
+Note II: do not use for recentfiles if you are working as an rsync
+server for other slaves. Otherwise they would expect the contents of
+these recentfiles to be available. Use
+get_remote_recentfile_as_tempfile() instead.
 
 =cut
 

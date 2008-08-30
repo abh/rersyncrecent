@@ -187,6 +187,10 @@ sub news {
         }
     }
     my $rfs = $self->recentfiles;
+    for my $rf (@$rfs) {
+        my $res = $rf->recent_events;
+        require YAML::Syck; print STDERR "Line " . __LINE__ . ", File: " . __FILE__ . "\n" . YAML::Syck::Dump($rf->interval, $res->[0]{epoch}, $res->[-1]{epoch}, $res->[0]{epoch}-$res->[-1]{epoch}); # XXX
+    }
     die "FIXME: now need to read one after the other according to our optiones: " . YAML::Syck::Dump(\%opt);
     +[];
 }
@@ -319,15 +323,14 @@ sub _recentfile_object_for_remote {
          "verbose",
         );
     my $rf0 = File::Rsync::Mirror::Recentfile->new (map {($_ => $self->$_)} @need_args);
-    die "FIXME: XXX must use get_remote_recentfile_as_tempfile instead of get_remotefile XXX";
-    my $lfile = $rf0->get_remotefile ($rfilename);
+    my $lfile = $rf0->get_remote_recentfile_as_tempfile ($rfilename);
     # while it is a symlink, resolve it
     while (-l $lfile) {
         my $symlink = readlink $lfile;
         if ($symlink =~ m|/|) {
             die "FIXME: filenames containing '/' not supported, got $symlink";
         }
-        $lfile = $rf0->get_remotefile ($symlink);
+        $lfile = $rf0->get_remote_recentfile_as_tempfile ($symlink);
     }
     $rf0 = File::Rsync::Mirror::Recentfile->new_from_file ( $lfile );
     for my $need_arg (@need_args) {

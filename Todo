@@ -1,3 +1,21 @@
+2008-08-30  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* need a switch --skip-deletes (?)
+
+	* need a switch --enduser that tells us that the whole tempfile
+	discipline is not needed when there is no downstream user. (?)
+
+	Without this switch we cannot have a reasonable recent.pl that just
+	displays the recent additions. Either we accept to download everything.
+	Or we download temporary files without the typical rsync protocol
+	advantages.
+
+	BTW, I think the code in line 509 needs revisiting that checks
+
+	509:    if (-e $rfile and $dst ne $rfile) {
+
+	That second part should never be necessary to even check, right?
+	
 2008-08-29  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* apropos missing: we have no push, we never know the downstream

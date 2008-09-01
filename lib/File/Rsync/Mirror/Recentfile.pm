@@ -202,6 +202,7 @@ BEGIN {
                   "_interval",
                   "_is_locked",
                   "_localroot",
+                  "_remote_dir",
                   "_remoteroot",
                   "_rfile",
                   "_rsync",
@@ -253,7 +254,7 @@ recommended to set this value to true.
 
 If set to true, this object will fetch a new recentfile from remote
 when the timespan between the last mirror (see have_mirrored) and now
-is too large (currently hardcoded arbitrary 42 seconds).
+is too large (currently hardcoded arbitrary 420 seconds).
 
 =item locktimeout
 
@@ -289,10 +290,6 @@ at which epoch.
 
 When the RECENT file format changes, we increment the protocol. We try
 to support older protocols in later releases.
-
-=item remote_dir
-
-The directory we are mirroring from.
 
 =item remote_host
 
@@ -504,7 +501,7 @@ sub get_remote_recentfile_as_tempfile {
     my($dst) = $fh->filename;
     $self->_current_tempfile ($dst);
     my $rfile = $self->rfile;
-    if (-e $rfile and $dst ne $rfile) {
+    if (-e $rfile) {
         # saving on bandwidth. Might need to be configurable
         # $self->bandwidth_is_cheap?
         cp $rfile, $dst or die "Could not copy '$rfile' to '$dst': $!"
@@ -545,9 +542,9 @@ Rsyncs one single remote file to local filesystem.
 Note: no locking is done on this file. Any number of processes may
 mirror this object.
 
-Note II: do not use for recentfiles if you are working as an rsync
-server for other slaves. Otherwise they would expect the contents of
-these recentfiles to be available. Use
+Note II: do not use for recentfiles. If you are a cascading
+slave/server combination, it would confuse other slaves. They would
+expect the contents of these recentfiles to be available. Use
 get_remote_recentfile_as_tempfile() instead.
 
 =cut
@@ -639,20 +636,6 @@ sub localroot {
         $self->_rfile(undef);
     }
     $localroot = $self->_localroot;
-}
-
-=head2 $ret = $obj->local_event_path
-
-Misnomer, deprecated. Use local_path instead
-
-=cut
-
-sub local_event_path {
-    my($self,$path) = @_;
-    require Carp;
-    Carp::cluck("Deprecated method local_event_path called. Please use local_path instead");
-    my @p = split m|/|, $path; # rsync paths are always slash-separated
-    File::Spec->catfile($self->localroot,@p);
 }
 
 =head2 $ret = $obj->local_path($path_found_in_recentfile)
@@ -802,7 +785,8 @@ specified, only file events after this timestamp are being mirrored.
 sub mirror {
     my($self, %options) = @_;
     my $trecentfile = $self->get_remote_recentfile_as_tempfile();
-    my ($recent_data) = $self->recent_events_from_tempfile();
+    $self->_use_tempfile (1);
+    my ($recent_data) = $self->recent_events();
     my $i = 0;
     my @error;
     my @collector;
@@ -866,9 +850,15 @@ sub mirror {
             }
         } elsif ($recent_event->{type} eq "delete") {
             if (-l $dst or not -d _) {
-                unlink $dst or warn "Warning: Error while unlinking '$dst': $!";
+                unless (unlink $dst) {
+                    require Carp;
+                    Carp::cluck ( "Warning: Error while unlinking '$dst': $!" );
+                }
             } else {
-                rmdir $dst or warn "Warning: Error on rmdir '$dst': $!";
+                unless (rmdir $dst) {
+                    require Carp;
+                    Carp::cluck ( "Warning: Error on rmdir '$dst': $!" );
+                }
             }
         } else {
             warn "Warning: invalid upload type '$recent_event->{type}'";
@@ -886,16 +876,14 @@ sub mirror {
         }
     }
     my $rfile = $self->rfile;
-    if ($rfile eq $trecentfile) {
-        unless (unlink $trecentfile) {
-            require Carp;
-            Carp::confess("Could not unlink '$trecentfile': $!");
-        }
-    } else {
-        unless (rename $trecentfile, $rfile) {
-            require Carp;
-            Carp::confess("Could not rename '$trecentfile' to '$rfile': $!");
-        }
+    unless (rename $trecentfile, $rfile) {
+        require Carp;
+        Carp::confess("Could not rename '$trecentfile' to '$rfile': $!");
+    }
+    $self->_use_tempfile (0);
+    if (my $ctfh = $self->_current_tempfile_fh) {
+        $ctfh->unlink_on_destroy (0);
+        $self->_current_tempfile_fh (undef);
     }
     return !@error;
 }
@@ -1051,21 +1039,26 @@ necessary locking.
 sub recent_events {
     my ($self) = @_;
     if ($self->is_slave
-        and (!$self->have_mirrored || Time::HiRes::time-$self->have_mirrored>42)) {
+        and (!$self->have_mirrored || Time::HiRes::time-$self->have_mirrored>420)) {
         $self->get_remote_recentfile_as_tempfile;
     }
-    my $rfile = $self->rfile;
+    my $rfile_or_tempfile;
+    if ($self->_use_tempfile) {
+        $rfile_or_tempfile = $self->_current_tempfile;
+    } else {
+        $rfile_or_tempfile = $self->rfile;
+    }
     my $suffix = $self->serializer_suffix;
     my ($data) = eval {
         if ($suffix eq ".yaml") {
             require YAML::Syck;
-            YAML::Syck::LoadFile($rfile);
+            YAML::Syck::LoadFile($rfile_or_tempfile);
         } elsif ($HAVE->{"Data::Serializer"}) {
             my $serializer = Data::Serializer->new
                 ( serializer => $serializers{$suffix} );
             my $serialized = do
                 {
-                    open my $fh, $rfile or die "Could not open: $!";
+                    open my $fh, $rfile_or_tempfile or die "Could not open: $!";
                     local $/;
                     <$fh>;
                 };
@@ -1093,37 +1086,6 @@ sub recent_events {
     }
 }
 
-=head2 $array_ref = $obj->recent_events_from_tempfile
-
-Reads the file-events in the temporary local mirror of the remote file.
-
-=cut
-
-sub recent_events_from_tempfile {
-    my ($self) = @_;
-    $self->_use_tempfile(1);
-    my $ret = $self->recent_events;
-    $self->_use_tempfile(0);
-    return $ret;
-}
-
-=head2 $ret = $obj->recentfile
-
-deprecated, use rfile instead
-
-=cut
-
-sub recentfile {
-    my($self) = @_;
-    require Carp;
-    Carp::cluck("deprecated method recentfile called. Please use rfile instead!");
-    my $recent = File::Spec->catfile(
-                                     $self->localroot,
-                                     $self->rfilename,
-                                    );
-    return $recent;
-}
-
 =head2 $ret = $obj->rfilename
 
 Just the basename of our I<recentfile>, composed from C<filenameroot>,
@@ -1139,6 +1101,22 @@ sub rfilename {
                        $self->serializer_suffix,
                       );
     return $file;
+}
+
+=head2 $str = $self->remote_dir
+
+The directory we are mirroring from.
+
+=cut
+
+sub remote_dir {
+    my($self, $set) = @_;
+    if (defined $set) {
+        $self->_remote_dir ($set);
+    }
+    my $x = $self->_remote_dir;
+    $self->is_slave (1);
+    return $x;
 }
 
 =head2 $str = $obj->remoteroot
@@ -1178,18 +1156,14 @@ Returns the full path of the I<recentfile>
 
 sub rfile {
     my($self) = @_;
-    if ($self->_use_tempfile) {
-        return $self->_current_tempfile;
-    } else {
-        my $rfile = $self->_rfile;
-        return $rfile if defined $rfile;
-        $rfile = File::Spec->catfile
-            ($self->localroot,
-             $self->rfilename,
-            );
-        $self->_rfile ($rfile);
-        return $rfile;
-    }
+    my $rfile = $self->_rfile;
+    return $rfile if defined $rfile;
+    $rfile = File::Spec->catfile
+        ($self->localroot,
+         $self->rfilename,
+        );
+    $self->_rfile ($rfile);
+    return $rfile;
 }
 
 =head2 $rsync_obj = $obj->rsync

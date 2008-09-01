@@ -488,20 +488,21 @@ sub get_remote_recentfile_as_tempfile {
         $rfilename = $self->rfilename;
     }
     die "Alert: illegal filename[$rfilename] contains a slash" if $rfilename =~ m|/|;
-    my($fh) = File::Temp->new(TEMPLATE => sprintf(".%s-XXXX",
-                                                  $rfilename,
-                                                 ),
-                              DIR => $self->localroot,
-                              SUFFIX => $self->serializer_suffix,
-                              UNLINK => $self->_use_tempfile,
-                             );
+    my($fh) = File::Temp->new
+        (TEMPLATE => sprintf(".%s-XXXX",
+                             $rfilename,
+                            ),
+         DIR => $self->localroot,
+         SUFFIX => $self->serializer_suffix,
+         UNLINK => $self->_use_tempfile,
+        );
     if ($self->_use_tempfile) {
         $self->_current_tempfile_fh ($fh); # delay self destruction
     }
     my($dst) = $fh->filename;
     $self->_current_tempfile ($dst);
-    my $rfile = $self->rfile;
-    if (-e $rfile) {
+    my $rfile = eval { $self->rfile; }; # may fail (RECENT.recent has no rfile)
+    if (defined $rfile && -e $rfile) {
         # saving on bandwidth. Might need to be configurable
         # $self->bandwidth_is_cheap?
         cp $rfile, $dst or die "Could not copy '$rfile' to '$dst': $!"

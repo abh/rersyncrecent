@@ -56,15 +56,15 @@ Multiple options in the form of key=value pairs. E.g.
 
 The options are passed to the underlying L<File::Rsync> objects.
 
-=item B<--since=s>
+=item B<--after=s>
 
-List all new files since this point in time. The format of the
+List all new files after this point in time. The format of the
 timestamp is the unix epoch in floating point notation as used by
 recentfiles in general.
 
-=item B<--upto=s>
+=item B<--before=s>
 
-List all new files sinceup to this point in time. The format of the
+List all new files before this point in time. The format of the
 timestamp is the unix epoch in floating point notation as used by
 recentfiles in general.
 
@@ -163,12 +163,12 @@ for my $passthrough (
     $rf->rsync_options(\%rsopt);
 }
 my @nopt;
-for my $opt (qw(max since upto)) {
+for my $opt (qw(max after before)) {
     if (defined $Opt{$opt}) {
         push @nopt, $opt => $Opt{$opt}
     }
 }
-print map { sprintf "%-20s %s\n", $_->{epoch}, $_->{path} } @{ $rf->news(@nopt) };
+print map { sprintf "%-20s %s\n", localtime($_->{epoch}), $_->{path} } @{ $rf->news(@nopt) };
 
 __END__
 

@@ -1077,6 +1077,7 @@ sub recent_events {
         $self->have_read (Time::HiRes::time);
         $re = $self->$meth ($data);
     }
+    return $re unless defined $options{after}; # XXX same for before and max
     my $last_item = $#$re;
     if (defined $options{after}) {
         if ($re->[0]{epoch} > $options{after}) {
@@ -1091,7 +1092,7 @@ sub recent_events {
             $last_item = -1;
         }
     }
-    my @rre = splice @$re, 0, $last_item;
+    my @rre = splice @$re, 0, 1+$last_item;
     \@rre;
 }
 

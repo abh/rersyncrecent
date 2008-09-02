@@ -323,11 +323,16 @@ sub _recentfile_object_for_remote {
     while (-l $lfile) {
         my $symlink = readlink $lfile;
         if ($symlink =~ m|/|) {
-            die "FIXME: filenames containing '/' not supported, got $symlink";
+            die "FIXME: filenames containing '/' not supported, got '$symlink'";
         }
         $lfile = $rf0->get_remote_recentfile_as_tempfile ($symlink);
     }
-    my $rfpeek = File::Rsync::Mirror::Recentfile->new_from_file ( $lfile );
+    my $rfpeek;
+    if (-s $lfile) {
+        $rfpeek = File::Rsync::Mirror::Recentfile->new_from_file ( $lfile );
+    } else {
+        die "Alert: recentfile '$lfile' is empty, cannot continue";
+    }
     for my $peek (qw(_interval aggregator filenameroot protocol serializer_suffix)) {
         $rf0->$peek($rfpeek->$peek);
     }

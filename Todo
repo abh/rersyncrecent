@@ -1,5 +1,8 @@
 2008-09-02  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
+	* need to speed up the 02 test, it's not clever to sleep so much. Reduce
+	the intervals!
+
 	* rersyncrecent, the script: default to one week. The name of the switch
 	is --after. Other switches?
 

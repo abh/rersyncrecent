@@ -157,14 +157,14 @@ XXX WORK IN PROGRESS XXX
 Testing this ATM with:
 
   perl -Ilib bin/rrr-news \
-       -since 1217200539 \
+       -after 1217200539 \
        -max 12 \
        -local /home/ftp/pub/PAUSE/authors/RECENT.recent
 
   perl -Ilib bin/rrr-news \
-       -since 1217200539 \
-       --rsync=compress=1 \
-       --rsync=links=1 \
+       -after 1217200539 \
+       -rsync=compress=1 \
+       -rsync=links=1 \
        -localroot /home/ftp/pub/PAUSE/authors/ \
        -remote pause.perl.org::authors/RECENT.recent
        -verbose
@@ -189,9 +189,9 @@ sub news {
     my $rfs = $self->recentfiles;
     my $ret = [];
     for my $rf (@$rfs) {
-        my $res = $rf->recent_events;
-        require YAML::Syck; print STDERR "Line " . __LINE__ . ", File: " . __FILE__ . "\n" . YAML::Syck::Dump($rf->interval, $res->[0]{epoch}, $res->[-1]{epoch}, $res->[0]{epoch}-$res->[-1]{epoch}); # XXX
-        last if $rf->interval_secs > 86400;
+        my $res = $rf->recent_events(%opt);
+        require YAML::Syck; print STDERR "Line " . __LINE__ . ", File: " . __FILE__ . "\n" . YAML::Syck::Dump($rf->interval, $res->[0]{epoch}, $res->[-1]{epoch}, $res->[0]{epoch}-$res->[-1]{epoch}, scalar @$res); # XXX
+        last if $rf->interval_secs > 86400; # XXX emergency break
     }
     $ret;
 }

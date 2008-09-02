@@ -778,8 +778,8 @@ sub meta_data {
 
 =head2 $success = $obj->mirror ( %options )
 
-Mirrors the files in this I<recentfile>. If $options{after} is
-specified, only file events after this timestamp are being mirrored.
+Mirrors the files in this I<recentfile>. Options named C<after>,
+C<before>, and C<max> are passed through to L<recent_events>.
 
 =cut
 
@@ -787,26 +787,14 @@ sub mirror {
     my($self, %options) = @_;
     my $trecentfile = $self->get_remote_recentfile_as_tempfile();
     $self->_use_tempfile (1);
-    my ($recent_data) = $self->recent_events();
+    my %passthrough = map { ($_ => $options{$_}) } qw(before after max);
+    my ($recent_events) = $self->recent_events(%passthrough);
     my $i = 0;
     my @error;
     my @collector;
-    my $last_item = $#$recent_data;
-    if (defined $options{after}) {
-        if ($recent_data->[0]{epoch} > $options{after}) {
-            if (
-                my $f = first
-                        {$recent_data->[$_]{epoch} <= $options{after}}
-                        0..$#$recent_data
-               ) {
-                $last_item = $f-1;
-            }
-        } else {
-            $last_item = -1;
-        }
-    }
+    my $last_item = $#$recent_events;
   ITEM: for my $i (0..$last_item) {
-        my $recent_event = $recent_data->[$i];
+        my $recent_event = $recent_events->[$i];
         my $dst = $self->local_path($recent_event->{path});
         if ($recent_event->{type} eq "new"){
             if ($self->verbose) {
@@ -1028,17 +1016,20 @@ sub read_recent_1 {
     return $data->{recent};
 }
 
-=head2 $array_ref = $obj->recent_events
+=head2 $array_ref = $obj->recent_events ( %options )
 
 Note: the code relies on the resource being written atomically. We
 cannot lock because we may have no write access. If the caller has
 write access (eg. aggregate() or update()), it has to care for any
 necessary locking.
 
+If $options{after} is specified, only file events after this timestamp
+are returned.
+
 =cut
 
 sub recent_events {
-    my ($self) = @_;
+    my ($self, %options) = @_;
     if ($self->is_slave
         and (!$self->have_mirrored || Time::HiRes::time-$self->have_mirrored>420)) {
         $self->get_remote_recentfile_as_tempfile;
@@ -1072,8 +1063,9 @@ sub recent_events {
     if ($err or !$data) {
         return [];
     }
+    my $re;
     if (reftype $data eq 'ARRAY') { # protocol 0
-        return $data;
+        $re = $data;
     } else {
         my $meth = sprintf "read_recent_%d", $data->{meta}{protocol};
         # we may be reading meta for the first time
@@ -1083,8 +1075,24 @@ sub recent_events {
             $self->$k($v);
         }
         $self->have_read (Time::HiRes::time);
-        return $self->$meth ($data);
+        $re = $self->$meth ($data);
     }
+    my $last_item = $#$re;
+    if (defined $options{after}) {
+        if ($re->[0]{epoch} > $options{after}) {
+            if (
+                my $f = first
+                        {$re->[$_]{epoch} <= $options{after}}
+                        0..$#$re
+               ) {
+                $last_item = $f-1;
+            }
+        } else {
+            $last_item = -1;
+        }
+    }
+    my @rre = splice @$re, 0, $last_item;
+    \@rre;
 }
 
 =head2 $ret = $obj->rfilename

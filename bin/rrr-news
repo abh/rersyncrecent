@@ -168,7 +168,7 @@ for my $opt (qw(max after before)) {
         push @nopt, $opt => $Opt{$opt}
     }
 }
-print map { sprintf "%-20s %s\n", localtime($_->{epoch}), $_->{path} } @{ $rf->news(@nopt) };
+print map { sprintf "%-20s %s\n", scalar localtime($_->{epoch}), substr($_->{path},8) } @{ $rf->news(@nopt) };
 
 __END__
 

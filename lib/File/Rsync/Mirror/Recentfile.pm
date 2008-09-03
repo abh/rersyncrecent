@@ -1092,7 +1092,24 @@ sub recent_events {
             $last_item = -1;
         }
     }
-    my @rre = splice @$re, 0, 1+$last_item;
+    my $first_item = 0;
+    if (defined $options{before}) {
+        if ($re->[0]{epoch} > $options{before}) {
+            if (
+                my $f = first
+                        {$re->[$_]{epoch} < $options{before}}
+                        0..$last_item
+               ) {
+                $first_item = $f;
+            }
+        } else {
+            $first_item = 0;
+        }
+    }
+    my @rre = splice @$re, $first_item, 1+$last_item-$first_item;
+    if ($options{max} && @rre > $options{max}) {
+        @rre = splice @rre, 0, $options{max};
+    }
     \@rre;
 }
 

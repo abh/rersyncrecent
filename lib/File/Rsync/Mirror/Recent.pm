@@ -188,10 +188,23 @@ sub news {
     }
     my $rfs = $self->recentfiles;
     my $ret = [];
+    my $before;
     for my $rf (@$rfs) {
-        my $res = $rf->recent_events(%opt);
-        require YAML::Syck; print STDERR "Line " . __LINE__ . ", File: " . __FILE__ . "\n" . YAML::Syck::Dump($rf->interval, $res->[0]{epoch}, $res->[-1]{epoch}, $res->[0]{epoch}-$res->[-1]{epoch}, scalar @$res); # XXX
-        last if $rf->interval_secs > 86400; # XXX emergency break
+        my %locopt = %opt;
+        $locopt{before} = $before;
+        if ($opt{max}) {
+            $locopt{max} -= scalar @$ret;
+        }
+        last if $locopt{max} <= 0;
+        my $res = $rf->recent_events(%locopt);
+        next unless @$res;
+        push @$ret, @$res;
+        if ($opt{max} && scalar @$ret > $opt{max}) {
+            last;
+####        } elsif ($opt{after} && $ret->[-1]{epoch} ??? ) { # XXX cannot determine that we have reached the end!!! need to fix that!
+        }
+        $before = $res->[-1]{epoch};
+        $before = $opt{before} if $opt{before} && $opt{before} < $before;
     }
     $ret;
 }

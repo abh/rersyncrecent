@@ -1,10 +1,43 @@
+2008-09-07  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* idea: have a new flag on recentfiles with the meaning: if this
+	changes, you're required to run a full rsync over all the files. The
+	reason why we set it would probably be: some foul happened. we injected
+	files in arbitrary places or didn't inject them although they changed.
+	The content of the flag? Timestamp? The relation between the recentfiles
+	would have to be inheritance from the principal, because any out of band
+	changes would soon later propagate to the next recentfile.
+
+	By upping the flag often one can easily ruin the slaves.
+
+2008-09-05  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* need a way to "return" the next entry after the end of a list. When
+	the caller says "before" or "after" we would like to know if he could
+	cover that interval/threshold or not because this influences the effect
+	of a newer timestamp of that recentfile. DONE with $opt{info}.
+
+2008-09-04  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* one of the next things to tackle: the equivalent of csync2 -TIXU.
+
+	loop implies tixu (?)
+
+	T test, I init, X including removals, U nodirtymark (irrelevant for us)
+
+	So we have no concept of dirtymarks, we only trust that since we are
+	running we have observed everything steadily. But people will not let
+	this program run forever so we must consider both startup penalty and
+	book keeping for later runs. We keep this for later. For now we write a
+	long running mirror that merges several intervals.
+
 2008-09-02  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* need to speed up the 02 test, it's not clever to sleep so much. Reduce
 	the intervals!
 
 	* rersyncrecent, the script: default to one week. The name of the switch
-	is --after. Other switches?
+	is --after. Other switches? --loop!
 
 2008-08-30  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 

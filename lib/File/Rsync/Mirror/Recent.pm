@@ -196,12 +196,21 @@ sub news {
             $locopt{max} -= scalar @$ret;
             last if $locopt{max} <= 0;
         }
+        $locopt{info} = {};
         my $res = $rf->recent_events(%locopt);
-        next unless @$res;
-        push @$ret, @$res;
+        if (@$res){
+            push @$ret, @$res;
+        }
         if ($opt{max} && scalar @$ret > $opt{max}) {
             last;
-####        } elsif ($opt{after} && $ret->[-1]{epoch} ??? ) { # XXX cannot determine that we have reached the end!!! need to fix that!
+        }
+        if ($opt{after}){
+            if ( $locopt{info}{last} && $locopt{info}{last}{epoch} < $opt{after} ) {
+                last;
+            }
+            if ($opt{after} > $locopt{info}{first}) {
+                last;
+            }
         }
         $before = $res->[-1]{epoch};
         $before = $opt{before} if $opt{before} && $opt{before} < $before;

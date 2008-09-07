@@ -1026,10 +1026,21 @@ necessary locking.
 If $options{after} is specified, only file events after this timestamp
 are returned.
 
+If $options{before} is specified, only file events before this
+timestamp are returned.
+
+If $options{max} is specified only this many events are returned.
+
+If $options{info} is specified, it must be a hashref. This hashref
+will be filled with metadata about the unfiltered recent_events of
+this object, in key C<first> there is the first item, in key C<last>
+is the last.
+
 =cut
 
 sub recent_events {
     my ($self, %options) = @_;
+    my $info = $options{info};
     if ($self->is_slave
         and (!$self->have_mirrored || Time::HiRes::time-$self->have_mirrored>420)) {
         $self->get_remote_recentfile_as_tempfile;
@@ -1079,6 +1090,10 @@ sub recent_events {
     }
     return $re unless defined $options{after}; # XXX same for before and max
     my $last_item = $#$re;
+    if ($info) {
+        $info->{first} = $re->[0];
+        $info->{last} = $re->[-1];
+    }
     if (defined $options{after}) {
         if ($re->[0]{epoch} > $options{after}) {
             if (

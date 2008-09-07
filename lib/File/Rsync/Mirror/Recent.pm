@@ -194,8 +194,8 @@ sub news {
         $locopt{before} = $before;
         if ($opt{max}) {
             $locopt{max} -= scalar @$ret;
+            last if $locopt{max} <= 0;
         }
-        last if $locopt{max} <= 0;
         my $res = $rf->recent_events(%locopt);
         next unless @$res;
         push @$ret, @$res;

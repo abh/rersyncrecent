@@ -169,8 +169,9 @@ Testing this ATM with:
        -remote pause.perl.org::authors/RECENT.recent
        -verbose
 
-Note: all parapeters that can be passed to recent_events can also be specified here.
+Note: all parameters that can be passed to recent_events can also be specified here.
 
+Note: all data are kept in memory
 
 =cut
 
@@ -286,8 +287,7 @@ sub recentfiles {
 XXX WORK IN PROGRESS XXX
 
 Mirrors all recentfiles of the I<remote> address. Afterwards it should
-work through all of them, but not blindly, rather by merging first and
-mirroring then
+work through all of them.
 
 Testing this ATM with:
 
@@ -317,6 +317,19 @@ sub rmirror {
 
     my $rf0 = $self->_recentfile_object_for_remote;
     my $rfs = $self->recentfiles;
+    require AnyEvent;
+
+    my $time_watcher;
+    my $_once_per_20s; $_once_per_20s = sub {
+        print "tick\n";
+        $time_watcher = AnyEvent->timer
+            (
+             after => 20,
+             cb => sub {
+                 $_once_per_20s->();
+             },
+            );
+    };
     for my $rf (@$rfs) {
         die "FIXME: merge and then mirror";
         $rf->mirror ( ); # XXX needs "before", not "after"

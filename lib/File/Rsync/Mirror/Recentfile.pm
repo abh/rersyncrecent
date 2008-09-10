@@ -779,7 +779,8 @@ sub meta_data {
 =head2 $success = $obj->mirror ( %options )
 
 Mirrors the files in this I<recentfile>. Options named C<after>,
-C<before>, and C<max> are passed through to L<recent_events>.
+C<before>, C<max>, and C<skip-deletes> are passed through to
+L<recent_events>.
 
 =cut
 
@@ -787,7 +788,7 @@ sub mirror {
     my($self, %options) = @_;
     my $trecentfile = $self->get_remote_recentfile_as_tempfile();
     $self->_use_tempfile (1);
-    my %passthrough = map { ($_ => $options{$_}) } qw(before after max);
+    my %passthrough = map { ($_ => $options{$_}) } qw(before after max skip-deletes);
     my ($recent_events) = $self->recent_events(%passthrough);
     my $i = 0;
     my @error;

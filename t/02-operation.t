@@ -160,10 +160,10 @@ rmtree [$root_from, $root_to];
         $recent_events_cnt,
         "found $recent_events_cnt events",
        );
-    $rf->interval("10s");
+    $rf->interval("5s");
     $rf->localroot($root_from);
     $rf->comment("produced during the test 02-operation.t");
-    $rf->aggregator([qw(30s 1m 2m 1h Z)]);
+    $rf->aggregator([qw(10s 30s 1m 1h Z)]);
     $rf->verbose(0);
     my $start = Time::HiRes::time;
     for my $e (@$recent_events) {
@@ -187,18 +187,20 @@ rmtree [$root_from, $root_to];
     my $took = Time::HiRes::time - $start;
     ok $took > 0, "creating the tree and aggregate took $took seconds";
     my $dagg1 = $rf->_debug_aggregate;
-    sleep 1.5;
-    my $file_from = "$root_from/anotherfilefromtesting";
-    open my $fh, ">", $file_from or die "Could not open: $!";
-    print $fh time, ":", $file_from;
-    close $fh or die "Could not close: $!";
-    $rf->update($file_from,"new");
+    for my $i (1..5) {
+        my $file_from = "$root_from/anotherfilefromtesting$i";
+        open my $fh, ">", $file_from or die "Could not open: $!";
+        print $fh time, ":", $file_from;
+        close $fh or die "Could not close: $!";
+        $rf->update($file_from,"new");
+    }
     $rf->aggregate;
     my $dagg2 = $rf->_debug_aggregate;
     undef $rf;
-    ok($dagg1->[0][1] < $dagg2->[0][1], "The 10s file size larger: $dagg1->[0][1] < $dagg2->[0][1]");
-    ok($dagg1->[1][2] < $dagg2->[1][2], "The 1m file timestamp larger: $dagg1->[1][2] < $dagg2->[1][2]");
-    is $dagg1->[2][1], $dagg2->[2][1], "The 2m file size unchanged";
+    # $DB::single=1;
+    ok($dagg1->[0][1] < $dagg2->[0][1], "The second 5s file size larger: $dagg1->[0][1] < $dagg2->[0][1]");
+    ok($dagg1->[1][2] < $dagg2->[1][2], "The second 30s file timestamp larger: $dagg1->[1][2] < $dagg2->[1][2]");
+    is $dagg1->[2][1], $dagg2->[2][1], "The 1m file size unchanged";
     is $dagg1->[3][2], $dagg2->[3][2], "The 1h file timestamp unchanged";
     ok -l "t/ta/RECENT.recent", "found the symlink";
     my $have_slept = my $have_worked = 0;
@@ -215,19 +217,19 @@ rmtree [$root_from, $root_to];
         close $fh or die "Could not close '$file': $!";
         my $another_rf = File::Rsync::Mirror::Recentfile->new
             (
-             interval => "10s",
+             interval => "5s",
              localroot => $root_from,
-             aggregator => [qw(30s 1m 2m 1h Z)],
+             aggregator => [qw(10s 30s 1m 1h Z)],
             );
         $another_rf->update($file,"new");
         $another_rf->aggregate;
-        my $rf2 = File::Rsync::Mirror::Recentfile->new_from_file("$root_from/RECENT-30s.yaml");
+        my $rf2 = File::Rsync::Mirror::Recentfile->new_from_file("$root_from/RECENT-10s.yaml");
         my $rece = $rf2->recent_events;
         my $rececnt = @$rece;
         my $span = $rece->[0]{epoch} - $rece->[-1]{epoch};
         $have_worked = Time::HiRes::time - $start - $have_slept;
         ok($rececnt > 0 && $span < 30, "i[$i] cnt[$rececnt] span[$span] worked[$have_worked]");
-        $have_slept += Time::HiRes::sleep 0.9;
+        $have_slept += Time::HiRes::sleep 0.2;
     }
 }
 
@@ -236,7 +238,7 @@ rmtree [$root_from, $root_to];
     my $rf = File::Rsync::Mirror::Recentfile->new
         (
          filenameroot   => "RECENT",
-         interval       => q(1m),
+         interval       => q(30s),
          localroot      => $root_to,
          max_rsync_errors  => 0,
          remote_dir     => $root_from,

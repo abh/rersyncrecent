@@ -4,11 +4,21 @@
 	changes, you're required to run a full rsync over all the files. The
 	reason why we set it would probably be: some foul happened. we injected
 	files in arbitrary places or didn't inject them although they changed.
-	The content of the flag? Timestamp? The relation between the recentfiles
-	would have to be inheritance from the principal, because any out of band
-	changes would soon later propagate to the next recentfile.
+	The content of the flag? Timestamp? The relation between the
+	recentfiles would have to be inheritance from the principal, because any
+	out of band changes would soon later propagate to the next recentfile.
 
 	By upping the flag often one can easily ruin the slaves.
+
+	last out of band change? dirtymark?
+
+	Anyway, this implies that we read a potentially existing recentfile
+	before we write one.
+
+	And it implies that we have an eventloop that keeps us busy in 2-3
+	cycles, one for current stuff (tight loop) and one for the recentfiles
+	(cascade when principal has changed), one for the old stuff after a
+	dirtymark change.
 
 2008-09-05  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
@@ -21,9 +31,10 @@
 
 	* one of the next things to tackle: the equivalent of csync2 -TIXU.
 
-	loop implies tixu (?)
+	loop implies tixu (?). Nope, something like --statefile decides. Per
+	default we do ...?
 
-	T test, I init, X including removals, U nodirtymark (irrelevant for us)
+	T test, I init, X including removals, U nodirtymark
 
 	So we have no concept of dirtymarks, we only trust that since we are
 	running we have observed everything steadily. But people will not let

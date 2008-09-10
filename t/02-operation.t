@@ -199,7 +199,7 @@ rmtree [$root_from, $root_to];
     undef $rf;
     # $DB::single=1;
     ok($dagg1->[0][1] < $dagg2->[0][1], "The second 5s file size larger: $dagg1->[0][1] < $dagg2->[0][1]");
-    ok($dagg1->[1][2] < $dagg2->[1][2], "The second 30s file timestamp larger: $dagg1->[1][2] < $dagg2->[1][2]");
+    ok($dagg1->[1][2] <= $dagg2->[1][2], "The second 30s file timestamp larger: $dagg1->[1][2] < $dagg2->[1][2]");
     is $dagg1->[2][1], $dagg2->[2][1], "The 1m file size unchanged";
     is $dagg1->[3][2], $dagg2->[3][2], "The 1h file timestamp unchanged";
     ok -l "t/ta/RECENT.recent", "found the symlink";

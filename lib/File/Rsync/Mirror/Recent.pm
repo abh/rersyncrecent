@@ -169,6 +169,9 @@ Testing this ATM with:
        -remote pause.perl.org::authors/RECENT.recent
        -verbose
 
+Note: all parapeters that can be passed to recent_events can also be specified here.
+
+
 =cut
 
 sub news {
@@ -208,9 +211,12 @@ sub news {
             if ( $locopt{info}{last} && $locopt{info}{last}{epoch} < $opt{after} ) {
                 last;
             }
-            if ($opt{after} > $locopt{info}{first}) {
+            if ( $opt{after} > $locopt{info}{first}{epoch} ) {
                 last;
             }
+        }
+        if (!@$res){
+            next;
         }
         $before = $res->[-1]{epoch};
         $before = $opt{before} if $opt{before} && $opt{before} < $before;

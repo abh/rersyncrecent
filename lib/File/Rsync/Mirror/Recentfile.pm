@@ -1029,6 +1029,8 @@ are returned.
 If $options{before} is specified, only file events before this
 timestamp are returned.
 
+IF $options{'skip-deletes'} is specified, no deletes will be returned.
+
 If $options{max} is specified only this many events are returned.
 
 If $options{info} is specified, it must be a hashref. This hashref
@@ -1122,6 +1124,9 @@ sub recent_events {
         }
     }
     my @rre = splice @$re, $first_item, 1+$last_item-$first_item;
+    if ($options{'skip-deletes'}) {
+        @rre = grep { $_->{type} ne "delete" } @rre;
+    }
     if ($options{max} && @rre > $options{max}) {
         @rre = splice @rre, 0, $options{max};
     }

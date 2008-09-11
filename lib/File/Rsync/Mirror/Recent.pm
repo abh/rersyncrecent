@@ -120,6 +120,10 @@ collection of recentfiles.
 
 as in F:R:M:Recentfile
 
+=item max_files_per_connection
+
+as in F:R:M:Recentfile
+
 =item remote
 
 TBD
@@ -297,6 +301,7 @@ Testing this ATM with:
          ignore_link_stat_errors => 1,
          localroot => "/home/ftp/pub/PAUSE/authors",
          remote => "pause.perl.org::authors/RECENT.recent",
+         max_files_per_connection => 1,
          rsync_options => {
                            compress => 1,
                            links => 1,
@@ -315,13 +320,14 @@ Testing this ATM with:
 sub rmirror {
     my($self, %options) = @_;
 
-    my $rf0 = $self->_recentfile_object_for_remote;
+    # my $rf0 = $self->_recentfile_object_for_remote;
     my $rfs = $self->recentfiles;
-    require AnyEvent;
+    require AnyEvent::Strict;
 
+    my $leave_rmirror_cvar = AnyEvent->condvar;
     my $time_watcher;
     my $_once_per_20s; $_once_per_20s = sub {
-        print "tick\n";
+        printf "tick %s\n", time;
         $time_watcher = AnyEvent->timer
             (
              after => 20,
@@ -330,6 +336,18 @@ sub rmirror {
              },
             );
     };
+    my $_sigint = AnyEvent->signal
+        (
+         signal => "INT",
+         cb => sub {
+             warn "Caught INT, Goodbye\n";
+             $leave_rmirror_cvar->send;
+         },
+        );
+    $_once_per_20s->();
+    $leave_rmirror_cvar->recv;
+    return;
+
     for my $rf (@$rfs) {
         die "FIXME: merge and then mirror";
         $rf->mirror ( ); # XXX needs "before", not "after"
@@ -353,7 +371,9 @@ sub _recentfile_object_for_remote {
     $self->remoteroot($remoteroot);
     my @need_args =
         (
+         "ignore_link_stat_errors",
          "localroot",
+         "max_files_per_connection",
          "remoteroot",
          "rsync_options",
          "verbose",

@@ -322,10 +322,12 @@ sub rmirror {
 
     # my $rf0 = $self->_recentfile_object_for_remote;
     my $rfs = $self->recentfiles;
+
     require AnyEvent::Strict;
 
     my $leave_rmirror_cvar = AnyEvent->condvar;
     my $time_watcher;
+
     my $_once_per_20s; $_once_per_20s = sub {
         printf "tick %s\n", time;
         $time_watcher = AnyEvent->timer
@@ -336,6 +338,8 @@ sub rmirror {
              },
             );
     };
+    $_once_per_20s->();
+
     my $_sigint = AnyEvent->signal
         (
          signal => "INT",
@@ -344,13 +348,14 @@ sub rmirror {
              $leave_rmirror_cvar->send;
          },
         );
-    $_once_per_20s->();
+
     $leave_rmirror_cvar->recv;
     return;
 
     for my $rf (@$rfs) {
         die "FIXME: merge and then mirror";
-        $rf->mirror ( ); # XXX needs "before", not "after"
+        next if $rf->uptodate;
+        $rf->mirror ( ); # XXX needs "before", not "after", needs "come back before you finish"
         my $re = $rf->recent_events;
         warn sprintf
             (

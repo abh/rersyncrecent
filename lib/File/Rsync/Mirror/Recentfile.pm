@@ -988,6 +988,17 @@ sub mirror_path {
     return 1;
 }
 
+sub _my_current_rfile {
+    my($self) = @_;
+    my $rfile;
+    if ($self->_use_tempfile) {
+        $rfile = $self->_current_tempfile;
+    } else {
+        $rfile = $self->rfile;
+    }
+    return $rfile;
+}
+
 =head2 $path = $obj->naive_path_normalize ($path)
 
 Takes an absolute unix style path as argument and canonicalizes it to
@@ -1048,12 +1059,7 @@ sub recent_events {
         and (!$self->have_mirrored || Time::HiRes::time-$self->have_mirrored>420)) {
         $self->get_remote_recentfile_as_tempfile;
     }
-    my $rfile_or_tempfile;
-    if ($self->_use_tempfile) {
-        $rfile_or_tempfile = $self->_current_tempfile;
-    } else {
-        $rfile_or_tempfile = $self->rfile;
-    }
+    my $rfile_or_tempfile = $self->_my_current_rfile;
     my $suffix = $self->serializer_suffix;
     my ($data) = eval {
         if ($suffix eq ".yaml") {
@@ -1377,6 +1383,30 @@ sub update {
         $self->_assert_symlink;
         $self->unlock;
     }
+}
+
+=head2 uptodate
+
+True if this object has mirrored the complete interval covered by the
+current recentfile.
+
+=cut
+
+sub uptodate {
+    my($self) = @_;
+    my $have_mirrored = $self->have_mirrored;
+    my $now = Time::HiRes::time;
+    die sprintf "FIXME: help me determine if this rf needs refetching. have_mirrored[%s] now[%s] diff[%s]", $have_mirrored, $now, $have_mirrored - $now;
+
+    # look if recentfile has unchanged timestamp
+    my $rfile = $self->_my_current_rfile;
+    my $have_read = $self->have_read || 0;
+    my @stat = stat $rfile;
+    my $mtime = $stat[9];
+    die "FIXME";
+
+    # look if the cached interval of the recentfile is the same as the
+    # interval we have already mirrored
 }
 
 =head2 $obj->write_recent ($recent_files_arrayref)

@@ -790,11 +790,11 @@ sub mirror {
     $self->_use_tempfile (1);
     my %passthrough = map { ($_ => $options{$_}) } qw(before after max skip-deletes);
     my ($recent_events) = $self->recent_events(%passthrough);
-    my $i = 0;
     my @error;
     my @collector;
+    my $first_item = 0;
     my $last_item = $#$recent_events;
-  ITEM: for my $i (0..$last_item) {
+  ITEM: for my $i ($first_item..$last_item) {
         my $recent_event = $recent_events->[$i];
         my $dst = $self->local_path($recent_event->{path});
         if ($recent_event->{type} eq "new"){

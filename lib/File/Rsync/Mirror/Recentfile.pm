@@ -1041,7 +1041,8 @@ are returned.
 If $options{before} is specified, only file events before this
 timestamp are returned.
 
-IF $options{'skip-deletes'} is specified, no deletes will be returned.
+IF $options{'skip-deletes'} is specified, no files-to-be-deleted will
+be returned.
 
 If $options{max} is specified only this many events are returned.
 

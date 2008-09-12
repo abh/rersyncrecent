@@ -1639,6 +1639,8 @@ places. Uses a small metadata cocktail and pull technology.
  Net::UploadMirror   KNORR/Net-UploadMirror-0.06.tar.gz      dito
  Pushmi::Mirror      CLKAO/Pushmi-v1.0.0.tar.gz              something SVK
 
+ rsnapshot           www.rsnapshot.org                       focus on backup
+
 =head2 COMPETITORS
 
 The problem to solve which clusters and ftp mirrors and otherwise

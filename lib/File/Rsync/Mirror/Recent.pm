@@ -323,47 +323,47 @@ sub rmirror {
     # my $rf0 = $self->_recentfile_object_for_remote;
     my $rfs = $self->recentfiles;
 
-    require AnyEvent::Strict;
-
-    my $leave_rmirror_cvar = AnyEvent->condvar;
-    my $time_watcher;
-
-    my $_once_per_20s; $_once_per_20s = sub {
-        printf "tick %s\n", time;
-        $time_watcher = AnyEvent->timer
-            (
-             after => 20,
-             cb => sub {
-                 $_once_per_20s->();
-             },
-            );
+    my $_once_per_20s = sub {
+        # re-fetch the principal
     };
-    $_once_per_20s->();
-
-    my $_sigint = AnyEvent->signal
-        (
-         signal => "INT",
-         cb => sub {
-             warn "Caught INT, Goodbye\n";
-             $leave_rmirror_cvar->send;
-         },
-        );
-
-    $leave_rmirror_cvar->recv;
-    return;
-
-    for my $rf (@$rfs) {
-        die "FIXME: merge and then mirror";
-        next if $rf->uptodate;
-        $rf->mirror ( ); # XXX needs "before", not "after", needs "come back before you finish"
-        my $re = $rf->recent_events;
-        warn sprintf
-            (
-             "Mirrored from %s up to %s/%s\n",
-             $rf->rfile,
-             $re->[0]{path},
-             $re->[0]{epoch},
-            );
+    my $_sigint = sub {
+        # exit gracefully (reminder)
+    };
+    my $minimum_time_per_loop = 20; # XXX needs accessor: warning, if
+                                    # set too low, we do nothing but
+                                    # mirror the principal!
+  LOOP: while () {
+        my $ttleave = time + $minimum_time_per_loop;
+        $_once_per_20s->();
+      RECENTFILE: for my $rf (@$rfs) {
+            last RECENTFILE if time > $ttleave;
+            if ($rf->uptodate){
+                # go to next but take information with you how far we've got
+                next RECENTFILE;
+            } else {
+              WORKUNIT: while (time < $ttleave) {
+                    $rf->mirror ( ); # XXX needs "come back before you
+                                     # finish"; needs the concept of
+                                     # "DONE" in itself
+                    for ($rf->sleep_after_every_mirror) { # good for
+                                                          # testing,
+                                                          # good to
+                                                          # prevent
+                                                          # aggrressivity
+                        sleep $_ if $_;
+                    }
+                    if ($rf->uptodate) {
+                        next RECENTFILE;
+                    }
+                }
+            }
+        }
+        my $sleep = $ttleave - time;
+        if ($sleep > 0.01) {
+            sleep $sleep;
+        } else {
+            # negative time not invented yet:)
+        }
     }
 }
 

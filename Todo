@@ -1,3 +1,33 @@
+2008-09-17  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* Robustness of floating point calculations! I always thought that the
+	string calculated by the origin server for the floating representation
+	of the epoch time is just a string. When we convert it to a number and
+	later back to a string, the other computer might come to a different
+	conclusion. This must not happen, we want to preserve it unter any
+	circumstances. I will have to write tests with overlong sequences that
+	get lost in arithmetic and must see if all still works well.
+
+2008-09-16  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* the concept of tracking DONE needs an object per recentfile that has
+	something like these methods:
+
+	do_we_have(xxx), we_have(xxx), do_we_have_all(xxx,yyy), reset()
+
+	covered()        register()    covered()
+
+	The unclear thing is how we translate points in time into intervals. We
+	could pass a reference to the current recent_events array when running
+	we_have(xxx) and let the DONE object iterate over it such that it only
+	has to store a list of intervals that can melt into each other. Ah, even
+	passing the list together with a list of indexes seems feasiable.
+
+	Or maybe ask for the inverted list?
+
+	Whenever the complete array is covered by the interval we say we are
+	fully covered and if the recentfile is not expired, we are uptodate.
+
 2008-09-07  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* idea: have a new flag on recentfiles with the meaning: if this

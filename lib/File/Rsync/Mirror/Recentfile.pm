@@ -15,8 +15,6 @@ Version 0.0.1
 
 =cut
 
-package File::Rsync::Mirror::Recentfile;
-
 my $HAVE = {};
 for my $package (
                  "Data::Serializer",
@@ -778,9 +776,13 @@ sub meta_data {
 
 =head2 $success = $obj->mirror ( %options )
 
-Mirrors the files in this I<recentfile>. Options named C<after>,
-C<before>, C<max>, and C<skip-deletes> are passed through to
-L<recent_events>.
+Mirrors the files in this I<recentfile> as reported by
+C<recent_events>. Options named C<after>, C<before>, C<max>, and
+C<skip-deletes> are passed through to the L<recent_events> call. The
+boolean option C<piecemeal>, if true, causes C<mirror> to only rsync
+C<max_files_per_connection> and keep track of the rsynced files so
+that future calls will rsync different files until all files are
+brought to sync.
 
 =cut
 
@@ -1390,6 +1392,8 @@ sub update {
 
 True if this object has mirrored the complete interval covered by the
 current recentfile.
+
+*** WIP ***
 
 =cut
 

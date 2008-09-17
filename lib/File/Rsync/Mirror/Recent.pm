@@ -342,7 +342,7 @@ sub rmirror {
                 next RECENTFILE;
             } else {
               WORKUNIT: while (time < $ttleave) {
-                    $rf->mirror ( ); # XXX needs "come back before you
+                    $rf->mirror ( piecemeal => 1 ); # XXX needs "come back before you
                                      # finish"; needs the concept of
                                      # "DONE" in itself
                     for ($rf->sleep_after_every_mirror) { # good for

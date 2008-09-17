@@ -8,6 +8,10 @@
 	circumstances. I will have to write tests with overlong sequences that
 	get lost in arithmetic and must see if all still works well.
 
+	But one fragile point remains: if one host considers a>b and the other
+	one considers them == but no eq. To prevent this, we must probably do
+	some extra homework.
+
 2008-09-16  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* the concept of tracking DONE needs an object per recentfile that has

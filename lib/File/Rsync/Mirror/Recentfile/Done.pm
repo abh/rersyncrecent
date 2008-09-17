@@ -144,11 +144,31 @@ sub register {
                 }
             }
             if ($registered == 2) {
+                my $splicepos;
+                for my $i (0..$#$intervals) {
+                    if (   $epoch eq $intervals->[$i][1]
+                        && $intervals->[$i][1] eq $intervals->[$i+1][0]) {
+                        $intervals->[$i+1][0] = $intervals->[$i][0];
+                        $splicepos = $i;
+                        last;
+                    }
+                }
+                if (defined $splicepos) {
+                    splice @$intervals, $splicepos, 1;
+                } else {
+                    die "Panic";
+                }
             } elsif ($registered == 1) {
-                next REGISTRANT;
+            } else {
+                my $splicepos = @$intervals;
+                for my $i (0..$#$intervals) {
+                    if ($epoch > $intervals->[$i][0]) {
+                        $splicepos = $i;
+                        last;
+                    }
+                }
+                splice @$intervals, $splicepos, 0, [($epoch)x2];
             }
-            require YAML::Syck; print STDERR "Line " . __LINE__ . ", File: " . __FILE__ . "\n" . YAML::Syck::Dump({re=>$re,self=>$self,i=>$i,registered=>$registered}); # XXX
-            die "FIXME";
         } else {
             $intervals->[0] = [($epoch)x2];
         }

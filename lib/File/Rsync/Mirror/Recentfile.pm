@@ -486,37 +486,44 @@ have files that you do not have yet.
 sub get_remote_recentfile_as_tempfile {
     my($self, $rfilename) = @_;
     mkpath $self->localroot;
+    my $fh;
     if ($rfilename) {
         $self->_use_tempfile (1);
     } elsif ( $self->_use_tempfile() ) {
         die "FIXME";
+        my $have_mirrored = $self->have_mirrored;
+        # return if fresh enough!
+        # $fh = $self->_current_tempfile_fh;
         # $rfilename = $self->_my_current_rfile ???
-        # re-mirror unless fresh enough ???
-        # prevent creation of another one ???
-        # only re-mirror ???
-        # refactor the mirroring out ???
+        # prevent creation of another one!
+        # only re-mirror!
     } else {
         $rfilename = $self->rfilename;
     }
     die "Alert: illegal filename[$rfilename] contains a slash" if $rfilename =~ m|/|;
-    my($fh) = File::Temp->new
-        (TEMPLATE => sprintf(".%s-XXXX",
-                             $rfilename,
-                            ),
-         DIR => $self->localroot,
-         SUFFIX => $self->serializer_suffix,
-         UNLINK => $self->_use_tempfile,
-        );
-    if ($self->_use_tempfile) {
-        $self->_current_tempfile_fh ($fh); # delay self destruction
-    }
-    my($dst) = $fh->filename;
-    $self->_current_tempfile ($dst);
-    my $rfile = eval { $self->rfile; }; # may fail (RECENT.recent has no rfile)
-    if (defined $rfile && -e $rfile) {
-        # saving on bandwidth. Might need to be configurable
-        # $self->bandwidth_is_cheap?
-        cp $rfile, $dst or die "Could not copy '$rfile' to '$dst': $!"
+    my $dst;
+    if ($fh) {
+        $dst = $self->_current_tempfile;
+    } else {
+        $fh = File::Temp->new
+            (TEMPLATE => sprintf(".%s-XXXX",
+                                 $rfilename,
+                                ),
+             DIR => $self->localroot,
+             SUFFIX => $self->serializer_suffix,
+             UNLINK => $self->_use_tempfile,
+            );
+        if ($self->_use_tempfile) {
+            $self->_current_tempfile_fh ($fh); # delay self destruction
+        }
+        $dst = $fh->filename;
+        $self->_current_tempfile ($dst);
+        my $rfile = eval { $self->rfile; }; # may fail (RECENT.recent has no rfile)
+        if (defined $rfile && -e $rfile) {
+            # saving on bandwidth. Might need to be configurable
+            # $self->bandwidth_is_cheap?
+            cp $rfile, $dst or die "Could not copy '$rfile' to '$dst': $!"
+        }
     }
     my $src = join ("/",
                     $self->remoteroot,
@@ -1076,6 +1083,7 @@ sub recent_events {
         $self->get_remote_recentfile_as_tempfile;
     }
     my $rfile_or_tempfile = $self->_my_current_rfile or return [];
+    -e $rfile_or_tempfile or return [];
     my $suffix = $self->serializer_suffix;
     my ($data) = eval {
         if ($suffix eq ".yaml") {
@@ -1439,7 +1447,7 @@ sub uptodate {
             return $self->done->covered(@$minmax{qw(min max)});
         }
     }
-    die "FIXME, is the following right?";
+    # die "FIXME, is the following right?";
     return 0;
 }
 

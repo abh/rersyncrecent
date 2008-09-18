@@ -1075,8 +1075,7 @@ sub recent_events {
         and (!$self->have_mirrored || Time::HiRes::time-$self->have_mirrored>420)) {
         $self->get_remote_recentfile_as_tempfile;
     }
-    my $rfile_or_tempfile = $self->_my_current_rfile;
-    die "Panic: file does not exist: '$rfile_or_tempfile'";
+    my $rfile_or_tempfile = $self->_my_current_rfile or return [];
     my $suffix = $self->serializer_suffix;
     my ($data) = eval {
         if ($suffix eq ".yaml") {

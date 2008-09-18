@@ -1,3 +1,13 @@
+2008-09-18  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* Always check if we stringify to a higher value than in the entry
+	before.
+
+	* And in covered make an additional check if we would be able to see a
+	numerical difference between the two numbers and if we can't then switch
+	to a different, more expensive algorithm. Do not want to be caught by
+	floating surprises.
+
 2008-09-17  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* chaching has several aspects here: we can cache the interval of the

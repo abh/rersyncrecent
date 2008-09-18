@@ -490,13 +490,9 @@ sub get_remote_recentfile_as_tempfile {
     if ($rfilename) {
         $self->_use_tempfile (1);
     } elsif ( $self->_use_tempfile() ) {
-        die "FIXME";
-        my $have_mirrored = $self->have_mirrored;
-        # return if fresh enough!
-        # $fh = $self->_current_tempfile_fh;
-        # $rfilename = $self->_my_current_rfile ???
-        # prevent creation of another one!
-        # only re-mirror!
+        return $self->_current_tempfile if ! $self->ttl_reached;
+        $fh = $self->_current_tempfile_fh;
+        $rfilename = $self->rfilename;
     } else {
         $rfilename = $self->rfilename;
     }
@@ -816,6 +812,11 @@ sub mirror {
     my @collector;
     my $first_item = 0;
     my $last_item = $#$recent_events;
+    if ($options{piecemeal}) {
+        require YAML::Syck; print STDERR "Line " . __LINE__ . ", File: " . __FILE__ . "\n" . YAML::Syck::Dump({options => \%options, self => $self}); # XXX
+
+        die "FIXME";
+    }
   ITEM: for my $i ($first_item..$last_item) {
         my $recent_event = $recent_events->[$i];
         my $dst = $self->local_path($recent_event->{path});
@@ -1349,6 +1350,22 @@ sub _sparse_clone {
     $new;
 }
 
+=head2 $boolean = OBJ->ttl_reached ()
+
+=cut
+
+sub ttl_reached {
+    my($self) = @_;
+    my $have_mirrored = $self->have_mirrored;
+    my $now = Time::HiRes::time;
+    my $ttl = $self->ttl;
+    $ttl = 24.2 unless defined $ttl;
+    if ($now > $have_mirrored + $ttl) {
+        return 1;
+    }
+    return 0;
+}
+
 =head2 (void) $obj->unlock()
 
 Unlocking is implemented with an C<rmdir> on a locking directory
@@ -1426,16 +1443,12 @@ current recentfile.
 
 sub uptodate {
     my($self) = @_;
-    my $have_mirrored = $self->have_mirrored;
-    my $now = Time::HiRes::time;
-    my $ttl = $self->ttl;
-    $ttl = 24.2 unless defined $ttl;
-    if ($now - $have_mirrored > $ttl) {
-        return 0;
-    }
+    return 0 if $self->ttl_reached;
 
     # look if recentfile has unchanged timestamp
     my $minmax = $self->minmax;
+    require YAML::Syck; print STDERR "Line " . __LINE__ . ", File: " . __FILE__ . "\n" . YAML::Syck::Dump({self=>$self, minmax=>$minmax}); # XXX
+
     if (exists $minmax->{mtime}) {
         my $rfile = $self->_my_current_rfile;
         my @stat = stat $rfile;
@@ -1447,7 +1460,6 @@ sub uptodate {
             return $self->done->covered(@$minmax{qw(min max)});
         }
     }
-    # die "FIXME, is the following right?";
     return 0;
 }
 

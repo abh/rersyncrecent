@@ -341,14 +341,16 @@ sub rmirror {
                 next RECENTFILE;
             } else {
               WORKUNIT: while (time < $ttleave) {
-                    $rf->mirror ( piecemeal => 1 ); # XXX needs "come back before you
+                    $rf->mirror (
+                                 piecemeal => 1,
+                                 %options,
+                                ); # XXX needs "come back before you
                                      # finish"; needs the concept of
                                      # "DONE" in itself
-                    for ($rf->sleep_after_every_mirror) { # good for
-                                                          # testing,
-                                                          # good to
-                                                          # prevent
-                                                          # aggrressivity
+                    for ($rf->sleep_per_connection) { # good for
+                                                      # testing, good
+                                                      # to prevent
+                                                      # aggrressivity
                         sleep $_ if $_;
                     }
                     if ($rf->uptodate) {

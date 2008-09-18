@@ -1,5 +1,12 @@
 2008-09-17  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
+	* chaching has several aspects here: we can cache the interval of the
+	recentfile which only will change when the mtime of the file changes. We
+	must re-mirror the recentfile when its ttl has expired. Does have_read
+	tell you anything? It counts nothing at all. Only the mtime is
+	interesting. The ntuple mtime, low-epoch, high-epoch. And as a separate
+	thing the have_mirrored because it is unrelated to the mtime.
+
 	* Robustness of floating point calculations! I always thought that the
 	string calculated by the origin server for the floating representation
 	of the epoch time is just a string. When we convert it to a number and

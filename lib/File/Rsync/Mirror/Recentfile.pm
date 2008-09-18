@@ -236,11 +236,6 @@ C<RECENT>.
 Timestamp remembering when we mirrored this recentfile the last time.
 Only relevant for slaves.
 
-=item have_read
-
-Timestamp remembering when we read the recent_events from this file
-the last time.
-
 =item ignore_link_stat_errors
 
 If set to true, rsync errors are ignored that complain about link stat
@@ -284,6 +279,11 @@ forever ignoring all rsync errors.
 Hashref denoting when this recentfile has been merged into some other
 at which epoch.
 
+=item minmax
+
+Hashref remembering when we read the recent_events from this file the
+last time and what the timespan was.
+
 =item protocol
 
 When the RECENT file format changes, we increment the protocol. We try
@@ -315,6 +315,12 @@ well. See section SERIALIZERS below.
 
 Sleep that many seconds (floating point OK) after every chunk of rsyncing
 has finished. Defaults to arbitrary 0.42.
+
+=item ttl
+
+Time to live. Number of seconds after which this recentfile must be
+fetched again from the origin server. Only relevant for slaves.
+Defaults to arbitrary 24.2 seconds.
 
 =item verbose
 
@@ -482,6 +488,13 @@ sub get_remote_recentfile_as_tempfile {
     mkpath $self->localroot;
     if ($rfilename) {
         $self->_use_tempfile (1);
+    } elsif ( $self->_use_tempfile() ) {
+        die "FIXME";
+        # $rfilename = $self->_my_current_rfile ???
+        # re-mirror unless fresh enough ???
+        # prevent creation of another one ???
+        # only re-mirror ???
+        # refactor the mirroring out ???
     } else {
         $rfilename = $self->rfilename;
     }
@@ -1063,6 +1076,7 @@ sub recent_events {
         $self->get_remote_recentfile_as_tempfile;
     }
     my $rfile_or_tempfile = $self->_my_current_rfile;
+    die "Panic: file does not exist: '$rfile_or_tempfile'";
     my $suffix = $self->serializer_suffix;
     my ($data) = eval {
         if ($suffix eq ".yaml") {
@@ -1097,8 +1111,14 @@ sub recent_events {
             next if defined $self->$k;
             $self->$k($v);
         }
-        $self->have_read (Time::HiRes::time);
         $re = $self->$meth ($data);
+        my @stat = stat $rfile_or_tempfile or die "Cannot stat '$rfile_or_tempfile': $!";
+        my $minmax = { mtime => $stat[9] };
+        if (@$re) {
+            $minmax->{min} = $re->[-1]{epoch};
+            $minmax->{max} = $re->[0]{epoch};
+        }
+        $self->minmax ( $minmax );
     }
     return $re unless defined $options{after}; # XXX same for before and max
     my $last_item = $#$re;
@@ -1401,17 +1421,27 @@ sub uptodate {
     my($self) = @_;
     my $have_mirrored = $self->have_mirrored;
     my $now = Time::HiRes::time;
-    die sprintf "FIXME: help me determine if this rf needs refetching. have_mirrored[%s] now[%s] diff[%s]", $have_mirrored, $now, $have_mirrored - $now;
+    my $ttl = $self->ttl;
+    $ttl = 24.2 unless defined $ttl;
+    if ($now - $have_mirrored > $ttl) {
+        return 0;
+    }
 
     # look if recentfile has unchanged timestamp
-    my $rfile = $self->_my_current_rfile;
-    my $have_read = $self->have_read || 0;
-    my @stat = stat $rfile;
-    my $mtime = $stat[9];
-    die "FIXME";
-
-    # look if the cached interval of the recentfile is the same as the
-    # interval we have already mirrored
+    my $minmax = $self->minmax;
+    if (exists $minmax->{mtime}) {
+        my $rfile = $self->_my_current_rfile;
+        my @stat = stat $rfile;
+        my $mtime = $stat[9];
+        if ($mtime > $minmax->{mtime}) {
+            return 0;
+        } else {
+            die "FIXME, is the following right?";
+            return $self->done->covered(@$minmax{qw(min max)});
+        }
+    }
+    die "FIXME, is the following right?";
+    return 0;
 }
 
 =head2 $obj->write_recent ($recent_files_arrayref)
@@ -1645,6 +1675,7 @@ places. Uses a small metadata cocktail and pull technology.
  Pushmi::Mirror      CLKAO/Pushmi-v1.0.0.tar.gz              something SVK
 
  rsnapshot           www.rsnapshot.org                       focus on backup
+ csync               www.csync.org                           more like unison
 
 =head2 COMPETITORS
 

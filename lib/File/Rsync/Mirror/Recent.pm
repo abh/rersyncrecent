@@ -278,7 +278,6 @@ sub recentfiles {
     for my $agg (@$aggregator) {
         my $nrf = $rf0->_sparse_clone;
         $nrf->interval      ( $agg );
-        $nrf->have_read     ( 0    );
         $nrf->have_mirrored ( 0    );
         push @rf, $nrf;
     }

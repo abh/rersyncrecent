@@ -197,6 +197,7 @@ BEGIN {
     @accessors = (
                   "_current_tempfile",
                   "_current_tempfile_fh",
+                  "_done",
                   "_interval",
                   "_is_locked",
                   "_localroot",
@@ -225,12 +226,6 @@ supported value is C<naive_path_normalize>. Defaults to that.
 =item comment
 
 A comment about this tree and setup.
-
-=item done
-
-A reference to a File::Rsync::Mirror::Recentfile::Done object that
-keeps track of rsync activities. Only used/needed when we are a
-mirroring slave.
 
 =item filenameroot
 
@@ -459,6 +454,25 @@ sub _assert_symlink {
         cp $self->rfilename, "$recentrecentfile.$$" or die "Could not copy to '$recentrecentfile.$$': $!";
         rename "$recentrecentfile.$$", $recentrecentfile or die "Could not rename '$recentrecentfile.$$' to $recentrecentfile: $!";
     }
+}
+
+=head2 $done = $obj->done
+
+$done is a reference to a File::Rsync::Mirror::Recentfile::Done object
+that keeps track of rsync activities. Only used/needed when we are a
+mirroring slave.
+
+=cut
+
+sub done {
+    my($self) = @_;
+    my $done = $self->_done;
+    if (!$done) {
+        require File::Rsync::Mirror::Recentfile::Done;
+        $done = File::Rsync::Mirror::Recentfile::Done->new();
+        $self->_done ( $done );
+    }
+    return $done;
 }
 
 =head2 $success = $obj->full_mirror
@@ -818,11 +832,6 @@ sub mirror {
     my $first_item = 0;
     my $last_item = $#$recent_events;
     my $done = $self->done;
-    if (!$done) {
-        require File::Rsync::Mirror::Recentfile::Done;
-        $done = File::Rsync::Mirror::Recentfile::Done->new();
-        $self->done ( $done );
-    }
   ITEM: for my $i ($first_item..$last_item) {
         my $recent_event = $recent_events->[$i];
         next if $done->covered ( $recent_event->{epoch} );
@@ -832,10 +841,11 @@ sub mirror {
                 my $doing = -e $dst ? "Syncing" : "Getting";
                 printf STDERR
                     (
-                     "%s (%d/%d) %s ... ",
+                     "%s (%d/%d/%s) %s ... ",
                      $doing,
                      1+$i,
                      1+$last_item,
+                     $self->interval,
                      $recent_event->{path},
                     );
             }
@@ -846,7 +856,7 @@ sub mirror {
             }
             push @collector, $recent_event->{path};
             push @icollector, $i;
-            if (@collector == $max_files_per_connection) {
+            if (@collector >= $max_files_per_connection) {
                 $success = eval { $self->mirror_path(\@collector) };
                 @collector = ();
                 $done->register($recent_events, \@icollector);
@@ -854,6 +864,9 @@ sub mirror {
                 my $sleep = $self->sleep_per_connection;
                 $sleep = 0.42 unless defined $sleep;
                 Time::HiRes::sleep $sleep;
+                if ($options{piecemeal}) {
+                    return;
+                }
             } else {
                 next ITEM;
             }
@@ -1349,9 +1362,11 @@ sub _sparse_clone {
                   aggregator
                   filenameroot
                   is_slave
+                  max_files_per_connection
                   protocol
                   rsync_options
                   serializer_suffix
+                  sleep_per_connection
                   verbose
                  )) {
         my $o = $self->$m;

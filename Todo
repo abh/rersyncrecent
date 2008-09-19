@@ -1,3 +1,9 @@
+2008-09-19  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* remember: only the principal recentfile needs expiration, all others
+	shall be expired by principal if it discovers that something has move
+	upstream.
+
 2008-09-18  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* Always check if we stringify to a higher value than in the entry

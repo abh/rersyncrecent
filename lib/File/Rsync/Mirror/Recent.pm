@@ -294,13 +294,12 @@ work through all of them.
 
 Testing this ATM with:
 
-  perl -Ilib -e '
   use File::Rsync::Mirror::Recent;
   my $rrr = File::Rsync::Mirror::Recent->new(
          ignore_link_stat_errors => 1,
          localroot => "/home/ftp/pub/PAUSE/authors",
          remote => "pause.perl.org::authors/RECENT.recent",
-         max_files_per_connection => 1,
+         max_files_per_connection => 5,
          rsync_options => {
                            compress => 1,
                            links => 1,
@@ -310,8 +309,7 @@ Testing this ATM with:
          verbose => 1,
 
   );
-  $rrr->rmirror
-  '
+  $rrr->rmirror ( "skip-deletes" => 1 );
 
 
 =cut
@@ -323,10 +321,14 @@ sub rmirror {
     my $rfs = $self->recentfiles;
 
     my $_once_per_20s = sub {
-        # re-fetch the principal
+        my $p = $self->principal_recentfile;
+        for my $i (1..3) {
+            warn "TODO: refetch prince and be let it reset what needs to be resetted\n";
+            sleep 1;
+        }
     };
     my $_sigint = sub {
-        # exit gracefully (reminder)
+        # XXX exit gracefully (reminder)
     };
     my $minimum_time_per_loop = 20; # XXX needs accessor: warning, if
                                     # set too low, we do nothing but
@@ -334,27 +336,35 @@ sub rmirror {
   LOOP: while () {
         my $ttleave = time + $minimum_time_per_loop;
         $_once_per_20s->();
-      RECENTFILE: for my $rf (@$rfs) {
+      RECENTFILE: for my $i (0..$#$rfs) {
+            my $rf = $rfs->[$i];
             last RECENTFILE if time > $ttleave;
             if ($rf->uptodate){
-                # go to next but take information with you how far we've got
+                $rfs->[$i+1]->done->register($rf->recent_events);
                 next RECENTFILE;
             } else {
               WORKUNIT: while (time < $ttleave) {
-                    $rf->mirror (
-                                 piecemeal => 1,
-                                 %options,
-                                ); # XXX needs "come back before you
-                                     # finish"; needs the concept of
-                                     # "DONE" in itself
-                    for ($rf->sleep_per_connection) { # good for
-                                                      # testing, good
-                                                      # to prevent
-                                                      # aggrressivity
-                        sleep $_ if $_;
-                    }
                     if ($rf->uptodate) {
+                        my $sleep = $rf->sleep_per_connection;
+                        $sleep = 0.42 unless defined $sleep; # XXX double accessor!
+                        for (($sleep)x5) { # want a bit more
+                            if ($rf->verbose) {
+                                printf STDERR
+                                    (
+                                     "Napping (%s/%s) ...\n",
+                                     $_,
+                                     $rf->interval,
+                                    );
+                            }
+                            Time::HiRes::sleep $_ if $_;
+                        }
+                        $rfs->[$i+1]->done->register($rf->recent_events);
                         next RECENTFILE;
+                    } else {
+                        $rf->mirror (
+                                     piecemeal => 1,
+                                     %options,
+                                    );
                     }
                 }
             }

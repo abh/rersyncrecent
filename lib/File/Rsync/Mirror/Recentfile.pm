@@ -226,6 +226,12 @@ supported value is C<naive_path_normalize>. Defaults to that.
 
 A comment about this tree and setup.
 
+=item done
+
+A reference to a File::Rsync::Mirror::Recentfile::Done object that
+keeps track of rsync activities. Only used/needed when we are a
+mirroring slave.
+
 =item filenameroot
 
 The (prefix of the) filename we use for this I<recentfile>. Defaults to
@@ -808,17 +814,18 @@ sub mirror {
     $self->_use_tempfile (1);
     my %passthrough = map { ($_ => $options{$_}) } qw(before after max skip-deletes);
     my ($recent_events) = $self->recent_events(%passthrough);
-    my @error;
-    my @collector;
+    my(@error, @collector, @icollector);
     my $first_item = 0;
     my $last_item = $#$recent_events;
-    if ($options{piecemeal}) {
-        require YAML::Syck; print STDERR "Line " . __LINE__ . ", File: " . __FILE__ . "\n" . YAML::Syck::Dump({options => \%options, self => $self}); # XXX
-
-        die "FIXME";
+    my $done = $self->done;
+    if (!$done) {
+        require File::Rsync::Mirror::Recentfile::Done;
+        $done = File::Rsync::Mirror::Recentfile::Done->new();
+        $self->done ( $done );
     }
   ITEM: for my $i ($first_item..$last_item) {
         my $recent_event = $recent_events->[$i];
+        next if $done->covered ( $recent_event->{epoch} );
         my $dst = $self->local_path($recent_event->{path});
         if ($recent_event->{type} eq "new"){
             if ($self->verbose) {
@@ -834,24 +841,21 @@ sub mirror {
             }
             my $max_files_per_connection = $self->max_files_per_connection || 42;
             my $success;
-            if ($max_files_per_connection == 1) {
-                # old code path may go away when the collector has
-                # proved useful...
-                $success = eval { $self->mirror_path($recent_event->{path}) };
+            if ($self->verbose) {
+                print STDERR "\n";
+            }
+            push @collector, $recent_event->{path};
+            push @icollector, $i;
+            if (@collector == $max_files_per_connection) {
+                $success = eval { $self->mirror_path(\@collector) };
+                @collector = ();
+                $done->register($recent_events, \@icollector);
+                @icollector = ();
+                my $sleep = $self->sleep_per_connection;
+                $sleep = 0.42 unless defined $sleep;
+                Time::HiRes::sleep $sleep;
             } else {
-                if ($self->verbose) {
-                    print STDERR "\n";
-                }
-                push @collector, $recent_event->{path};
-                if (@collector == $max_files_per_connection) {
-                    $success = eval { $self->mirror_path(\@collector) };
-                    @collector = ();
-                    my $sleep = $self->sleep_per_connection;
-                    $sleep = 0.42 unless defined $sleep;
-                    Time::HiRes::sleep $sleep;
-                } else {
-                    next ITEM;
-                }
+                next ITEM;
             }
             if (!$success || $@) {
                 warn "Warning: Error while mirroring: $@";
@@ -862,23 +866,30 @@ sub mirror {
                 print STDERR "DONE\n";
             }
         } elsif ($recent_event->{type} eq "delete") {
-            if (-l $dst or not -d _) {
-                unless (unlink $dst) {
-                    require Carp;
-                    Carp::cluck ( "Warning: Error while unlinking '$dst': $!" );
-                }
+            if ($options{'skip-deletes'}) {
             } else {
-                unless (rmdir $dst) {
-                    require Carp;
-                    Carp::cluck ( "Warning: Error on rmdir '$dst': $!" );
+                if (-l $dst or not -d _) {
+                    unless (unlink $dst) {
+                        require Carp;
+                        Carp::cluck ( "Warning: Error while unlinking '$dst': $!" );
+                    }
+                } else {
+                    unless (rmdir $dst) {
+                        require Carp;
+                        Carp::cluck ( "Warning: Error on rmdir '$dst': $!" );
+                    }
                 }
             }
+            $done->register($recent_events, [$i]);
         } else {
             warn "Warning: invalid upload type '$recent_event->{type}'";
         }
     }
     if (@collector) {
         my $success = eval { $self->mirror_path(\@collector) };
+        @collector = ();
+        $done->register($recent_events, \@icollector);
+        @icollector = ();
         if (!$success || $@) {
             warn "Warning: Unknown error while mirroring: $@";
             push @error, $@;
@@ -1447,8 +1458,6 @@ sub uptodate {
 
     # look if recentfile has unchanged timestamp
     my $minmax = $self->minmax;
-    require YAML::Syck; print STDERR "Line " . __LINE__ . ", File: " . __FILE__ . "\n" . YAML::Syck::Dump({self=>$self, minmax=>$minmax}); # XXX
-
     if (exists $minmax->{mtime}) {
         my $rfile = $self->_my_current_rfile;
         my @stat = stat $rfile;
@@ -1456,7 +1465,6 @@ sub uptodate {
         if ($mtime > $minmax->{mtime}) {
             return 0;
         } else {
-            die "FIXME, is the following right?";
             return $self->done->covered(@$minmax{qw(min max)});
         }
     }

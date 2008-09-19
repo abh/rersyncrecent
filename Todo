@@ -5,9 +5,14 @@
 	rsync: link_stat "/id/K/KA/KARMAN/Rose-HTMLx-Form-Related-0.07.meta" (in
 	authors) failed: No such file or directory (2)
 
-	The file above is a delete in 1h and a new in file 1M and somehow the
+	The file above is a delete in 1h and a new in file 1M and the
 	delete in the locally running rmirror did not get propagated to the 1M
 	object. Bug. And the consequence is a standstill.
+
+	It seems that a slave that works with a file below the principal needs
+	to merge things all the way up to get rid of later deletes. Or keep
+	track of all deletes and skip them later. So we need a trackdeletes.pm
+	similar to the done.pm?
 
 	* consider the effect when resyncing the recentfile takes longer than
 	the time per loop. Then we never rsync any file. We need to diagnose

@@ -1001,6 +1001,8 @@ sub mirror_path {
         }
         $fh->flush;
         $fh->unlink_on_destroy(1);
+        my $gaveup = 0;
+        my $retried = 0;
         while (!$self->rsync->exec
                (
                 src => join("/",
@@ -1017,8 +1019,16 @@ sub mirror_path {
                 return 1;
             }
             $self->register_rsync_error ($err);
+            if (++$retried >= 3) {
+                warn "XXX giving up.";
+                $gaveup = 1;
+                last;
+            }
         }
-        $self->un_register_rsync_error ();
+        unless ($gaveup) {
+            $self->un_register_rsync_error ();
+            return;
+        }
     } else {
         my $dst = $self->local_path($path);
         mkpath dirname $dst;

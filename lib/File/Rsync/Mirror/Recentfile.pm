@@ -1027,7 +1027,6 @@ sub mirror_path {
         }
         unless ($gaveup) {
             $self->un_register_rsync_error ();
-            return;
         }
     } else {
         my $dst = $self->local_path($path);

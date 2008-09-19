@@ -1,5 +1,23 @@
 2008-09-19  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
+	* how, exactly, do we have to deal with deletes? With rsync errors? 
+
+	rsync: link_stat "/id/K/KA/KARMAN/Rose-HTMLx-Form-Related-0.07.meta" (in
+	authors) failed: No such file or directory (2)
+
+	The file above is a delete in 1h and a new in file 1M and somehow the
+	delete in the locally running rmirror did not get propagated to the 1M
+	object. Bug. And the consequence is a standstill.
+
+	* consider the effect when resyncing the recentfile takes longer than
+	the time per loop. Then we never rsync any file. We need to diagnose
+	that and force an increase of that loop time. But when we later are fast
+	enough again because the net has recovered, then we need to switch back
+	to original parameters.
+
+	* remember to verify that no temp files are left lying around and the
+	signal handler
+
 	* remember: only the principal recentfile needs expiration, all others
 	shall be expired by principal if it discovers that something has move
 	upstream.

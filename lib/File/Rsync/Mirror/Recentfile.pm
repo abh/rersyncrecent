@@ -272,8 +272,8 @@ Defaults to the arbitrary value 42.
 =item max_rsync_errors
 
 When rsync operations encounter that many errors without any resetting
-success in between, then we die. Defaults to -1 which means we run
-forever ignoring all rsync errors.
+success in between, then we die. Defaults to arbitrary 12. A value of
+-1 means we run forever ignoring all rsync errors.
 
 =item merged
 
@@ -554,14 +554,23 @@ sub get_remote_recentfile_as_tempfile {
              $rfilename,
             );
     }
+    my $gaveup = 0;
+    my $retried = 0;
     while (!$self->rsync->exec(
                                src => $src,
                                dst => $dst,
                               )) {
         $self->register_rsync_error ($self->rsync->err);
+        if (++$retried >= 3) {
+            warn "XXX giving up";
+            $gaveup = 1;
+            last;
+        }
     }
-    $self->have_mirrored (Time::HiRes::time);
-    $self->un_register_rsync_error ();
+    unless ($gaveup) {
+        $self->have_mirrored (Time::HiRes::time);
+        $self->un_register_rsync_error ();
+    }
     if ($self->verbose) {
         print STDERR "DONE\n";
     }
@@ -1317,24 +1326,31 @@ resets the error count. See also accessor C<max_rsync_errors>.
         $no_success_time = time;
         $no_success_count++;
         my $max_rsync_errors = $self->max_rsync_errors;
-        $max_rsync_errors = -1 unless defined $max_rsync_errors;
+        $max_rsync_errors = 12 unless defined $max_rsync_errors;
         if ($max_rsync_errors>=0 && $no_success_count >= $max_rsync_errors) {
-            die sprintf
-                (
-                 "Alert: Error while rsyncing: '%s', error count: %d, exiting now,",
-                 $err,
-                 $no_success_count,
-                );
+            require Carp;
+            Carp::confess
+                  (
+                   sprintf
+                   (
+                    "Alert: Error while rsyncing (%s): '%s', error count: %d, exiting now,",
+                    $self->interval,
+                    $err,
+                    $no_success_count,
+                   ));
         }
         my $sleep = 12 * $no_success_count;
         $sleep = 120 if $sleep > 120;
-        warn sprintf
-            (
-             "Warning: %s, Error while rsyncing: '%s', sleeping %d",
-             scalar(localtime($no_success_time)),
-             $err,
-             $sleep,
-            );
+        require Carp;
+        Carp::cluck
+              (sprintf
+               (
+                "Warning: %s, Error while rsyncing (%s): '%s', sleeping %d",
+                scalar(localtime($no_success_time)),
+                $self->interval,
+                $err,
+                $sleep,
+               ));
         sleep $sleep
     }
     sub un_register_rsync_error {

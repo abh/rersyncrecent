@@ -1,6 +1,9 @@
 bin/rrr-aggregate
+bin/rrr-news
 Changes
+lib/File/Rsync/Mirror/Recent.pm
 lib/File/Rsync/Mirror/Recentfile.pm
+lib/File/Rsync/Mirror/Recentfile/Done.pm
 Makefile.PL
 MANIFEST
 MANIFEST.SKIP
@@ -8,6 +11,7 @@ README
 t/00-load.t
 t/01-util.t
 t/02-operation.t
+t/03-done.t
 t/pod-coverage.t
 t/pod.t
 t/RECENT-6h.yaml

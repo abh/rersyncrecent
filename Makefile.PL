@@ -1,15 +1,34 @@
 use strict;
 use warnings;
 use ExtUtils::MakeMaker;
-
+$ExtUtils::MakeMaker::VERSION =~ s/_//g;
 my @sign = (MM->can("signature_target") ? (SIGN => 1) : ());
 my $version_diff = 0; # we'll have to die if this becomes true
 my $version_from = 'lib/File/Rsync/Mirror/Recent.pm';
+my $version;
+{
+    open my $fh, "<", $version_from or die "Could not open $version_from: $!";
+    my @version = grep /VERSION\s*=\s*qv/, <$fh>;
+    our $VERSION;
+    eval $version[0];
+    $version = $VERSION;
+}
 if ($ARGV[0] && $ARGV[0] eq "--setversion") {
-    eval {  require $version_from; };
-    open my $fh, "make the-release-name|" or die;
+    die "Your perl is a bit dated[$]].\nDo not make a release with it\n" if $] < 5.008;
+    warn "Your MakeMaker is a bit dated[$ExtUtils::MakeMaker::VERSION].\nYou should get a new one\n"
+        if $ExtUtils::MakeMaker::VERSION < 6.4502;
+    eval {  require $version_from; }; die $@ if $@;
+    my $makefile = "Makefile";
+    unless (-f $makefile) {
+        $makefile = "Makefile.old";
+    }
+    unless (-f $makefile) {
+        die "no Makefile and no Makefile.old found";
+    }
+    open my $fh, "make the-release-name|" or die "Could not fork: $!";
     local $/;
     my ($have_version) = <$fh> =~ /^version\s+([\d\._]+)/m;
+    close $fh or die "Could not close: $!";
     my ($namespace) = $version_from;
     $namespace =~ s|^lib/(.+)\.pm$|$1|;
     $namespace =~ s|/|::|g;
@@ -22,8 +41,8 @@ if ($ARGV[0] && $ARGV[0] eq "--setversion") {
 WriteMakefile
     (
      NAME                => 'File::Rsync::Mirror::Recent',
+     VERSION             => $version,
      AUTHOR              => 'Andreas König <andreas.koenig.7os6VVqR@franz.ak.mind.de>',
-     VERSION_FROM        => $version_from,
      PL_FILES            => {},
      PREREQ_PM =>
      {
@@ -37,7 +56,7 @@ WriteMakefile
       'Time::HiRes'      => 0,
       'YAML::Syck'       => 0,
      },
-     EXE_FILES    => [qw(bin/rrr-aggregate)],
+     EXE_FILES    => [qw(bin/rrr-aggregate bin/rrr-news)],
      dist => {
               DIST_DEFAULT => join(" ", # note: order matters!
                                    "Makefile",
@@ -48,13 +67,18 @@ WriteMakefile
                                   ),
               COMPRESS => 'gzip -9',
              },
-     # I took it from RT-CPAN ticket 30098:
-     ($ExtUtils::MakeMaker::VERSION >= 6.3002 ?
-      (EXTRA_META => <<EMETA,
-# write: git push git+ssh://repo.or.cz/srv/git/rersyncrecent.git master
-repository: "git://repo.or.cz/rersyncrecent.git"
-EMETA
-      ) : ()),
+     ($ExtUtils::MakeMaker::VERSION >= 6.4502 ?
+      (META_ADD => {
+                    # write: git push git+ssh://repo.or.cz/srv/git/rersyncrecent.git master
+                    repository => "git://repo.or.cz/rersyncrecent.git",
+                    provides => {
+                                 "File::Rsync::Mirror::Recent" =>
+                                 {
+                                  version => $version,
+                                  file => $version_from,
+                                 }
+                                },
+                   }) : ()),
      @sign,
      clean               => { FILES => 'File-Rsync-Mirror-Recent-*' },
     );
@@ -71,6 +95,9 @@ package MY;
 sub postamble {
   my @m;
   push @m, q{
+META.yml: metafile
+	$(CP) $(DISTVNAME)/META.yml  ./META.yml
+
 setversion:
 	$(PERL) Makefile.PL --setversion
 

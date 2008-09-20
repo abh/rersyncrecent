@@ -1,7 +1,10 @@
 use Data::Dumper;
 use File::Rsync::Mirror::Recentfile::Done;
 use List::Util qw(sum);
+use Storable qw(dclone);
 use Test::More;
+our $HAVE_YAML_SYCK;
+BEGIN { $HAVE_YAML_SYCK = eval { require YAML::Syck; 1; }; }
 use strict;
 my $tests;
 BEGIN { $tests = 0 }
@@ -36,6 +39,8 @@ my @recent_events_lm = map { +{ epoch => $_ } }
       "99.9999999999999991116606557006600",
     );
 
+my @snapshots;
+
 {
     my @t;
     BEGIN {
@@ -66,7 +71,32 @@ my @recent_events_lm = map { +{ epoch => $_ } }
             is 0+$boolean_lm, $i==$#sessions ? 1 : 0, $recent_events_lm[$session->[0]]{epoch}  or
                 die Dumper({boolean_lm=>$boolean_lm,i=>$i,done_lm=>$done_lm});
 
+            push @snapshots, dclone $done, dclone $done_lm;
         }
+    }
+}
+
+{
+    BEGIN {
+        $tests += 1;
+        if ($HAVE_YAML_SYCK) {
+            $tests += 1;
+        }
+    }
+    my $snapshots = scalar @snapshots;
+    ok $snapshots>=24, "enough snapshots[$snapshots]";
+    my $ok = 0;
+    for my $i (0..$#snapshots) {
+        my($a) = [@snapshots[$i-1,$i]];
+        my $b = dclone $a;
+        $a->[0]->merge($a->[1]);
+        $b->[1]->merge($b->[0]);
+        if ($HAVE_YAML_SYCK) {
+            $ok++ if YAML::Syck::Dump($a->[0]) eq YAML::Syck::Dump($b->[1]);
+        }
+    }
+    if ($HAVE_YAML_SYCK) {
+        is $ok, $snapshots, "all merge operations OK";
     }
 }
 

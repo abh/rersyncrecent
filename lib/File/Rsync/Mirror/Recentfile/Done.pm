@@ -7,6 +7,8 @@ use strict;
 sub _bigfloatcmp ($$);
 sub _bigfloatgt ($$);
 sub _bigfloatlt ($$);
+sub _bigfloatmax ($$);
+sub _bigfloatmin ($$);
 
 =encoding utf-8
 
@@ -113,6 +115,45 @@ sub covered {
     return 0;
 }
 
+=head2 (void) $obj1->merge ( $obj2 )
+
+Integrates all intervals in $obj2 into $obj1. Overlapping intervals
+are conflated. Sort order is preserved as decreasing.
+
+=cut
+sub merge {
+    my($self, $other) = @_;
+    my $intervals = $self->_intervals;
+    my $ointervals = $other->_intervals;
+  OTHER: for my $oiv (@$ointervals) {
+        my $splicepos;
+      SELF: for my $i (0..$#$intervals) {
+            my $iv = $intervals->[$i];
+            if ( _bigfloatlt ($oiv->[0],$iv->[1]) ) {
+                # both oiv lower than iv => next
+                next SELF;
+            }
+            if ( _bigfloatgt ($oiv->[1],$iv->[0]) ) {
+                # both oiv greater than iv => insert
+                $splicepos = $i;
+                last SELF;
+            }
+            # larger(left-iv,left-oiv) becomes left, smaller(right-iv,right-oiv) becomes right
+            $iv->[0] = _bigfloatmax ($oiv->[0],$iv->[0]);
+            $iv->[1] = _bigfloatmin ($oiv->[1],$iv->[1]);
+            next OTHER;
+        }
+        unless (defined $splicepos) {
+            if ( _bigfloatlt ($oiv->[0], $intervals->[-1][1]) ) {
+                $splicepos = @$intervals;
+            } else {
+                die "Panic: left-oiv[$oiv->[0]] should be smaller than smallest[$intervals->[-1][1]]";
+            }
+        }
+        splice @$intervals, $splicepos, 0, [@$oiv];
+    }
+}
+
 =head2 (void) $obj->register ( $recent_events_arrayref, $register_arrayref )
 
 =head2 (void) $obj->register ( $recent_events_arrayref )
@@ -199,7 +240,7 @@ sub register {
 These functions are not part of the public interface and can be
 changed and go away any time without prior notice.
 
-=head2 _bigfloatcmp
+=head2 _bigfloatcmp ( $l, $r )
 
 Cmp function for floating point numbers that have a longer
 mantissa than can be handled by native perl floats.
@@ -217,10 +258,9 @@ sub _bigfloatcmp ($$) {
     $l cmp $r;
 }
 
-=head2 _bigfloatgt
+=head2 _bigfloatgt ( $l, $r )
 
-Greater-than function for floating point numbers that have a longer
-mantissa than can be handled by native perl floats.
+Same for gt
 
 =cut
 sub _bigfloatgt ($$) {
@@ -228,15 +268,34 @@ sub _bigfloatgt ($$) {
     _bigfloatcmp($l,$r) > 0;
 }
 
-=head2 _bigfloatlt
+=head2 _bigfloatlt ( $l, $r )
 
-Lower-than function for floating point numbers that have a longer
-mantissa than can be handled by native perl floats.
+Same for lt
 
 =cut
 sub _bigfloatlt ($$) {
     my($l,$r) = @_;
     _bigfloatcmp($l,$r) < 0;
+}
+
+=head2 _bigfloatmax ( $l, $r )
+
+Same for max (of two arguments)
+
+=cut
+sub _bigfloatmax ($$) {
+    my($l,$r) = @_;
+    return _bigfloatcmp($l,$r) >= 0 ? $l : $r;
+}
+
+=head2 _bigfloatmin ( $l, $r )
+
+Same for min (of two arguments)
+
+=cut
+sub _bigfloatmin ($$) {
+    my($l,$r) = @_;
+    return _bigfloatcmp($l,$r) <= 0 ? $l : $r;
 }
 
 =head1 COPYRIGHT & LICENSE

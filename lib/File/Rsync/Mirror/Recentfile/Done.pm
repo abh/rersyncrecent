@@ -3,6 +3,11 @@ package File::Rsync::Mirror::Recentfile::Done;
 # use warnings;
 use strict;
 
+# _bigfloat
+sub _bigfloatcmp ($$);
+sub _bigfloatgt ($$);
+sub _bigfloatlt ($$);
+
 =encoding utf-8
 
 =head1 NAME
@@ -163,15 +168,28 @@ sub register {
                 if (defined $splicepos) {
                     splice @$intervals, $splicepos, 1;
                 } else {
-                    die "Panic";
+                    die "Panic: Could not find an interval position to insert '$epoch'";
                 }
             } elsif ($registered == 1) {
             } else {
-                my $splicepos = @$intervals;
+                my $splicepos;
                 for my $i (0..$#$intervals) {
-                    if ($epoch > $intervals->[$i][0]) {
+                    if ($epoch > $intervals->[$i][0]
+                        || (                $epoch == $intervals->[$i][0]
+                            && _bigfloatgt ($epoch,   $intervals->[$i][0]))
+                       ) {
                         $splicepos = $i;
                         last;
+                    }
+                }
+                unless (defined $splicepos) {
+                    if ($epoch < $intervals->[-1][1]
+                        || (                $epoch == $intervals->[-1][1]
+                            && _bigfloatlt ($epoch,   $intervals->[-1][1]))
+                       ) {
+                        $splicepos = @$intervals;
+                    } else {
+                        die "Panic: epoch[$epoch] should be smaller than smallest[$intervals->[-1][1]]";
                     }
                 }
                 splice @$intervals, $splicepos, 0, [($epoch)x2];
@@ -180,6 +198,49 @@ sub register {
             $intervals->[0] = [($epoch)x2];
         }
     }
+}
+
+=head1 INTERNAL FUNCTIONS
+
+These functions are not part of the public interface and can be
+changed and go away any time without prior notice.
+
+=head2 _bigfloatcmp
+
+Cmp function for floating point numbers that have a longer
+mantissa than can be handled by native perl floats.
+
+=cut
+sub _bigfloatcmp ($$) {
+    my($l,$r) = @_;
+    for ($l, $r){
+        $_ .= ".0" unless /\./;
+    }
+    $l =~ s/^/0/ while index($l,".") < index($r,".");
+    $r =~ s/^/0/ while index($r,".") < index($l,".");
+    $l cmp $r;
+}
+
+=head2 _bigfloatgt
+
+Greater-than function for floating point numbers that have a longer
+mantissa than can be handled by native perl floats.
+
+=cut
+sub _bigfloatgt ($$) {
+    my($l,$r) = @_;
+    _bigfloatcmp($l,$r) > 0;
+}
+
+=head2 _bigfloatlt
+
+Lower-than function for floating point numbers that have a longer
+mantissa than can be handled by native perl floats.
+
+=cut
+sub _bigfloatlt ($$) {
+    my($l,$r) = @_;
+    _bigfloatcmp($l,$r) < 0;
 }
 
 =head1 COPYRIGHT & LICENSE

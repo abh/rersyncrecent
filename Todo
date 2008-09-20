@@ -1,5 +1,12 @@
 2008-09-19  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
+	* Bug: the bigloop ran into a funny endless loop after EWILHELM uploaded
+	Module-Build. It *only* rsynced the "1h" recentfile from that moment on.
+
+	* statusfile, maybe only on demand, alone to have a sharp debugging
+	tool. It is locked and all recentfiles dump themselves into it and we
+	can build a viewer that lets us know where we stand and what's inside.
+
 	* how, exactly, do we have to deal with deletes? With rsync errors? 
 
 	rsync: link_stat "/id/K/KA/KARMAN/Rose-HTMLx-Form-Related-0.07.meta" (in

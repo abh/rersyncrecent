@@ -21,6 +21,21 @@ my @recent_events = map { +{ epoch => $_ } }
      "1216706552.661",
     );
 
+# lm = long mantissa
+my @recent_events_lm = map { +{ epoch => $_ } }
+    (
+     "100.0000000000000001116606557906601",
+     "100.0000000000000001116606557806690",
+     "100.0000000000000001116606557706639",
+     "100.0000000000000001116606557606693",
+     "100.0000000000000001116606557506699",
+      "99.9999999999999991116606557406619",
+      "99.9999999999999991116606557306619",
+      "99.9999999999999991116606557206684",
+      "99.9999999999999991116606557106670",
+      "99.9999999999999991116606557006600",
+    );
+
 {
     my @t;
     BEGIN {
@@ -32,17 +47,25 @@ my @recent_events = map { +{ epoch => $_ } }
              [[1,5],[3,4,5,7],[2,0,6,7,9,8]],
             );
         my $sum = sum map { my @cnt = @$_; scalar @cnt; } @t;
-        $tests += $sum;
+        $tests += 2 * $sum;
     }
     for my $t (@t) {
         my $done = File::Rsync::Mirror::Recentfile::Done->new;
+        my $done_lm = File::Rsync::Mirror::Recentfile::Done->new;
         my @sessions = @$t;
         for my $i (0..$#sessions) {
             my $session = $sessions[$i];
+
             $done->register ( \@recent_events, $session );
             my $boolean = $done->covered ( map {$_->{epoch}} @recent_events[0,-1] );
-            is 0+$boolean, $i==$#sessions ? 1 : 0 or
+            is 0+$boolean, $i==$#sessions ? 1 : 0, $recent_events[$session->[0]]{epoch} or
                 die Dumper({boolean=>$boolean,i=>$i,done=>$done});
+
+            $done_lm->register ( \@recent_events_lm, $session );
+            my $boolean_lm = $done_lm->covered ( map {$_->{epoch}} @recent_events_lm[0,-1] );
+            is 0+$boolean_lm, $i==$#sessions ? 1 : 0, $recent_events_lm[$session->[0]]{epoch}  or
+                die Dumper({boolean_lm=>$boolean_lm,i=>$i,done_lm=>$done_lm});
+
         }
     }
 }

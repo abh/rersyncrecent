@@ -174,19 +174,13 @@ sub register {
             } else {
                 my $splicepos;
                 for my $i (0..$#$intervals) {
-                    if ($epoch > $intervals->[$i][0]
-                        || (                $epoch == $intervals->[$i][0]
-                            && _bigfloatgt ($epoch,   $intervals->[$i][0]))
-                       ) {
+                    if (_bigfloatgt ($epoch, $intervals->[$i][0])) {
                         $splicepos = $i;
                         last;
                     }
                 }
                 unless (defined $splicepos) {
-                    if ($epoch < $intervals->[-1][1]
-                        || (                $epoch == $intervals->[-1][1]
-                            && _bigfloatlt ($epoch,   $intervals->[-1][1]))
-                       ) {
+                    if (_bigfloatlt ($epoch,   $intervals->[-1][1])) {
                         $splicepos = @$intervals;
                     } else {
                         die "Panic: epoch[$epoch] should be smaller than smallest[$intervals->[-1][1]]";
@@ -213,6 +207,8 @@ mantissa than can be handled by native perl floats.
 =cut
 sub _bigfloatcmp ($$) {
     my($l,$r) = @_;
+    my $native = $l <=> $r;
+    return $native if $native;
     for ($l, $r){
         $_ .= ".0" unless /\./;
     }

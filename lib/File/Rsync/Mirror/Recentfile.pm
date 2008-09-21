@@ -201,6 +201,7 @@ BEGIN {
                   "_interval",
                   "_is_locked",
                   "_localroot",
+                  "_pathdb",
                   "_remote_dir",
                   "_remoteroot",
                   "_rfile",
@@ -501,6 +502,10 @@ then you must prefer this method to mirror (and read) recentfiles over
 get_remotefile(). Otherwise downstream mirrors would expect you to
 have files that you do not have yet.
 
+Note: currently we have an arbitrary brake built into the method:
+before 4.42 seconds are over since the last download we will return
+without downloading. XXX
+
 =cut
 
 sub get_remote_recentfile_as_tempfile {
@@ -516,6 +521,12 @@ sub get_remote_recentfile_as_tempfile {
     } else {
         $rfilename = $self->rfilename;
     }
+
+    return $rfilename
+        if (!$rfilename
+            && $self->have_mirrored
+            && Time::HiRes::time-$self->have_mirrored < 4.42
+           );
     die "Alert: illegal filename[$rfilename] contains a slash" if $rfilename =~ m|/|;
     my $dst;
     if ($fh) {
@@ -837,13 +848,28 @@ sub mirror {
     $self->_use_tempfile (1);
     my %passthrough = map { ($_ => $options{$_}) } qw(before after max skip-deletes);
     my ($recent_events) = $self->recent_events(%passthrough);
-    my(@error, @collector, @icollector);
+    my(@error, @xcollector);
     my $first_item = 0;
     my $last_item = $#$recent_events;
+    if ($last_item <= 0) {
+        warn "DEBUG: nothing left to do?";
+        require YAML::Syck; print STDERR "Line " . __LINE__ . ", File: " . __FILE__ . "\n" . YAML::Syck::Dump(options => \%options, self => $self); # XXX
+    }
     my $done = $self->done;
+    my $pathdb = $self->_pathdb;
   ITEM: for my $i ($first_item..$last_item) {
         my $recent_event = $recent_events->[$i];
-        next if $done->covered ( $recent_event->{epoch} );
+        next ITEM if $done->covered ( $recent_event->{epoch} );
+        if ($pathdb) {
+            my $rec = $pathdb->{$recent_event->{path}};
+            if ($rec && $rec->{recentepoch}) {
+                if (File::Rsync::Mirror::Recentfile::Done::_bigfloatgt
+                    ( $rec->{recentepoch}, $recent_event->{epoch} )){
+                    $done->register ($recent_events, [$i]);
+                    next ITEM;
+                }
+            }
+        }
         my $dst = $self->local_path($recent_event->{path});
         if ($recent_event->{type} eq "new"){
             if ($self->verbose) {
@@ -863,13 +889,9 @@ sub mirror {
             if ($self->verbose) {
                 print STDERR "\n";
             }
-            push @collector, $recent_event->{path};
-            push @icollector, $i;
-            if (@collector >= $max_files_per_connection) {
-                $success = eval { $self->mirror_path(\@collector) };
-                @collector = ();
-                $done->register($recent_events, \@icollector);
-                @icollector = ();
+            push @xcollector, { rev => $recent_event, i => $i };
+            if (@xcollector >= $max_files_per_connection) {
+                $success = eval {$self->_empty_xcollector (\@xcollector,$pathdb,$recent_events);};
                 my $sleep = $self->sleep_per_connection;
                 $sleep = 0.42 unless defined $sleep;
                 Time::HiRes::sleep $sleep;
@@ -888,7 +910,9 @@ sub mirror {
                 print STDERR "DONE\n";
             }
         } elsif ($recent_event->{type} eq "delete") {
+            my $activity;
             if ($options{'skip-deletes'}) {
+                $activity = "skipp";
             } else {
                 if (-l $dst or not -d _) {
                     unless (unlink $dst) {
@@ -901,17 +925,18 @@ sub mirror {
                         Carp::cluck ( "Warning: Error on rmdir '$dst': $!" );
                     }
                 }
+                $activity = "delet";
             }
-            $done->register($recent_events, [$i]);
+            $done->register ($recent_events, [$i]);
+            if ($pathdb) {
+                $self->_register_path($pathdb,[$recent_event],$activity);
+            }
         } else {
             warn "Warning: invalid upload type '$recent_event->{type}'";
         }
     }
-    if (@collector) {
-        my $success = eval { $self->mirror_path(\@collector) };
-        @collector = ();
-        $done->register($recent_events, \@icollector);
-        @icollector = ();
+    if (@xcollector) {
+        my $success = eval { $self->_empty_xcollector (\@xcollector,$pathdb,$recent_events);};
         if (!$success || $@) {
             warn "Warning: Unknown error while mirroring: $@";
             push @error, $@;
@@ -920,6 +945,11 @@ sub mirror {
         if ($self->verbose) {
             print STDERR "DONE\n";
         }
+    }
+    # sanity check
+    unless ($self->uptodate) {
+        # When we reach this point we should be uptodate, right?
+        warn "DEBUG: this might need debugging -- we have reached the end of mirror but are not uptodate -- why?";
     }
     my $rfile = $self->rfile;
     unless (rename $trecentfile, $rfile) {
@@ -932,6 +962,30 @@ sub mirror {
         $self->_current_tempfile_fh (undef);
     }
     return !@error;
+}
+
+sub _empty_xcollector {
+    my($self,$xcoll,$pathdb,$recent_events) = @_;
+    my $success = $self->mirror_path([map {$_->{rev}{path}} @$xcoll]);
+    if ($pathdb) {
+        $self->_register_path($pathdb,[map {$_->{rev}} @$xcoll],"rsync");
+    }
+    $self->done->register($recent_events, [map {$_->{i}} @$xcoll]);
+    @$xcoll = ();
+    return $success;
+}
+
+sub _register_path {
+    my($self,$db,$coll,$act) = @_;
+    my $time = time;
+    for my $item (@$coll) {
+        $DB::single++;
+        $db->{$item->{path}} =
+            {
+             recentepoch => $item->{epoch},
+             ($act."edon") => $time,
+            };
+    }
 }
 
 =head2 (void) $obj->mirror_loop
@@ -1121,8 +1175,7 @@ is the last.
 sub recent_events {
     my ($self, %options) = @_;
     my $info = $options{info};
-    if ($self->is_slave
-        and (!$self->have_mirrored || Time::HiRes::time-$self->have_mirrored>420)) {
+    if ($self->is_slave) {
         $self->get_remote_recentfile_as_tempfile;
     }
     my $rfile_or_tempfile = $self->_my_current_rfile or return [];

@@ -97,6 +97,7 @@ my @accessors;
 
 BEGIN {
     @accessors = (
+                  "__pathdb",
                   "_principal_recentfile",
                   "_recentfiles",
                   "_rsync",
@@ -229,6 +230,23 @@ sub news {
     $ret;
 }
 
+=head2 _pathdb
+
+(Private method, not for public use) Keeping track of already handled
+files. Currently it is a hash, will probably become a database with
+its own accessors.
+
+=cut
+
+sub _pathdb {
+    my($self) = @_;
+    my $db = $self->_pathdb;
+    unless (defined $db) {
+        $self->_pathdb(+{});
+    }
+    return $db;
+}
+
 =head2 $recentfile = $obj->principal_recentfile ()
 
 returns the principal recentfile of this tree.
@@ -273,12 +291,15 @@ sub recentfiles {
     my $rfs = $self->_recentfiles;
     return $rfs if defined $rfs;
     my $rf0 = $self->principal_recentfile;
+    my $db = +{};
+    $rf0->_pathdb ( $db );
     my $aggregator = $rf0->aggregator;
     my @rf = $rf0;
     for my $agg (@$aggregator) {
         my $nrf = $rf0->_sparse_clone;
         $nrf->interval      ( $agg );
         $nrf->have_mirrored ( 0    );
+        $nrf->_pathdb       ( $db  );
         push @rf, $nrf;
     }
     $self->_recentfiles(\@rf);
@@ -322,8 +343,10 @@ sub rmirror {
 
     my $_once_per_20s = sub {
         my $p = $self->principal_recentfile;
+        require YAML::Syck; YAML::Syck::DumpFile("recent-rmirror-state-$$.yml",$self); # XXX
+
         for my $i (1..3) {
-            warn "TODO: refetch prince and be let it reset what needs to be resetted\n";
+            warn "TODO: refetch prince and let it reset what needs to be resetted\n";
             sleep 1;
         }
     };

@@ -1,3 +1,50 @@
+2008-09-21  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* Most apparent bug at the moment is that the recentfiles are fetched
+	too often. Only the principal should be fetched and if it has not
+	changed, the others should not be refetched. ATM I must admit that I'm
+	happy that we refetch more often than needed because I can more easily
+	fix bugs while the thing is running.
+
+	* Let's say, 1220474966.19501 is a timestamp of a file that is already
+	done but the done system does not know about it. The reason for the
+	failure is not known and we never reach the status uptodate because of
+	this. We must get over it.
+
+	Later it turns out that the origin server had a bug somewhere.
+	1220474966.19042 came after 1220474966.19501. Or better: it was in the
+	array of the recentfile one position above. The bug was my own.
+
+2008-09-20  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* thinking once again about deletes. The one case is that we still have
+	the "new" and the "delete" in different files. If we pass by the DELETE
+	first which is the usual case we could, for example, keep the path in
+	memory and when we later reach the NEW, we could mark it as done and
+	immediately forget the DELETE. But it would be polite if upstream would
+	tell us the epoch of the NEW within the DELETE record, then we could
+	simply use the DONE mechanism without tracking path names. Ah, but the
+	slave can look it up all on his own account and instead of remembering
+	a name, simply put the timestamp of the NEW file into the DONE system.
+
+	That's all fine. But there is still the race condition where the server
+	does a delete and the slave does not yet know. So for this time window
+	we must be more tolerant against failure. If we cannot download a file,
+	we should just skip it and should not retry immediately. The whole
+	system should discover the lost thing later. Keeping track with the DONE
+	system should really be a no brainer.
+
+	But there is something more: the whole filesystem is a database and the
+	recentfiles are one possible representation of it. It's a pretty useful
+	representation I think that's why I have implemented something around
+	it. But for strictly local operation it has little value. For local
+	operation we would much rather have a database. So we would enter every
+	recentfile reading and every rsync operation and for every file the last
+	state change and what it leads to. Then we would always ignore older
+	records without the efforts involved with recentfiles.
+
+	The database would have: path,recentepoch,rsyncedon,deletedon
+
 2008-09-19  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* Bug: the bigloop ran into a funny endless loop after EWILHELM uploaded

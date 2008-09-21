@@ -127,30 +127,34 @@ sub merge {
     my $ointervals = $other->_intervals;
   OTHER: for my $oiv (@$ointervals) {
         my $splicepos;
-      SELF: for my $i (0..$#$intervals) {
-            my $iv = $intervals->[$i];
-            if ( _bigfloatlt ($oiv->[0],$iv->[1]) ) {
-                # both oiv lower than iv => next
-                next SELF;
+        if (@$intervals) {
+          SELF: for my $i (0..$#$intervals) {
+                my $iv = $intervals->[$i];
+                if ( _bigfloatlt ($oiv->[0],$iv->[1]) ) {
+                    # both oiv lower than iv => next
+                    next SELF;
+                }
+                if ( _bigfloatgt ($oiv->[1],$iv->[0]) ) {
+                    # both oiv greater than iv => insert
+                    $splicepos = $i;
+                    last SELF;
+                }
+                # larger(left-iv,left-oiv) becomes left, smaller(right-iv,right-oiv) becomes right
+                $iv->[0] = _bigfloatmax ($oiv->[0],$iv->[0]);
+                $iv->[1] = _bigfloatmin ($oiv->[1],$iv->[1]);
+                next OTHER;
             }
-            if ( _bigfloatgt ($oiv->[1],$iv->[0]) ) {
-                # both oiv greater than iv => insert
-                $splicepos = $i;
-                last SELF;
+            unless (defined $splicepos) {
+                if ( _bigfloatlt ($oiv->[0], $intervals->[-1][1]) ) {
+                    $splicepos = @$intervals;
+                } else {
+                    die "Panic: left-oiv[$oiv->[0]] should be smaller than smallest[$intervals->[-1][1]]";
+                }
             }
-            # larger(left-iv,left-oiv) becomes left, smaller(right-iv,right-oiv) becomes right
-            $iv->[0] = _bigfloatmax ($oiv->[0],$iv->[0]);
-            $iv->[1] = _bigfloatmin ($oiv->[1],$iv->[1]);
-            next OTHER;
+            splice @$intervals, $splicepos, 0, [@$oiv];
+        } else {
+            $intervals->[0] = [@$oiv];
         }
-        unless (defined $splicepos) {
-            if ( _bigfloatlt ($oiv->[0], $intervals->[-1][1]) ) {
-                $splicepos = @$intervals;
-            } else {
-                die "Panic: left-oiv[$oiv->[0]] should be smaller than smallest[$intervals->[-1][1]]";
-            }
-        }
-        splice @$intervals, $splicepos, 0, [@$oiv];
     }
 }
 

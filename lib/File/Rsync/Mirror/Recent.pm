@@ -340,7 +340,7 @@ sub rmirror {
             my $rf = $rfs->[$i];
             last RECENTFILE if time > $ttleave;
             if ($rf->uptodate){
-                $rfs->[$i+1]->done->register($rf->recent_events);
+                $rfs->[$i+1]->done->merge($rf->done) if $i < $#$rfs;
                 next RECENTFILE;
             } else {
               WORKUNIT: while (time < $ttleave) {
@@ -358,7 +358,7 @@ sub rmirror {
                             }
                             Time::HiRes::sleep $_ if $_;
                         }
-                        $rfs->[$i+1]->done->register($rf->recent_events);
+                        $rfs->[$i+1]->done->merge($rf->done) if $i < $#$rfs;
                         next RECENTFILE;
                     } else {
                         $rf->mirror (

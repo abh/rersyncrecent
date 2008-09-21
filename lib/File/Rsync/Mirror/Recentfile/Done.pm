@@ -61,7 +61,7 @@ my @accessors;
 
 BEGIN {
     @accessors = (
-                  "_intervals",
+                  "__intervals",
                  );
 
     my @pod_lines =
@@ -94,7 +94,7 @@ The second form returns true if this timestamp has been registered.
 
 sub covered {
     my($self, $epoch_high, $epoch_low) = @_;
-    my $intervals = $self->_intervals || [];
+    my $intervals = $self->_intervals;
     return unless @$intervals;
     if (defined $epoch_low) {
         ($epoch_high,$epoch_low) = ($epoch_low,$epoch_high) if $epoch_low > $epoch_high;
@@ -118,7 +118,7 @@ sub covered {
 =head2 (void) $obj1->merge ( $obj2 )
 
 Integrates all intervals in $obj2 into $obj1. Overlapping intervals
-are conflated. Sort order is preserved as decreasing.
+are conflated/folded/consolidated. Sort order is preserved as decreasing.
 
 =cut
 sub merge {
@@ -173,8 +173,7 @@ The second form registers all events in $recent_events_arrayref.
 
 sub register {
     my($self, $re, $reg) = @_;
-    my $intervals = $self->_intervals || [];
-    $self->_intervals ($intervals);
+    my $intervals = $self->_intervals;
     unless ($reg) {
         $reg = [0..$#$re];
     }
@@ -237,6 +236,21 @@ sub register {
             $intervals->[0] = [($epoch)x2];
         }
     }
+}
+
+=head1 PRIVATE METHODS
+
+=head2 _intervals
+
+=cut
+sub _intervals {
+    my($self) = @_;
+    my $x = $self->__intervals;
+    unless (defined $x) {
+        $x = [];
+        $self->__intervals ($x);
+    }
+    return $x;
 }
 
 =head1 INTERNAL FUNCTIONS

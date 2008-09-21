@@ -1457,8 +1457,9 @@ sub update {
         $path =~ s|^/||;
         my $interval = $self->interval;
         my $secs = $self->interval_secs();
-        my $epoch = Time::HiRes::time;
         $self->lock;
+        # you must calculate the time after having locked, of course
+        my $epoch = Time::HiRes::time;
         my $recent = $self->recent_events;
         $recent ||= [];
         my $oldest_allowed = 0;

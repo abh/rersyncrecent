@@ -345,8 +345,8 @@ sub rmirror {
         my $p = $self->principal_recentfile;
         require YAML::Syck; YAML::Syck::DumpFile("recent-rmirror-state-$$.yml",$self); # XXX
 
-        for my $i (1..3) {
-            warn "TODO: refetch prince and let it reset what needs to be resetted\n";
+        for my $i (1) {
+            print STDERR ("TODO: refetch prince and let it reset what needs to be resetted\n");
             sleep 1;
         }
     };
@@ -394,6 +394,11 @@ sub rmirror {
         }
         my $sleep = $ttleave - time;
         if ($sleep > 0.01) {
+            printf STDERR
+                (
+                 "Retreat to the Dormitory (%s) ...",
+                 $sleep,
+                );
             sleep $sleep;
         } else {
             # negative time not invented yet:)

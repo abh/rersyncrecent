@@ -851,10 +851,6 @@ sub mirror {
     my(@error, @xcollector);
     my $first_item = 0;
     my $last_item = $#$recent_events;
-    if ($last_item <= 0) {
-        warn "DEBUG: nothing left to do?";
-        require YAML::Syck; print STDERR "Line " . __LINE__ . ", File: " . __FILE__ . "\n" . YAML::Syck::Dump(options => \%options, self => $self); # XXX
-    }
     my $done = $self->done;
     my $pathdb = $self->_pathdb;
   ITEM: for my $i ($first_item..$last_item) {
@@ -946,11 +942,6 @@ sub mirror {
             print STDERR "DONE\n";
         }
     }
-    # sanity check
-    unless ($self->uptodate) {
-        # When we reach this point we should be uptodate, right?
-        warn "DEBUG: this might need debugging -- we have reached the end of mirror but are not uptodate -- why?";
-    }
     my $rfile = $self->rfile;
     unless (rename $trecentfile, $rfile) {
         require Carp;
@@ -979,7 +970,6 @@ sub _register_path {
     my($self,$db,$coll,$act) = @_;
     my $time = time;
     for my $item (@$coll) {
-        $DB::single++;
         $db->{$item->{path}} =
             {
              recentepoch => $item->{epoch},
@@ -1547,8 +1537,13 @@ current recentfile.
 =cut
 
 sub uptodate {
-    my($self) = @_;
-    return 0 if $self->ttl_reached;
+    my($self, $debug) = @_;
+    if ($self->ttl_reached){
+        if ($debug) {
+            warn "ttl_reached returned true, so we are not uptodate";
+        }
+        return 0 ;
+    }
 
     # look if recentfile has unchanged timestamp
     my $minmax = $self->minmax;
@@ -1557,10 +1552,20 @@ sub uptodate {
         my @stat = stat $rfile;
         my $mtime = $stat[9];
         if ($mtime > $minmax->{mtime}) {
+            if ($debug) {
+                warn "$mtime > $minmax->{mtime}, so we are not uptodate";
+            }
             return 0;
         } else {
-            return $self->done->covered(@$minmax{qw(min max)});
+            my $covered = $self->done->covered(@$minmax{qw(max min)});
+            if ($debug) {
+                warn "minmax covered[$covered], so we return that";
+            }
+            return $covered;
         }
+    }
+    if ($debug) {
+        warn "fallthrough, so not uptodate";
     }
     return 0;
 }

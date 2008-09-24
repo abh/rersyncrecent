@@ -83,11 +83,13 @@ rmtree [$root_from, $root_to];
 rmtree [$root_from, $root_to];
 
 {
+    # very small tree, aggregate it
     my @intervals;
     BEGIN {
-        $tests += 13;
+        $tests += 15;
         @intervals = qw( 2s 4s 8s 16s 32s Z );
     }
+    ok(1, "starting smalltree block");
     is 6, scalar @intervals, "array has 6 elements: @intervals";
     my $rf0 = File::Rsync::Mirror::Recentfile->new
         (
@@ -146,12 +148,19 @@ rmtree [$root_from, $root_to];
         # truncate them
         ok($iv eq "Z" || $filesize_threshold > $filesize, "file $iv has good size[$filesize]");
     }
+    my $dagg1 = $rf0->_debug_aggregate;
+    Time::HiRes::sleep 1.2;
+    $rf0->aggregate; # should not change the file
+    my $dagg2 = $rf0->_debug_aggregate;
+    is $dagg2->[0]{mtime}, $dagg1->[0]{mtime}, "no change by gratuitous aggregate";
 }
 
 rmtree [$root_from, $root_to];
 
 {
-    BEGIN { $tests += 38 }
+    # replay a short history, run aggregate on it, add files, aggregate again
+    BEGIN { $tests += 59 }
+    ok(1, "starting short history block");
     my $rf = File::Rsync::Mirror::Recentfile->new_from_file("t/RECENT-6h.yaml");
     my $recent_events = $rf->recent_events;
     my $recent_events_cnt = scalar @$recent_events;
@@ -198,14 +207,14 @@ rmtree [$root_from, $root_to];
     my $dagg2 = $rf->_debug_aggregate;
     undef $rf;
     # $DB::single=1;
-    ok($dagg1->[0][1] < $dagg2->[0][1], "The second 5s file size larger: $dagg1->[0][1] < $dagg2->[0][1]");
-    ok($dagg1->[1][2] <= $dagg2->[1][2], "The second 30s file timestamp larger: $dagg1->[1][2] < $dagg2->[1][2]");
-    is $dagg1->[2][1], $dagg2->[2][1], "The 1m file size unchanged";
-    is $dagg1->[3][2], $dagg2->[3][2], "The 1h file timestamp unchanged";
+    ok($dagg1->[0]{size} < $dagg2->[0]{size}, "The second 5s file size larger: $dagg1->[0]{size} < $dagg2->[0]{size}");
+    ok($dagg1->[1]{mtime} <= $dagg2->[1]{mtime}, "The second 30s file timestamp larger: $dagg1->[1]{mtime} <= $dagg2->[1]{mtime}");
+    is $dagg1->[2]{size}, $dagg2->[2]{size}, "The 1m file size unchanged";
+    is $dagg1->[3]{mtime}, $dagg2->[3]{mtime}, "The 1h file timestamp unchanged";
     ok -l "t/ta/RECENT.recent", "found the symlink";
     my $have_slept = my $have_worked = 0;
     $start = Time::HiRes::time;
-    for my $i (0..30) {
+    for my $i (0..50) {
         my $file = sprintf
             (
              "%s/secscnt%03d",
@@ -223,17 +232,19 @@ rmtree [$root_from, $root_to];
             );
         $another_rf->update($file,"new");
         $another_rf->aggregate;
-        my $rf2 = File::Rsync::Mirror::Recentfile->new_from_file("$root_from/RECENT-10s.yaml");
+        $another_rf->update($file,"new");
+        my $rf2 = File::Rsync::Mirror::Recentfile->new_from_file("$root_from/RECENT-5s.yaml");
         my $rece = $rf2->recent_events;
         my $rececnt = @$rece;
         my $span = $rece->[0]{epoch} - $rece->[-1]{epoch};
         $have_worked = Time::HiRes::time - $start - $have_slept;
-        ok($rececnt > 0 && $span < 30, "i[$i] cnt[$rececnt] span[$span] worked[$have_worked]");
+        ok($rececnt > 0 && $span < 2*5, "i[$i] cnt[$rececnt] span[$span] worked[$have_worked]");
         $have_slept += Time::HiRes::sleep 0.2;
     }
 }
 
 {
+    # running mirror
     BEGIN { $tests += 2 }
     my $rf = File::Rsync::Mirror::Recentfile->new
         (

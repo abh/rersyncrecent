@@ -402,6 +402,7 @@ sub aggregate {
     }
 }
 
+# collect file size and mtime for all files of this aggregate
 sub _debug_aggregate {
     my($self) = @_;
     my @aggs = sort { $a->{secs} <=> $b->{secs} }
@@ -413,7 +414,7 @@ sub _debug_aggregate {
         $this->interval($aggs[$i]{interval});
         my $rfile = $this->rfile;
         my @stat = stat $rfile;
-        push @$report, [$rfile, map {$stat[$_]||"undef"} 7,9];
+        push @$report, {rfile => $rfile, size => $stat[7], mtime => $stat[9]};
     }
     $report;
 }
@@ -513,7 +514,7 @@ sub get_remote_recentfile_as_tempfile {
     mkpath $self->localroot;
     my $fh;
     if ($rfilename) {
-        $self->_use_tempfile (1);
+        $self->_use_tempfile (1); # why?
     } elsif ( $self->_use_tempfile() ) {
         return $self->_current_tempfile if ! $self->ttl_reached;
         $fh = $self->_current_tempfile_fh;
@@ -562,7 +563,7 @@ sub get_remote_recentfile_as_tempfile {
             (
              "%s (1/1) temporary %s ... ",
              $doing,
-             $rfilename,
+             $dst,
             );
     }
     my $gaveup = 0;
@@ -738,26 +739,44 @@ sub lock {
     $self->_is_locked (1);
 }
 
-=head2 $ret = $obj->merge ($other)
+=head2 (void) $obj->merge ($other)
 
-Bulk update of this object with another one. It's intended (but not
-enforced) to only merge smaller and younger $other objects into the
-current one. If this file is a C<Z> file, then we do not merge in
-objects of type C<delete>. But if we encounter an object of type
-delete we delete the corresponding C<new> object.
+Bulk update of this object with another one. It's used to merge a
+smaller and younger $other object into the current one. If this file
+is a C<Z> file, then we do not merge in objects of type C<delete>. But
+if we encounter an object of type delete we delete the corresponding
+C<new> object.
+
+If there is nothing to be merged, nothing is done.
 
 =cut
 
 sub merge {
-    my($self,$other) = @_;
+    my($self, $other) = @_;
     $other->lock;
     my $other_recent = $other->recent_events || [];
     $self->lock;
     my $my_recent = $self->recent_events || [];
+    if ($self->interval_secs <= $other->interval_secs) {
+        die sprintf
+            (
+             "Alert: illegal merge operation of a bigger interval[%d] into a smaller[%d]",
+             $self->interval_secs,
+             $other->interval_secs,
+            );
+    }
 
     # calculate the target time span
     my $epoch = $other_recent->[0] ? $other_recent->[0]{epoch} : $my_recent->[0] ? $my_recent->[0]{epoch} : undef;
     my $oldest_allowed = 0;
+    my $something_done;
+    if ($my_recent->[0]) {
+        # couldn't we just short circuit now? This will not reach
+        # $something_done=1, right?
+    } else {
+        # obstetrics
+        $something_done=1;
+    }
     if ($epoch) {
         if (my $merged = $self->merged) {
             my $secs = $self->interval_secs();
@@ -766,6 +785,7 @@ sub merge {
         # throw away outsiders
         while (@$my_recent && $my_recent->[-1]{epoch} < $oldest_allowed) {
             pop @$my_recent;
+            $something_done=1;
         }
     }
 
@@ -783,15 +803,20 @@ sub merge {
             push @$recent, { epoch => $ev->{epoch}, path => $path, type => $ev->{type} };
         }
     }
-    push @$recent, grep { !$have{$_->{path}}++ } @$my_recent;
-    $self->write_recent($recent);
+    if (@$recent != @$other_recent) {
+        $something_done=1;
+    }
+    if ($something_done) {
+        push @$recent, grep { !$have{$_->{path}}++ } @$my_recent;
+        $self->write_recent($recent);
+        $other->merged({
+                        time => Time::HiRes::time, # not used anywhere
+                        epoch => $epoch, # used in oldest_allowed
+                        into_interval => $self->interval, # not used anywhere
+                       });
+        $other->write_recent($other_recent);
+    }
     $self->unlock;
-    $other->merged({
-                    time => Time::HiRes::time, # not used anywhere
-                    epoch => $epoch, # used in oldest_allowed
-                    into_interval => $self->interval, # not used anywhere
-                   });
-    $other->write_recent($other_recent);
     $other->unlock;
 }
 
@@ -1483,6 +1508,12 @@ ignored.
 
 $type is one of C<new> or C<delete>.
 
+The new file event is uhshifted to the array of recent_events and the
+array is shortened to the length of the timespan allowed. This is
+usually the timespan specified by the interval of this recentfile but
+as long as this recentfile has not been merged to another one, the
+timespan may grow without bounds.
+
 =cut
 
 sub update {
@@ -1507,11 +1538,12 @@ sub update {
         $recent ||= [];
         my $oldest_allowed = 0;
         if (my $merged = $self->merged) {
-            my $secs = $self->interval_secs();
             $oldest_allowed = min($epoch - $secs, $merged->{epoch});
+        } else {
+            $oldest_allowed = $epoch - $secs;
         }
       TRUNCATE: while (@$recent) {
-            if ($recent->[-1]{epoch} < $oldest_allowed) {
+            if ($recent->[-1]{epoch} < $oldest_allowed) { # XXX _bigfloatlt!
                 pop @$recent;
             } else {
                 last TRUNCATE;

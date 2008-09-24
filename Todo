@@ -1,3 +1,8 @@
+2008-09-23  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* rrr-aggregate seems to rewrite the RECENT file even if nothing has
+	changed. FIXED
+
 2008-09-21  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* Most apparent bug at the moment is that the recentfiles are fetched

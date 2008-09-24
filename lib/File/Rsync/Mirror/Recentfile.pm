@@ -1540,7 +1540,7 @@ sub update {
         if (my $merged = $self->merged) {
             $oldest_allowed = min($epoch - $secs, $merged->{epoch});
         } else {
-            $oldest_allowed = $epoch - $secs;
+            # as long as we are not merged at all, no limits!
         }
       TRUNCATE: while (@$recent) {
             if ($recent->[-1]{epoch} < $oldest_allowed) { # XXX _bigfloatlt!

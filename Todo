@@ -1,3 +1,22 @@
+2008-09-25  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* now test, if they are overlapping. And test if there is a file in the
+	next rf that would fit into this rf's interval.
+
+	1h  1222324012.8474  1222322541.7963           0.4086
+	6h  1222320411.2760  1222304207.6931           4.5010 missing overlap/gap!
+	1d  1222320411.2760  1222238750.5071          22.6835 large overlap
+	1W  1222313218.3626  1221708477.5829         167.9835
+
+	I suspect that somebody writes a merged timestamp without having merged
+	and then somebody else relies on it.
+
+	If aggregate is running, the intervals must not be extravagated, if it
+	is not running, there must not be bounds, the total number of events in
+	the system must be counted and must be controlled throughout the tests.
+	That the test required the additional update was probably nonsense,
+	because aggregate can cut pieces too.
+
 2008-09-23  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* rrr-aggregate seems to rewrite the RECENT file even if nothing has

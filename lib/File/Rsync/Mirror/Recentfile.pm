@@ -879,82 +879,20 @@ sub mirror {
     my $done = $self->done;
     my $pathdb = $self->_pathdb;
   ITEM: for my $i ($first_item..$last_item) {
-        my $recent_event = $recent_events->[$i];
-        next ITEM if $done->covered ( $recent_event->{epoch} );
-        if ($pathdb) {
-            my $rec = $pathdb->{$recent_event->{path}};
-            if ($rec && $rec->{recentepoch}) {
-                if (File::Rsync::Mirror::Recentfile::Done::_bigfloatgt
-                    ( $rec->{recentepoch}, $recent_event->{epoch} )){
-                    $done->register ($recent_events, [$i]);
-                    next ITEM;
-                }
-            }
-        }
-        my $dst = $self->local_path($recent_event->{path});
-        if ($recent_event->{type} eq "new"){
-            if ($self->verbose) {
-                my $doing = -e $dst ? "Syncing" : "Getting";
-                printf STDERR
-                    (
-                     "%s (%d/%d/%s) %s ... ",
-                     $doing,
-                     1+$i,
-                     1+$last_item,
-                     $self->interval,
-                     $recent_event->{path},
-                    );
-            }
-            my $max_files_per_connection = $self->max_files_per_connection || 42;
-            my $success;
-            if ($self->verbose) {
-                print STDERR "\n";
-            }
-            push @xcollector, { rev => $recent_event, i => $i };
-            if (@xcollector >= $max_files_per_connection) {
-                $success = eval {$self->_empty_xcollector (\@xcollector,$pathdb,$recent_events);};
-                my $sleep = $self->sleep_per_connection;
-                $sleep = 0.42 unless defined $sleep;
-                Time::HiRes::sleep $sleep;
-                if ($options{piecemeal}) {
-                    return;
-                }
-            } else {
-                next ITEM;
-            }
-            if (!$success || $@) {
-                warn "Warning: Error while mirroring: $@";
-                push @error, $@;
-                sleep 1;
-            }
-            if ($self->verbose) {
-                print STDERR "DONE\n";
-            }
-        } elsif ($recent_event->{type} eq "delete") {
-            my $activity;
-            if ($options{'skip-deletes'}) {
-                $activity = "skipp";
-            } else {
-                if (-l $dst or not -d _) {
-                    unless (unlink $dst) {
-                        require Carp;
-                        Carp::cluck ( "Warning: Error while unlinking '$dst': $!" );
-                    }
-                } else {
-                    unless (rmdir $dst) {
-                        require Carp;
-                        Carp::cluck ( "Warning: Error on rmdir '$dst': $!" );
-                    }
-                }
-                $activity = "delet";
-            }
-            $done->register ($recent_events, [$i]);
-            if ($pathdb) {
-                $self->_register_path($pathdb,[$recent_event],$activity);
-            }
-        } else {
-            warn "Warning: invalid upload type '$recent_event->{type}'";
-        }
+        my $status = +{};
+        $self->_mirror_item
+            (
+             $i,
+             $recent_events,
+             $last_item,
+             $done,
+             $pathdb,
+             \@xcollector,
+             \%options,
+             $status,
+             \@error,
+            );
+        return if $status->{mustreturn};
     }
     if (@xcollector) {
         my $success = eval { $self->_empty_xcollector (\@xcollector,$pathdb,$recent_events);};
@@ -978,6 +916,125 @@ sub mirror {
         $self->_current_tempfile_fh (undef);
     }
     return !@error;
+}
+
+sub _mirror_item {
+    my($self,
+       $i,
+       $recent_events,
+       $last_item,
+       $done,
+       $pathdb,
+       $xcollector,
+       $options,
+       $status,
+       $error,
+      ) = @_;
+    my $recent_event = $recent_events->[$i];
+    return if $done->covered ( $recent_event->{epoch} );
+    if ($pathdb) {
+        my $rec = $pathdb->{$recent_event->{path}};
+        if ($rec && $rec->{recentepoch}) {
+            if (File::Rsync::Mirror::Recentfile::Done::_bigfloatgt
+                ( $rec->{recentepoch}, $recent_event->{epoch} )){
+                $done->register ($recent_events, [$i]);
+                return;
+            }
+        }
+    }
+    my $dst = $self->local_path($recent_event->{path});
+    if ($recent_event->{type} eq "new"){
+        $self->_mirror_item_new
+            (
+             $dst,
+             $i,
+             $last_item,
+             $recent_events,
+             $recent_event,
+             $xcollector,
+             $pathdb,
+             $status,
+             $error,
+             $options,
+            );
+    } elsif ($recent_event->{type} eq "delete") {
+        my $activity;
+        if ($options->{'skip-deletes'}) {
+            $activity = "skipp";
+        } else {
+            if (-l $dst or not -d _) {
+                unless (unlink $dst) {
+                    require Carp;
+                    Carp::cluck ( "Warning: Error while unlinking '$dst': $!" );
+                }
+            } else {
+                unless (rmdir $dst) {
+                    require Carp;
+                    Carp::cluck ( "Warning: Error on rmdir '$dst': $!" );
+                }
+            }
+            $activity = "delet";
+        }
+        $done->register ($recent_events, [$i]);
+        if ($pathdb) {
+            $self->_register_path($pathdb,[$recent_event],$activity);
+        }
+    } else {
+        warn "Warning: invalid upload type '$recent_event->{type}'";
+    }
+}
+
+sub _mirror_item_new {
+    my($self,
+       $dst,
+       $i,
+       $last_item,
+       $recent_events,
+       $recent_event,
+       $xcollector,
+       $pathdb,
+       $status,
+       $error,
+       $options,
+      ) = @_;
+    if ($self->verbose) {
+        my $doing = -e $dst ? "Syncing" : "Getting";
+        printf STDERR
+            (
+             "%s (%d/%d/%s) %s ... ",
+             $doing,
+             1+$i,
+             1+$last_item,
+             $self->interval,
+             $recent_event->{path},
+            );
+    }
+    my $max_files_per_connection = $self->max_files_per_connection || 42;
+    my $success;
+    if ($self->verbose) {
+        print STDERR "\n";
+    }
+    push @$xcollector, { rev => $recent_event, i => $i };
+    if (@$xcollector >= $max_files_per_connection) {
+        $success = eval {$self->_empty_xcollector ($xcollector,$pathdb,$recent_events);};
+        my $sleep = $self->sleep_per_connection;
+        $sleep = 0.42 unless defined $sleep;
+        Time::HiRes::sleep $sleep;
+        if ($options->{piecemeal}) {
+            $status->{mustreturn} = 1;
+            return;
+        }
+    } else {
+        return;
+    }
+    if (!$success || $@) {
+        warn "Warning: Error while mirroring: $@";
+        push @$error, $@;
+        sleep 1;
+    }
+    if ($self->verbose) {
+        print STDERR "DONE\n";
+    }
 }
 
 sub _empty_xcollector {
@@ -1197,22 +1254,11 @@ sub recent_events {
     -e $rfile_or_tempfile or return [];
     my $suffix = $self->serializer_suffix;
     my ($data) = eval {
-        if ($suffix eq ".yaml") {
-            require YAML::Syck;
-            YAML::Syck::LoadFile($rfile_or_tempfile);
-        } elsif ($HAVE->{"Data::Serializer"}) {
-            my $serializer = Data::Serializer->new
-                ( serializer => $serializers{$suffix} );
-            my $serialized = do
-                {
-                    open my $fh, $rfile_or_tempfile or die "Could not open: $!";
-                    local $/;
-                    <$fh>;
-                };
-            $serializer->raw_deserialize($serialized);
-        } else {
-            die "Data::Serializer not installed, cannot proceed with suffix '$suffix'";
-        }
+        $self->_try_deserialize
+            (
+             $suffix,
+             $rfile_or_tempfile,
+            );
     };
     my $err = $@;
     if ($err or !$data) {
@@ -1222,21 +1268,11 @@ sub recent_events {
     if (reftype $data eq 'ARRAY') { # protocol 0
         $re = $data;
     } else {
-        my $meth = sprintf "read_recent_%d", $data->{meta}{protocol};
-        # we may be reading meta for the first time
-        while (my($k,$v) = each %{$data->{meta}}) {
-            next if $k ne lc $k; # "Producers"
-            next if defined $self->$k;
-            $self->$k($v);
-        }
-        $re = $self->$meth ($data);
-        my @stat = stat $rfile_or_tempfile or die "Cannot stat '$rfile_or_tempfile': $!";
-        my $minmax = { mtime => $stat[9] };
-        if (@$re) {
-            $minmax->{min} = $re->[-1]{epoch};
-            $minmax->{max} = $re->[0]{epoch};
-        }
-        $self->minmax ( $minmax );
+        $re = $self->_recent_events_protocol_x
+            (
+             $data,
+             $rfile_or_tempfile,
+            );
     }
     return $re unless defined $options{after}; # XXX same for before and max
     my $last_item = $#$re;
@@ -1279,6 +1315,52 @@ sub recent_events {
         @rre = splice @rre, 0, $options{max};
     }
     \@rre;
+}
+
+sub _recent_events_protocol_x {
+    my($self,
+       $data,
+       $rfile_or_tempfile,
+      ) = @_;
+    my $meth = sprintf "read_recent_%d", $data->{meta}{protocol};
+    # we may be reading meta for the first time
+    while (my($k,$v) = each %{$data->{meta}}) {
+        next if $k ne lc $k; # "Producers"
+        next if defined $self->$k;
+        $self->$k($v);
+    }
+    my $re = $self->$meth ($data);
+    my @stat = stat $rfile_or_tempfile or die "Cannot stat '$rfile_or_tempfile': $!";
+    my $minmax = { mtime => $stat[9] };
+    if (@$re) {
+        $minmax->{min} = $re->[-1]{epoch};
+        $minmax->{max} = $re->[0]{epoch};
+    }
+    $self->minmax ( $minmax );
+    return $re;
+}
+
+sub _try_deserialize {
+    my($self,
+       $suffix,
+       $rfile_or_tempfile,
+      ) = @_;
+    if ($suffix eq ".yaml") {
+        require YAML::Syck;
+        YAML::Syck::LoadFile($rfile_or_tempfile);
+    } elsif ($HAVE->{"Data::Serializer"}) {
+        my $serializer = Data::Serializer->new
+            ( serializer => $serializers{$suffix} );
+        my $serialized = do
+            {
+                open my $fh, $rfile_or_tempfile or die "Could not open: $!";
+                local $/;
+                <$fh>;
+            };
+        $serializer->raw_deserialize($serialized);
+    } else {
+        die "Data::Serializer not installed, cannot proceed with suffix '$suffix'";
+    }
 }
 
 =head2 $ret = $obj->rfilename

@@ -178,63 +178,74 @@ sub register {
         $reg = [0..$#$re];
     }
   REGISTRANT: for my $i (@$reg) {
-        die sprintf "Panic: illegal i[%d] larger than number of events[%d]", $i, $#$re
-            if $i > $#$re;
-        my $epoch = $re->[$i]{epoch};
-        next REGISTRANT if $self->covered ( $epoch );
-        if (@$intervals) {
-            my $registered = 0;
-            for my $iv (@$intervals) {
-                my($upper,$lower) = @$iv; # may be the same
-                if ($i > 0) {
-                    if ($re->[$i-1]{epoch} eq $lower) {
-                        $iv->[1] = $epoch;
-                        $registered++;
-                    }
-                }
-                if ($i < $#$re) {
-                    if ($re->[$i+1]{epoch} eq $upper) {
-                        $iv->[0] = $epoch;
-                        $registered++;
-                    }
+        $self->_register_one
+            ({
+              i => $i,
+              re => $re,
+              intervals => $intervals,
+             });
+    }
+}
+
+sub _register_one {
+    my($self, $one) = @_;
+    my($i,$re,$intervals) = @{$one}{qw(i re intervals)};
+    die sprintf "Panic: illegal i[%d] larger than number of events[%d]", $i, $#$re
+        if $i > $#$re;
+    my $epoch = $re->[$i]{epoch};
+    return if $self->covered ( $epoch );
+    if (@$intervals) {
+        my $registered = 0;
+        for my $iv (@$intervals) {
+            my($upper,$lower) = @$iv; # may be the same
+            if ($i > 0) {
+                if ($re->[$i-1]{epoch} eq $lower) {
+                    $iv->[1] = $epoch;
+                    $registered++;
                 }
             }
-            if ($registered == 2) {
-                my $splicepos;
-                for my $i (0..$#$intervals) {
-                    if (   $epoch eq $intervals->[$i][1]
-                        && $intervals->[$i][1] eq $intervals->[$i+1][0]) {
-                        $intervals->[$i+1][0] = $intervals->[$i][0];
-                        $splicepos = $i;
-                        last;
-                    }
+            if ($i < $#$re) {
+                if ($re->[$i+1]{epoch} eq $upper) {
+                    $iv->[0] = $epoch;
+                    $registered++;
                 }
-                if (defined $splicepos) {
-                    splice @$intervals, $splicepos, 1;
-                } else {
-                    die "Panic: Could not find an interval position to insert '$epoch'";
-                }
-            } elsif ($registered == 1) {
-            } else {
-                my $splicepos;
-                for my $i (0..$#$intervals) {
-                    if (_bigfloatgt ($epoch, $intervals->[$i][0])) {
-                        $splicepos = $i;
-                        last;
-                    }
-                }
-                unless (defined $splicepos) {
-                    if (_bigfloatlt ($epoch,   $intervals->[-1][1])) {
-                        $splicepos = @$intervals;
-                    } else {
-                        die "Panic: epoch[$epoch] should be smaller than smallest[$intervals->[-1][1]]";
-                    }
-                }
-                splice @$intervals, $splicepos, 0, [($epoch)x2];
             }
-        } else {
-            $intervals->[0] = [($epoch)x2];
         }
+        if ($registered == 2) {
+            my $splicepos;
+            for my $i (0..$#$intervals) {
+                if (   $epoch eq $intervals->[$i][1]
+                       && $intervals->[$i][1] eq $intervals->[$i+1][0]) {
+                    $intervals->[$i+1][0] = $intervals->[$i][0];
+                    $splicepos = $i;
+                    last;
+                }
+            }
+            if (defined $splicepos) {
+                splice @$intervals, $splicepos, 1;
+            } else {
+                die "Panic: Could not find an interval position to insert '$epoch'";
+            }
+        } elsif ($registered == 1) {
+        } else {
+            my $splicepos;
+            for my $i (0..$#$intervals) {
+                if (_bigfloatgt ($epoch, $intervals->[$i][0])) {
+                    $splicepos = $i;
+                    last;
+                }
+            }
+            unless (defined $splicepos) {
+                if (_bigfloatlt ($epoch,   $intervals->[-1][1])) {
+                    $splicepos = @$intervals;
+                } else {
+                    die "Panic: epoch[$epoch] should be smaller than smallest[$intervals->[-1][1]]";
+                }
+            }
+            splice @$intervals, $splicepos, 0, [($epoch)x2];
+        }
+    } else {
+        $intervals->[0] = [($epoch)x2];
     }
 }
 

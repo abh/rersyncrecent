@@ -1,3 +1,8 @@
+2008-09-26  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* Todo: add a sanity check if the merged structure is really pointing to
+	a different rf and that this different rf is larger.
+
 2008-09-25  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* now test, if they are overlapping. And test if there is a file in the

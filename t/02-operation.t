@@ -20,7 +20,9 @@ use Dumpvalue;
 use File::Basename qw(dirname);
 use File::Copy qw(cp);
 use File::Path qw(mkpath rmtree);
+use File::Rsync::Mirror::Recent;
 use File::Rsync::Mirror::Recentfile;
+use List::MoreUtils qw(uniq);
 use Storable;
 use Time::HiRes qw(time sleep);
 use YAML::Syck;
@@ -159,7 +161,7 @@ rmtree [$root_from, $root_to];
 
 {
     # replay a short history, run aggregate on it, add files, aggregate again
-    BEGIN { $tests += 59 }
+    BEGIN { $tests += 208 }
     ok(1, "starting short history block");
     my $rf = File::Rsync::Mirror::Recentfile->new_from_file("t/RECENT-6h.yaml");
     my $recent_events = $rf->recent_events;
@@ -214,7 +216,8 @@ rmtree [$root_from, $root_to];
     ok -l "t/ta/RECENT.recent", "found the symlink";
     my $have_slept = my $have_worked = 0;
     $start = Time::HiRes::time;
-    for my $i (0..50) {
+    my $debug = +[];
+    for my $i (0..49) {
         my $file = sprintf
             (
              "%s/secscnt%03d",
@@ -231,14 +234,53 @@ rmtree [$root_from, $root_to];
              aggregator => [qw(10s 30s 1m 1h Z)],
             );
         $another_rf->update($file,"new");
+        my $should_have = 97 + ($i < 12 ? ($i+1) : 12);
+        my($news,$filtered_news);
+        {
+            my $recc = File::Rsync::Mirror::Recent->new
+                (
+                 local => "$root_from/RECENT-5s.yaml",
+                );
+            $news = $recc->news ();
+            $filtered_news = [ uniq map { $_->{path} } @$news ];
+        }
+        is scalar @$filtered_news, $should_have or die;
         $another_rf->aggregate;
+        {
+            my $recc = File::Rsync::Mirror::Recent->new
+                (
+                 local => "$root_from/RECENT-5s.yaml",
+                );
+            $news = $recc->news ();
+            $filtered_news = [ uniq map { $_->{path} } @$news ];
+        }
+        is scalar @$filtered_news, $should_have or die;
         $another_rf->update($file,"new");
+        {
+            my $recc = File::Rsync::Mirror::Recent->new
+                (
+                 local => "$root_from/RECENT-5s.yaml",
+                );
+            $news = $recc->news ();
+            $filtered_news = [ uniq map { $_->{path} } @$news ];
+        }
+        is scalar @$filtered_news, $should_have or die;
+        $debug->[$i] = $news;
         my $rf2 = File::Rsync::Mirror::Recentfile->new_from_file("$root_from/RECENT-5s.yaml");
         my $rece = $rf2->recent_events;
         my $rececnt = @$rece;
         my $span = $rece->[0]{epoch} - $rece->[-1]{epoch};
         $have_worked = Time::HiRes::time - $start - $have_slept;
-        ok($rececnt > 0 && $span < 2*5, "i[$i] cnt[$rececnt] span[$span] worked[$have_worked]");
+        ok($rececnt > 0 && $span < 2*5,
+           sprintf
+           ("i[%s]cnt[%s]news[%s]should[%s]span[%s]worked[%6.4f]",
+            $i,
+            $rececnt,
+            scalar @$filtered_news,
+            $should_have,
+            $span,
+            $have_worked,
+           ));
         $have_slept += Time::HiRes::sleep 0.2;
     }
 }

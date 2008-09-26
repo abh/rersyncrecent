@@ -375,7 +375,7 @@ sub aggregate {
     $aggs[0]{object} = $self;
   AGGREGATOR: for my $i (0..$#aggs-1) {
         my $this = $aggs[$i]{object};
-        my $next = Storable::dclone $this;
+        my $next = $this->_sparse_clone;
         $next->interval($aggs[$i+1]{interval});
         my $want_merge = 0;
         if ($i == 0) {

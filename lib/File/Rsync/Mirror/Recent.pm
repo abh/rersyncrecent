@@ -230,6 +230,24 @@ sub news {
     $ret;
 }
 
+sub _overview {
+    my($self) = @_;
+    my $rfs = $self->recentfiles;
+    for my $rf (@$rfs) {
+        my $re=$rf->recent_events;
+        printf
+            (
+             "%4s %6d %s %16.5f %16.5f %16.5f\n",
+             $rf->interval,
+             scalar @$re,
+             $_,
+             $re->[0]{epoch},
+             $re->[-1]{epoch},
+             ($re->[0]{epoch}-$re->[-1]{epoch}),
+            );
+    }
+}
+
 =head2 _pathdb
 
 (Private method, not for public use) Keeping track of already handled

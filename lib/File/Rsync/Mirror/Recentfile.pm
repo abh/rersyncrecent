@@ -783,6 +783,7 @@ sub merge {
             $oldest_allowed = min($epoch - $secs, $merged->{epoch});
         }
         # throw away outsiders
+        # XXX _bigfloat!
         while (@$my_recent && $my_recent->[-1]{epoch} < $oldest_allowed) {
             pop @$my_recent;
             $something_done=1;
@@ -1620,6 +1621,7 @@ sub update {
         $recent ||= [];
         my $oldest_allowed = 0;
         if (my $merged = $self->merged) {
+            # XXX _bigfloat!
             $oldest_allowed = min($epoch - $secs, $merged->{epoch});
         } else {
             # as long as we are not merged at all, no limits!

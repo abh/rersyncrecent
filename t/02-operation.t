@@ -161,7 +161,7 @@ rmtree [$root_from, $root_to];
 
 {
     # replay a short history, run aggregate on it, add files, aggregate again
-    BEGIN { $tests += 208 }
+    BEGIN { $tests += 108 }
     ok(1, "starting short history block");
     my $rf = File::Rsync::Mirror::Recentfile->new_from_file("t/RECENT-6h.yaml");
     my $recent_events = $rf->recent_events;
@@ -244,7 +244,6 @@ rmtree [$root_from, $root_to];
             $news = $recc->news ();
             $filtered_news = [ uniq map { $_->{path} } @$news ];
         }
-        is scalar @$filtered_news, $should_have or die;
         $another_rf->aggregate;
         {
             my $recc = File::Rsync::Mirror::Recent->new
@@ -254,7 +253,6 @@ rmtree [$root_from, $root_to];
             $news = $recc->news ();
             $filtered_news = [ uniq map { $_->{path} } @$news ];
         }
-        is scalar @$filtered_news, $should_have or die;
         $another_rf->update($file,"new");
         {
             my $recc = File::Rsync::Mirror::Recent->new

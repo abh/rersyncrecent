@@ -1,5 +1,12 @@
 2008-09-26  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
+	* maybe extend the _overview so that it always says if and where the
+	last file is in the next file and where the next event in the next rf
+	would lie.
+
+	* take the two new redundant tests out again, only the third must
+	survive. DONE
+
 	* Todo: add a sanity check if the merged structure is really pointing to
 	a different rf and that this different rf is larger.
 

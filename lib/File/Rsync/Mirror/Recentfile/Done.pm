@@ -198,54 +198,76 @@ sub _register_one {
         my $registered = 0;
         for my $iv (@$intervals) {
             my($upper,$lower) = @$iv; # may be the same
-            if ($i > 0) {
-                if ($re->[$i-1]{epoch} eq $lower) {
-                    $iv->[1] = $epoch;
-                    $registered++;
-                }
+            if ($i > 0
+                && $re->[$i-1]{epoch} eq $lower) {
+                $iv->[1] = $epoch;
+                $registered++;
             }
-            if ($i < $#$re) {
-                if ($re->[$i+1]{epoch} eq $upper) {
-                    $iv->[0] = $epoch;
-                    $registered++;
-                }
+            if ($i < $#$re
+                && $re->[$i+1]{epoch} eq $upper) {
+                $iv->[0] = $epoch;
+                $registered++;
             }
         }
         if ($registered == 2) {
-            my $splicepos;
-            for my $i (0..$#$intervals) {
-                if (   $epoch eq $intervals->[$i][1]
-                       && $intervals->[$i][1] eq $intervals->[$i+1][0]) {
-                    $intervals->[$i+1][0] = $intervals->[$i][0];
-                    $splicepos = $i;
-                    last;
-                }
-            }
-            if (defined $splicepos) {
-                splice @$intervals, $splicepos, 1;
-            } else {
-                die "Panic: Could not find an interval position to insert '$epoch'";
-            }
+            $self->_register_one_fold2
+                (
+                 $intervals,
+                 $epoch,
+                );
         } elsif ($registered == 1) {
         } else {
-            my $splicepos;
-            for my $i (0..$#$intervals) {
-                if (_bigfloatgt ($epoch, $intervals->[$i][0])) {
-                    $splicepos = $i;
-                    last;
-                }
-            }
-            unless (defined $splicepos) {
-                if (_bigfloatlt ($epoch,   $intervals->[-1][1])) {
-                    $splicepos = @$intervals;
-                } else {
-                    die "Panic: epoch[$epoch] should be smaller than smallest[$intervals->[-1][1]]";
-                }
-            }
-            splice @$intervals, $splicepos, 0, [($epoch)x2];
+            $self->_register_one_fold0
+                (
+                 $intervals,
+                 $epoch,
+                );
         }
     } else {
         $intervals->[0] = [($epoch)x2];
+    }
+}
+
+sub _register_one_fold0 {
+    my($self,
+       $intervals,
+       $epoch,
+      ) = @_;
+    my $splicepos;
+    for my $i (0..$#$intervals) {
+        if (_bigfloatgt ($epoch, $intervals->[$i][0])) {
+            $splicepos = $i;
+            last;
+        }
+    }
+    unless (defined $splicepos) {
+        if (_bigfloatlt ($epoch,   $intervals->[-1][1])) {
+            $splicepos = @$intervals;
+        } else {
+            die "Panic: epoch[$epoch] should be smaller than smallest[$intervals->[-1][1]]";
+        }
+    }
+    splice @$intervals, $splicepos, 0, [($epoch)x2];
+}
+
+sub _register_one_fold2 {
+    my($self,
+       $intervals,
+       $epoch,
+      ) = @_;
+    my $splicepos;
+    for my $i (0..$#$intervals) {
+        if (   $epoch eq $intervals->[$i][1]
+               && $intervals->[$i][1] eq $intervals->[$i+1][0]) {
+            $intervals->[$i+1][0] = $intervals->[$i][0];
+            $splicepos = $i;
+            last;
+        }
+    }
+    if (defined $splicepos) {
+        splice @$intervals, $splicepos, 1;
+    } else {
+        die "Panic: Could not find an interval position to insert '$epoch'";
     }
 }
 

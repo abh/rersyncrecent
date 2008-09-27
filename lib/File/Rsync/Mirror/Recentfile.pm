@@ -513,40 +513,30 @@ without downloading. XXX
 =cut
 
 sub get_remote_recentfile_as_tempfile {
-    my($self, $rfilename) = @_;
+    my($self, $trfilename) = @_;
     mkpath $self->localroot;
     my $fh;
-    if ($rfilename) {
+    if ($trfilename) {
         $self->_use_tempfile (1); # why?
     } elsif ( $self->_use_tempfile() ) {
         return $self->_current_tempfile if ! $self->ttl_reached;
         $fh = $self->_current_tempfile_fh;
-        $rfilename = $self->rfilename;
+        $trfilename = $self->rfilename;
     } else {
-        $rfilename = $self->rfilename;
+        $trfilename = $self->rfilename;
     }
 
-    return $rfilename
-        if (!$rfilename
+    return $trfilename
+        if (!$trfilename
             && $self->have_mirrored
             && Time::HiRes::time-$self->have_mirrored < 4.42
            );
-    die "Alert: illegal filename[$rfilename] contains a slash" if $rfilename =~ m|/|;
+    die "Alert: illegal filename[$trfilename] contains a slash" if $trfilename =~ m|/|;
     my $dst;
     if ($fh) {
         $dst = $self->_current_tempfile;
     } else {
-        $fh = File::Temp->new
-            (TEMPLATE => sprintf(".%s-XXXX",
-                                 $rfilename,
-                                ),
-             DIR => $self->localroot,
-             SUFFIX => $self->serializer_suffix,
-             UNLINK => $self->_use_tempfile,
-            );
-        if ($self->_use_tempfile) {
-            $self->_current_tempfile_fh ($fh); # delay self destruction
-        }
+        $fh = $self->_get_remote_rat_provide_tempfile_object ($trfilename);
         $dst = $fh->filename;
         $self->_current_tempfile ($dst);
         my $rfile = eval { $self->rfile; }; # may fail (RECENT.recent has no rfile)
@@ -558,7 +548,7 @@ sub get_remote_recentfile_as_tempfile {
     }
     my $src = join ("/",
                     $self->remoteroot,
-                    $rfilename,
+                    $trfilename,
                    );
     if ($self->verbose) {
         my $doing = -e $dst ? "Syncing" : "Getting";
@@ -592,6 +582,22 @@ sub get_remote_recentfile_as_tempfile {
     my $mode = 0644;
     chmod $mode, $dst or die "Could not chmod $mode '$dst': $!";
     return $dst;
+}
+
+sub _get_remote_rat_provide_tempfile_object {
+    my($self, $trfilename) = @_;
+    my $fh = File::Temp->new
+        (TEMPLATE => sprintf(".%s-XXXX",
+                             $trfilename,
+                            ),
+         DIR => $self->localroot,
+         SUFFIX => $self->serializer_suffix,
+         UNLINK => $self->_use_tempfile,
+        );
+    if ($self->_use_tempfile) {
+        $self->_current_tempfile_fh ($fh); # delay self destruction
+    }
+    return $fh;
 }
 
 =head2 $localpath = $obj->get_remotefile ( $relative_path )
@@ -756,28 +762,18 @@ If there is nothing to be merged, nothing is done.
 
 sub merge {
     my($self, $other) = @_;
+    $self->_merge_sanitycheck ( $other );
     $other->lock;
     my $other_recent = $other->recent_events || [];
     $self->lock;
     my $my_recent = $self->recent_events || [];
-    if ($self->interval_secs <= $other->interval_secs) {
-        die sprintf
-            (
-             "Alert: illegal merge operation of a bigger interval[%d] into a smaller[%d]",
-             $self->interval_secs,
-             $other->interval_secs,
-            );
-    }
 
     # calculate the target time span
     my $myepoch = $my_recent->[0] ? $my_recent->[0]{epoch} : undef;
     my $epoch = $other_recent->[0] ? $other_recent->[0]{epoch} : $myepoch;
     my $oldest_allowed = 0;
     my $something_done;
-    if ($my_recent->[0]) {
-        # couldn't we just short circuit now? This will not reach
-        # $something_done=1, right?
-    } else {
+    unless ($my_recent->[0]) {
         # obstetrics
         $something_done=1;
     }
@@ -823,6 +819,18 @@ sub merge {
     }
     $self->unlock;
     $other->unlock;
+}
+
+sub _merge_sanitycheck {
+    my($self, $other) = @_;
+    if ($self->interval_secs <= $other->interval_secs) {
+        die sprintf
+            (
+             "Alert: illegal merge operation of a bigger interval[%d] into a smaller[%d]",
+             $self->interval_secs,
+             $other->interval_secs,
+            );
+    }
 }
 
 =head2 merged

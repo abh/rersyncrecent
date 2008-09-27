@@ -314,14 +314,14 @@ rmtree [$root_from, $root_to];
             (  # ($root_from, $root_to)
              local => "$root_from/RECENT-5s.yaml",
             );
-        diag $recc->overview;
+        # diag $recc->overview;
     }
     {
         my $recc = File::Rsync::Mirror::Recent->new
             (  # ($root_from, $root_to)
              local => "$root_to/RECENT-30s.yaml",
             );
-        diag $recc->overview;
+        # diag $recc->overview;
     }
 }
 

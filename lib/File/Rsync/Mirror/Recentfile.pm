@@ -1785,13 +1785,15 @@ The idea is that we want to have a short file that records really
 recent changes. So that a fresh mirror can be kept fresh as long as
 the connectivity is given. Then we want longer files that record the
 history before. So when the mirror falls behind the update period
-reflected in the shortest file, it can switch to the next one. And if
-this is not long enough we want another one, again a bit longer. And
-we want one that completes the history back to the oldest file. For
-practical reasons the timespans of these files must overlap a bit and
-to keep the bandwidth necessities low they must not be
-updated too frequently. That's the basic idea. The following
-example represents a tree that has a few updates every day:
+reflected in the shortest file, it can complement the list of recent
+file events with the next one. And if this is not long enough we want
+another one, again a bit longer. And we want one that completes the
+history back to the oldest file. The index files do contain the
+complete list of current files. The larger an index file is the less
+often it is updated. For practical reasons adjacent files will often
+overlap a bit but this is neither necessary nor enforced. That's the
+basic idea. The following example represents a tree that has a few
+updates every day:
 
  RECENT.recent -> RECENT-1h.yaml
  RECENT-6h.yaml

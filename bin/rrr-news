@@ -82,8 +82,8 @@ More feedback.
 
 rersyncrecent is a project to get speedy rsync operation on large
 trees over multiple hosts. It maintains a collection of files with
-metadata (so called recentfiles) that represent overlapping timespans
-of file change events.
+metadata (so called recentfiles) that represent adjacent overlapping
+timespans of file change events.
 
 rrr-news extracts from the recentfiles the new files added or
 modified. The remote-principal-file is the rsync-notation for the

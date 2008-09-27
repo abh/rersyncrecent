@@ -38,8 +38,8 @@ More feedback.
 
 rersyncrecent is a project to get speedy rsync operation on large
 trees over multiple hosts. It maintains a collection of files with
-metadata (so called recentfiles) that represent overlapping timespans
-of file change events.
+metadata (so called recentfiles) that represent adjacent or
+overlapping timespans of file change events.
 
 rrr-aggregate merges the recentfiles that describe a tree. The file
 argument is the path to the principal (the shortest) in a collection

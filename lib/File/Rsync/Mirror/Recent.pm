@@ -246,8 +246,8 @@ sub overview {
             [
              $rf->interval,
              scalar @$re,
-             sprintf ("%.2f", $re->[0]{epoch}),
-             sprintf ("%.2f", $re->[-1]{epoch}),
+             sprintf ("%.3f", $re->[0]{epoch}),
+             sprintf ("%.3f", $re->[-1]{epoch}),
              sprintf ("%.3f", $span),
              ($rf->interval eq "Z"
               ?

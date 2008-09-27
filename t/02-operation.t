@@ -88,7 +88,7 @@ rmtree [$root_from, $root_to];
     # very small tree, aggregate it
     my @intervals;
     BEGIN {
-        $tests += 15;
+        $tests += 16;
         @intervals = qw( 2s 4s 8s 16s 32s Z );
     }
     ok(1, "starting smalltree block");
@@ -155,6 +155,13 @@ rmtree [$root_from, $root_to];
     $rf0->aggregate; # should not change the file
     my $dagg2 = $rf0->_debug_aggregate;
     is $dagg2->[0]{mtime}, $dagg1->[0]{mtime}, "no change by gratuitous aggregate";
+    {
+        my $recc = File::Rsync::Mirror::Recent->new
+            (
+             local => "$root_from/RECENT-2s.yaml",
+            );
+        ok $recc->overview, "overview created";
+    }
 }
 
 rmtree [$root_from, $root_to];
@@ -222,7 +229,7 @@ rmtree [$root_from, $root_to];
             (
              "%s/secscnt%03d",
              $root_from,
-             $i % 12,
+             ($i<25) ? ($i%12) : $i,
             );
         open my $fh, ">", $file or die "Could not open '$file': $!";
         print $fh time, ":", $file, "\n";
@@ -234,16 +241,8 @@ rmtree [$root_from, $root_to];
              aggregator => [qw(10s 30s 1m 1h Z)],
             );
         $another_rf->update($file,"new");
-        my $should_have = 97 + ($i < 12 ? ($i+1) : 12);
+        my $should_have = 97 + (($i<25) ? ($i < 12 ? ($i+1) : 12) : ($i-12));
         my($news,$filtered_news);
-        {
-            my $recc = File::Rsync::Mirror::Recent->new
-                (
-                 local => "$root_from/RECENT-5s.yaml",
-                );
-            $news = $recc->news ();
-            $filtered_news = [ uniq map { $_->{path} } @$news ];
-        }
         $another_rf->aggregate;
         {
             my $recc = File::Rsync::Mirror::Recent->new
@@ -253,16 +252,7 @@ rmtree [$root_from, $root_to];
             $news = $recc->news ();
             $filtered_news = [ uniq map { $_->{path} } @$news ];
         }
-        $another_rf->update($file,"new");
-        {
-            my $recc = File::Rsync::Mirror::Recent->new
-                (
-                 local => "$root_from/RECENT-5s.yaml",
-                );
-            $news = $recc->news ();
-            $filtered_news = [ uniq map { $_->{path} } @$news ];
-        }
-        is scalar @$filtered_news, $should_have or die;
+        is scalar @$filtered_news, $should_have, "should_have[$should_have]" or die;
         $debug->[$i] = $news;
         my $rf2 = File::Rsync::Mirror::Recentfile->new_from_file("$root_from/RECENT-5s.yaml");
         my $rece = $rf2->recent_events;
@@ -271,11 +261,9 @@ rmtree [$root_from, $root_to];
         $have_worked = Time::HiRes::time - $start - $have_slept;
         ok($rececnt > 0 && $span < 2*5,
            sprintf
-           ("i[%s]cnt[%s]news[%s]should[%s]span[%s]worked[%6.4f]",
+           ("i[%s]cnt[%s]span[%s]worked[%6.4f]",
             $i,
             $rececnt,
-            scalar @$filtered_news,
-            $should_have,
             $span,
             $have_worked,
            ));

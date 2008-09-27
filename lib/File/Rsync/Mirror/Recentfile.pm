@@ -201,6 +201,7 @@ BEGIN {
                   "_interval",
                   "_is_locked",
                   "_localroot",
+                  "_merged",
                   "_pathdb",
                   "_remote_dir",
                   "_remoteroot",
@@ -275,11 +276,6 @@ Defaults to the arbitrary value 42.
 When rsync operations encounter that many errors without any resetting
 success in between, then we die. Defaults to arbitrary 12. A value of
 -1 means we run forever ignoring all rsync errors.
-
-=item merged
-
-Hashref denoting when this recentfile has been merged into some other
-at which epoch.
 
 =item minmax
 
@@ -819,6 +815,30 @@ sub merge {
     }
     $self->unlock;
     $other->unlock;
+}
+
+=head2 merged
+
+Hashref denoting when this recentfile has been merged into some other
+at which epoch.
+
+=cut
+
+sub merged {
+    my($self, $set) = @_;
+    if (defined $set) {
+        $self->_merged ($set);
+    }
+    my $merged = $self->_merged;
+    my $into;
+    if ($merged and $into = $merged->{into_interval} and defined $self->_interval) {
+        if ($self->interval eq $into) {
+            warn "Warning: into_interval same as own interval. Danger ahead.";
+        } elsif ($self->interval_secs($into) < $self->interval_secs) {
+            warn "Warning: into_interval smaller than own interval. Danger ahead.";
+        }
+    }
+    $merged;
 }
 
 =head2 $hashref = $obj->meta_data

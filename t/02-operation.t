@@ -261,7 +261,11 @@ rmtree [$root_from, $root_to];
         my $rececnt = @$rece;
         my $span = $rece->[0]{epoch} - $rece->[-1]{epoch};
         $have_worked = Time::HiRes::time - $start - $have_slept;
-        ok($rececnt > 0 && ($i<60 ? $span < 5 : $i < 80 ? $span > 4 : $span > 5),
+        ok($rececnt > 0
+           && ($i<50 ? $span <= 5 # we have run aggregate, so it guaranteed(*)
+               : $i < 90 ? 1      # we have not yet spent 5 seconds, so cannot predict
+               : $span > 5        # we have certainly written enough files now, must happen
+              ),
            sprintf
            ("i[%s]cnt[%s]span[%s]worked[%6.4f]",
             $i,
@@ -271,6 +275,7 @@ rmtree [$root_from, $root_to];
            ));
         $have_slept += Time::HiRes::sleep 0.2;
     }
+    # (*) "<=" instead of "<" because of rounding errors
 }
 
 {
@@ -302,7 +307,21 @@ rmtree [$root_from, $root_to];
         } elsif (1 == $pass) {
             $success = $rf->mirror(after => $somefile_epoch);
         }
-        ok($success, "mirrored with success");
+        ok($success, "mirrored without dying");
+    }
+    {
+        my $recc = File::Rsync::Mirror::Recent->new
+            (  # ($root_from, $root_to)
+             local => "$root_from/RECENT-5s.yaml",
+            );
+        diag $recc->overview;
+    }
+    {
+        my $recc = File::Rsync::Mirror::Recent->new
+            (  # ($root_from, $root_to)
+             local => "$root_to/RECENT-30s.yaml",
+            );
+        diag $recc->overview;
     }
 }
 

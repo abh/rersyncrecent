@@ -104,7 +104,7 @@ Aggregator (usually the writer):
 
 No exports.
 
-=head1 CONSTRUCTORS
+=head1 CONSTRUCTORS / DESTRUCTOR
 
 =head2 my $obj = CLASS->new(%hash)
 
@@ -186,6 +186,13 @@ sub new_from_file {
     }
     return $self;
 }
+
+=head2 DESTROY
+
+A simple unlock.
+
+=cut
+sub DESTROY { shift->unlock }
 
 =head1 ACCESSORS
 

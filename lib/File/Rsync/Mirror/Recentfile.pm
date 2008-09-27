@@ -763,7 +763,8 @@ sub merge {
     }
 
     # calculate the target time span
-    my $epoch = $other_recent->[0] ? $other_recent->[0]{epoch} : $my_recent->[0] ? $my_recent->[0]{epoch} : undef;
+    my $myepoch = $my_recent->[0] ? $my_recent->[0]{epoch} : undef;
+    my $epoch = $other_recent->[0] ? $other_recent->[0]{epoch} : $myepoch;
     my $oldest_allowed = 0;
     my $something_done;
     if ($my_recent->[0]) {
@@ -797,7 +798,7 @@ sub merge {
             and $oev->{type}     eq "delete") {
             # do nothing
         } else {
-            if ($oevepoch > $epoch) {
+            if (!$myepoch || $oevepoch > $myepoch) {
                 $something_done=1;
             }
             push @$recent, { epoch => $oev->{epoch}, path => $path, type => $oev->{type} };

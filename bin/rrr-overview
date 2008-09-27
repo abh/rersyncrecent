@@ -2,11 +2,11 @@
 
 =head1 NAME
 
-rrr-aggregate - merge a set of recentfiles
+rrr-overview - summarize the dataset
 
 =head1 SYNOPSIS
 
-  rrr-aggregate [options] file
+  rrr-news [options] principal_recentfile
 
 =head1 OPTIONS
 
@@ -16,17 +16,9 @@ rrr-aggregate - merge a set of recentfiles
 
 my $optpod = <<'=back';
 
-=item B<--dry-run!>
-
-(TBD) Do not really run the command, ...
-
 =item B<--help|h>
 
 Prints a brief message and exists.
-
-=item B<--locktimeout=s>
-
-Sets the locktimeout. See L<File::Rsync::Mirror::Recentfile>.
 
 =item B<--verbose|v+>
 
@@ -41,17 +33,14 @@ trees over multiple hosts. It maintains a collection of files with
 metadata (so called recentfiles) that represent overlapping timespans
 of file change events.
 
-rrr-aggregate merges the recentfiles that describe a tree. The file
-argument is the path to the principal (the shortest) in a collection
-of recentfiles.
+rrr-overview summarizes the contents of the recentfiles.
 
 =cut
-
 
 use strict;
 use warnings;
 
-use File::Rsync::Mirror::Recentfile;
+use File::Rsync::Mirror::Recent;
 use Getopt::Long;
 use Pod::Usage qw(pod2usage);
 
@@ -66,19 +55,20 @@ if ($Opt{help}) {
     pod2usage(0);
 }
 
-if (! @ARGV) {
+if (@ARGV > 1) {
+    pod2usage(2);
+} elsif (0 == @ARGV and -f "RECENT.recent") {
+    @ARGV = "RECENT.recent";
+} elsif (1 == @ARGV) {
+} else {
     pod2usage(2);
 }
 
-if ($Opt{'dry-run'}) {
-    die "FIXME: not yet implemented";
-}
-
-my $rf = File::Rsync::Mirror::Recentfile->new_from_file($ARGV[0]);
-if (my $tout = $Opt{locktimeout}) {
-    $rf->locktimeout($tout);
-}
-$rf->aggregate();
+my $rf = File::Rsync::Mirror::Recent->new
+    (
+     local => $ARGV[0],
+    );
+print $rf->overview();
 
 __END__
 

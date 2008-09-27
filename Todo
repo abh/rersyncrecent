@@ -8,7 +8,7 @@
 	survive. DONE
 
 	* Todo: add a sanity check if the merged structure is really pointing to
-	a different rf and that this different rf is larger.
+	a different rf and that this different rf is larger. DONE
 
 2008-09-25  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 

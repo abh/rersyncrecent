@@ -18,13 +18,12 @@ Version 0.0.1
 
 package File::Rsync::Mirror::Recent;
 
-use Data::Serializer;
 use File::Basename qw(dirname fileparse);
 use File::Copy qw(cp);
 use File::Path qw(mkpath);
 use File::Rsync;
 use File::Temp;
-use List::Util qw(first);
+use List::Util qw(first max);
 use Scalar::Util qw(reftype);
 use Storable;
 use Time::HiRes qw();
@@ -230,22 +229,52 @@ sub news {
     $ret;
 }
 
-sub _overview {
+=head2 overview
+
+returns a string that summarizes the state of all recentfiles
+collected in this Recent object.
+
+=cut
+sub overview {
     my($self) = @_;
     my $rfs = $self->recentfiles;
+    my(@s,%rank);
     for my $rf (@$rfs) {
         my $re=$rf->recent_events;
-        printf
-            (
-             "%4s %6d %s %16.5f %16.5f %16.5f\n",
+        my $span = $re->[0]{epoch}-$re->[-1]{epoch};
+        my $rfsummary =
+            [
              $rf->interval,
              scalar @$re,
-             $_,
-             $re->[0]{epoch},
-             $re->[-1]{epoch},
-             ($re->[0]{epoch}-$re->[-1]{epoch}),
-            );
+             sprintf ("%.2f", $re->[0]{epoch}),
+             sprintf ("%.2f", $re->[-1]{epoch}),
+             sprintf ("%.3f", $span),
+             ($rf->interval eq "Z"
+              ?
+              "-"
+              :
+              sprintf ("%5.1f%%", 100 * $span / $rf->interval_secs)
+             ),
+            ];
+        @rank{@{$rfsummary}[2,3]} = ();
+        push @s, $rfsummary;
     }
+    @rank{sort {$b <=> $a} keys %rank} = 1..keys %rank;
+    for my $s (@s) {
+        my $string = " " x (max values %rank);
+        for (2,3) {
+            substr($string,$rank{$s->[$_]}-1,1) = "^";
+        }
+        push @$s, $string;
+    }
+    my @sprintf;
+    for my $i (0..$#{$s[0]}) {
+        my $maxlength = max map { length $_->[$i] } @s;
+        push @sprintf, "%" . $maxlength . "s";
+    }
+    my $sprintf = join " ", @sprintf;
+    $sprintf .= "\n";
+    join "", map { sprintf $sprintf, @$_ } @s;
 }
 
 =head2 _pathdb

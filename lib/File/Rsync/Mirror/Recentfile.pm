@@ -832,10 +832,21 @@ sub merged {
     my $merged = $self->_merged;
     my $into;
     if ($merged and $into = $merged->{into_interval} and defined $self->_interval) {
-        if ($self->interval eq $into) {
-            warn "Warning: into_interval same as own interval. Danger ahead.";
+        if ($into eq $self->interval) {
+            warn sprintf
+                (
+                 "Warning: into_interval[%s] same as own interval[%s]. Danger ahead.",
+                 $into,
+                 $self->interval,
+                );
         } elsif ($self->interval_secs($into) < $self->interval_secs) {
-            warn "Warning: into_interval smaller than own interval. Danger ahead.";
+            warn sprintf
+                (
+                 "Warning: into_interval[%s] smaller than own interval[%s] on interval[%s]. Danger ahead.",
+                 $self->interval_secs($into),
+                 $self->interval_secs,
+                 $self->interval,
+                );
         }
     }
     $merged;

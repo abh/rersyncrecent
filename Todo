@@ -1,13 +1,13 @@
 2008-09-27  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* Todo: DESTROY thing that unlocks. Today when I left the debuggerr I
-	left locks around.
+	left locks around. DONE
 
 2008-09-26  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* maybe extend the _overview so that it always says if and where the
 	last file is in the next file and where the next event in the next rf
-	would lie.
+	would lie. No, don't like this anymore. REJECT
 
 	* take the two new redundant tests out again, only the third must
 	survive. DONE
@@ -32,7 +32,7 @@
 	is not running, there must not be bounds, the total number of events in
 	the system must be counted and must be controlled throughout the tests.
 	That the test required the additional update was probably nonsense,
-	because aggregate can cut pieces too.
+	because aggregate can cut pieces too. FIXED & DONE
 
 2008-09-23  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 

@@ -168,7 +168,7 @@ rmtree [$root_from, $root_to];
 
 {
     # replay a short history, run aggregate on it, add files, aggregate again
-    BEGIN { $tests += 108 }
+    BEGIN { $tests += 208 }
     ok(1, "starting short history block");
     my $rf = File::Rsync::Mirror::Recentfile->new_from_file("t/RECENT-6h.yaml");
     my $recent_events = $rf->recent_events;
@@ -224,7 +224,7 @@ rmtree [$root_from, $root_to];
     my $have_slept = my $have_worked = 0;
     $start = Time::HiRes::time;
     my $debug = +[];
-    for my $i (0..49) {
+    for my $i (0..99) {
         my $file = sprintf
             (
              "%s/secscnt%03d",
@@ -243,7 +243,9 @@ rmtree [$root_from, $root_to];
         $another_rf->update($file,"new");
         my $should_have = 97 + (($i<25) ? ($i < 12 ? ($i+1) : 12) : ($i-12));
         my($news,$filtered_news);
-        $another_rf->aggregate;
+        if ($i < 50) {
+            $another_rf->aggregate;
+        }
         {
             my $recc = File::Rsync::Mirror::Recent->new
                 (
@@ -259,7 +261,7 @@ rmtree [$root_from, $root_to];
         my $rececnt = @$rece;
         my $span = $rece->[0]{epoch} - $rece->[-1]{epoch};
         $have_worked = Time::HiRes::time - $start - $have_slept;
-        ok($rececnt > 0 && $span < 2*5,
+        ok($rececnt > 0 && ($i<60 ? $span < 5 : $i < 80 ? $span > 4 : $span > 5),
            sprintf
            ("i[%s]cnt[%s]span[%s]worked[%6.4f]",
             $i,

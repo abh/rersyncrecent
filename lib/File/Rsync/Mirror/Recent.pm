@@ -239,24 +239,29 @@ sub overview {
     my($self) = @_;
     my $rfs = $self->recentfiles;
     my(@s,%rank);
-    for my $rf (@$rfs) {
+  RECENTFILE: for my $rf (@$rfs) {
         my $re=$rf->recent_events;
-        my $span = $re->[0]{epoch}-$re->[-1]{epoch};
-        my $rfsummary =
-            [
-             $rf->interval,
-             scalar @$re,
-             sprintf ("%.3f", $re->[0]{epoch}),
-             sprintf ("%.3f", $re->[-1]{epoch}),
-             sprintf ("%.3f", $span),
-             ($rf->interval eq "Z"
-              ?
-              "-"
-              :
-              sprintf ("%5.1f%%", 100 * $span / $rf->interval_secs)
-             ),
-            ];
-        @rank{@{$rfsummary}[2,3]} = ();
+        my $rfsummary;
+        if (@$re) {
+            my $span = $re->[0]{epoch}-$re->[-1]{epoch};
+            $rfsummary =
+                [
+                 $rf->interval,
+                 scalar @$re,
+                 sprintf ("%.3f", $re->[0]{epoch}),
+                 sprintf ("%.3f", $re->[-1]{epoch}),
+                 sprintf ("%.3f", $span),
+                 ($rf->interval eq "Z"
+                  ?
+                  "-"
+                  :
+                  sprintf ("%5.1f%%", 100 * $span / $rf->interval_secs)
+                 ),
+                ];
+            @rank{@{$rfsummary}[2,3]} = ();
+        } else {
+            next RECENTFILE;
+        }
         push @s, $rfsummary;
     }
     @rank{sort {$b <=> $a} keys %rank} = 1..keys %rank;

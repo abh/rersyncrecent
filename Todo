@@ -1,3 +1,8 @@
+2008-09-27  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* Todo: DESTROY thing that unlocks. Today when I left the debuggerr I
+	left locks around.
+
 2008-09-26  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* maybe extend the _overview so that it always says if and where the

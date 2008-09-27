@@ -788,20 +788,20 @@ sub merge {
 
     my %have;
     my $recent = [];
-    for my $ev (@$other_recent) {
-        my $epoch = $ev->{epoch} || 0;
-        next if $epoch < $oldest_allowed;
-        my $path = $ev->{path};
+    for my $oev (@$other_recent) {
+        my $oevepoch = $oev->{epoch} || 0;
+        next if $oevepoch < $oldest_allowed;
+        my $path = $oev->{path};
         next if $have{$path}++;
         if (    $self->interval eq "Z"
-            and $ev->{type}     eq "delete") {
+            and $oev->{type}     eq "delete") {
             # do nothing
         } else {
-            push @$recent, { epoch => $ev->{epoch}, path => $path, type => $ev->{type} };
+            if ($oevepoch > $epoch) {
+                $something_done=1;
+            }
+            push @$recent, { epoch => $oev->{epoch}, path => $path, type => $oev->{type} };
         }
-    }
-    if (@$recent != @$other_recent) {
-        $something_done=1;
     }
     if ($something_done) {
         push @$recent, grep { !$have{$_->{path}}++ } @$my_recent;

@@ -6,3 +6,6 @@
 ^blib/
 ^git-daemon-export-ok
 pm_to_blib
+^recent-rmirror-state
+^t/t[ab]
+^t[13Z]

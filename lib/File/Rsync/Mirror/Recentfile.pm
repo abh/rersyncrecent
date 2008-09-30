@@ -26,6 +26,7 @@ use Config;
 use File::Basename qw(dirname fileparse);
 use File::Copy qw(cp);
 use File::Path qw(mkpath);
+use File::Rsync::Mirror::Recentfile::FakeBigFloat qw(:all);
 use File::Temp;
 use List::Util qw(first min);
 use Scalar::Util qw(reftype);
@@ -983,7 +984,7 @@ sub _mirror_item {
     if ($pathdb) {
         my $rec = $pathdb->{$recent_event->{path}};
         if ($rec && $rec->{recentepoch}) {
-            if (File::Rsync::Mirror::Recentfile::Done::_bigfloatgt
+            if (_bigfloatgt
                 ( $rec->{recentepoch}, $recent_event->{epoch} )){
                 $done->register ($recent_events, [$i]);
                 return;

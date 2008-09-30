@@ -95,6 +95,8 @@ package MY;
 sub postamble {
   my @m;
   push @m, q{
+Makefile: MANIFEST
+
 META.yml: metafile
 	$(CP) $(DISTVNAME)/META.yml  ./META.yml
 

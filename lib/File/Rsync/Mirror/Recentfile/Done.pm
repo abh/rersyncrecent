@@ -3,12 +3,7 @@ package File::Rsync::Mirror::Recentfile::Done;
 # use warnings;
 use strict;
 
-# _bigfloat
-sub _bigfloatcmp ($$);
-sub _bigfloatgt ($$);
-sub _bigfloatlt ($$);
-sub _bigfloatmax ($$);
-sub _bigfloatmin ($$);
+use File::Rsync::Mirror::Recentfile::FakeBigFloat qw(:all);
 
 =encoding utf-8
 
@@ -284,69 +279,6 @@ sub _intervals {
         $self->__intervals ($x);
     }
     return $x;
-}
-
-=head1 INTERNAL FUNCTIONS
-
-These functions are not part of the public interface and can be
-changed and go away any time without prior notice.
-
-=head2 _bigfloatcmp ( $l, $r )
-
-Cmp function for floating point numbers that have a longer
-mantissa than can be handled by native perl floats.
-
-=cut
-sub _bigfloatcmp ($$) {
-    my($l,$r) = @_;
-    my $native = $l <=> $r;
-    return $native if $native;
-    for ($l, $r){
-        $_ .= ".0" unless /\./;
-    }
-    $l =~ s/^/0/ while index($l,".") < index($r,".");
-    $r =~ s/^/0/ while index($r,".") < index($l,".");
-    $l cmp $r;
-}
-
-=head2 _bigfloatgt ( $l, $r )
-
-Same for gt
-
-=cut
-sub _bigfloatgt ($$) {
-    my($l,$r) = @_;
-    _bigfloatcmp($l,$r) > 0;
-}
-
-=head2 _bigfloatlt ( $l, $r )
-
-Same for lt
-
-=cut
-sub _bigfloatlt ($$) {
-    my($l,$r) = @_;
-    _bigfloatcmp($l,$r) < 0;
-}
-
-=head2 _bigfloatmax ( $l, $r )
-
-Same for max (of two arguments)
-
-=cut
-sub _bigfloatmax ($$) {
-    my($l,$r) = @_;
-    return _bigfloatcmp($l,$r) >= 0 ? $l : $r;
-}
-
-=head2 _bigfloatmin ( $l, $r )
-
-Same for min (of two arguments)
-
-=cut
-sub _bigfloatmin ($$) {
-    my($l,$r) = @_;
-    return _bigfloatcmp($l,$r) <= 0 ? $l : $r;
 }
 
 =head1 COPYRIGHT & LICENSE

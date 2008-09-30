@@ -97,7 +97,7 @@
 	extended capabilities and time savings when, for example, upstream
 	announces a reset and we get new recentfiles and could then limit
 	ourselves to a subset of files (those that have a changed epoch) in a
-	first pass and would only then do the llop to verify the rest. Or
+	first pass and would only then do the loop to verify the rest. Or
 	something.
 
 	- lookup by epoch and by path and use this ability on the pause to never

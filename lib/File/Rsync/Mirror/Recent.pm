@@ -265,10 +265,15 @@ sub overview {
         push @s, $rfsummary;
     }
     @rank{sort {$b <=> $a} keys %rank} = 1..keys %rank;
+    my $maxrank = max values %rank;
     for my $s (@s) {
-        my $string = " " x (max values %rank);
+        my $string = " " x $maxrank;
+        my @borders;
         for (2,3) {
-            substr($string,$rank{$s->[$_]}-1,1) = "^";
+            push @borders, $rank{$s->[$_]}-1;
+        }
+        for ($borders[0],$borders[1]) {
+            substr($string,$_,1) = "^";
         }
         push @$s, $string;
     }
@@ -279,7 +284,17 @@ sub overview {
     }
     my $sprintf = join " ", @sprintf;
     $sprintf .= "\n";
-    join "", map { sprintf $sprintf, @$_ } @s;
+    my $headline = sprintf $sprintf,
+        (
+         "",
+         "Cnt",
+         "Max",
+         "Min",
+         "Span",
+         "Util", # u9n:)
+         "Cloud",
+        );
+    join "", $headline, map { sprintf $sprintf, @$_ } @s;
 }
 
 =head2 _pathdb

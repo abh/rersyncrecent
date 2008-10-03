@@ -1,3 +1,21 @@
+2008-10-03  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* consider deprecating the use of RECENT.recent as a symlink. It turns
+	out to need extra hoops with the rsync options and just isn't worth it.
+	Or maybe these extra hoops are needed anyway for the rest of the tree?
+	Nope, can't be the case because not all filesystems support symlinks.
+
+	But before doing the large step, I'll deprecate the call of
+	get_remote_recentfile_as_tempfile with an argument. Rememberr this was
+	only introduced to resolve RECENT.recent and complicates the routine far
+	beyond what it deserves.
+
+2008-10-02  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* I think it's a bug that the rsync_option links must be set to true in
+	order to support RECENT.recent and that nobody cares to set it
+	automatically. Similar for ignore_link_stat_errors.
+
 2008-09-27  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* Todo: find all todos together and make a plan what is missing for a
@@ -77,12 +95,13 @@
 	the time per loop. Then we never rsync any file. We need to diagnose
 	that and force an increase of that loop time. But when we later are fast
 	enough again because the net has recovered, then we need to switch back
-	to original parameters.
+	to original parameters. ERm, no, it's enough to keep syncing at least
+	one file before refetching an index file.
 
 	- remember to verify that no temp files are left lying around and the
 	signal handler
 
-	- we must throw away the pathdb when wee have reached the end of Z. From
+	- we must throw away the pathdb when we have reached the end of Z. From
 	that moment we can have a very small pathdb because the only reason for
 	a pathdb is that we know to ignore old records in old files. We won't
 	need this pathdb again before the next full pass over the data is

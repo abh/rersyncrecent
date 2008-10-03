@@ -493,33 +493,25 @@ sub full_mirror {
     die "FIXME: Not yet implemented";
 }
 
-=head2 $tempfilename = $obj->get_remote_recentfile_as_tempfile ($rfilename)
-
 =head2 $tempfilename = $obj->get_remote_recentfile_as_tempfile ()
 
-Stores the remote I<recentfile> locally as a tempfile. $rfilename must
-be a plain filename without path separators. The second form fetches
-the file with the default name. The caller is responsible to remove
-the file after use.
+Stores the remote I<recentfile> locally as a tempfile. The caller is
+responsible to remove the file after use.
 
 Note: if you're intending to act as an rsync server for other slaves,
-then you must prefer this method to mirror (and read) recentfiles over
+then you must prefer this method to fetch that file with
 get_remotefile(). Otherwise downstream mirrors would expect you to
-have files that you do not have yet.
-
-Note: currently we have an arbitrary brake built into the method:
-before 4.42 seconds are over since the last download we will return
-without downloading. XXX
+already have mirrored all the files that are in the I<recentfile>
+before you have them mirrored.
 
 =cut
 
 sub get_remote_recentfile_as_tempfile {
-    my($self, $trfilename) = @_;
+    my($self) = @_;
     mkpath $self->localroot;
     my $fh;
-    if ($trfilename) {
-        $self->_use_tempfile (1); # why?
-    } elsif ( $self->_use_tempfile() ) {
+    my $trfilename;
+    if ( $self->_use_tempfile() ) {
         return $self->_current_tempfile if ! $self->ttl_reached;
         $fh = $self->_current_tempfile_fh;
         $trfilename = $self->rfilename;
@@ -527,12 +519,6 @@ sub get_remote_recentfile_as_tempfile {
         $trfilename = $self->rfilename;
     }
 
-    return $trfilename
-        if (!$trfilename
-            && $self->have_mirrored
-            && Time::HiRes::time-$self->have_mirrored < 4.42
-           );
-    die "Alert: illegal filename[$trfilename] contains a slash" if $trfilename =~ m|/|;
     my $dst;
     if ($fh) {
         $dst = $self->_current_tempfile;
@@ -588,7 +574,7 @@ sub get_remote_recentfile_as_tempfile {
 sub _get_remote_rat_provide_tempfile_object {
     my($self, $trfilename) = @_;
     my $fh = File::Temp->new
-        (TEMPLATE => sprintf(".%s-XXXX",
+        (TEMPLATE => sprintf(".FRMRecent-%s-XXXX",
                              $trfilename,
                             ),
          DIR => $self->localroot,
@@ -1009,20 +995,23 @@ sub _mirror_item {
     } elsif ($recent_event->{type} eq "delete") {
         my $activity;
         if ($options->{'skip-deletes'}) {
-            $activity = "skipp";
+            $activity = "skipped";
         } else {
-            if (-l $dst or not -d _) {
+            if (! -e $dst) {
+                $activity = "not_found";
+            } elsif (-l $dst or not -d _) {
                 unless (unlink $dst) {
                     require Carp;
                     Carp::cluck ( "Warning: Error while unlinking '$dst': $!" );
                 }
+                $activity = "deleted";
             } else {
                 unless (rmdir $dst) {
                     require Carp;
                     Carp::cluck ( "Warning: Error on rmdir '$dst': $!" );
                 }
+                $activity = "deleted";
             }
-            $activity = "delet";
         }
         $done->register ($recent_events, [$i]);
         if ($pathdb) {
@@ -1098,13 +1087,13 @@ sub _empty_xcollector {
 }
 
 sub _register_path {
-    my($self,$db,$coll,$act) = @_;
+    my($self,$db,$coll,$activity) = @_;
     my $time = time;
     for my $item (@$coll) {
         $db->{$item->{path}} =
             {
              recentepoch => $item->{epoch},
-             ($act."edon") => $time,
+             ($activity."_on") => $time,
             };
     }
 }
@@ -1474,6 +1463,35 @@ sub remoteroot {
     return $remoteroot;
 }
 
+=head2 (void) $obj->resolve_recentfilename ( $recentfilename )
+
+Inverse method to L<rfilename>. $recentfilename is a plain filename of
+the pattern
+
+    $filenameroot-$interval$serializer_suffix
+
+e.g.
+
+    RECENT-1M.yaml
+
+This filename is split into its parts and the parts are fed to the
+object itself.
+
+=cut
+
+sub resolve_recentfilename {
+    my($self, $rfname) = @_;
+    my($splitter) = qr(^(.+)-([^-\.]+)(\.[^\.]+));
+    if (my($f,$i,$s) = $rfname =~ $splitter) {
+        $self->filenameroot      ($f);
+        $self->interval          ($i);
+        $self->serializer_suffix ($s);
+    } else {
+        die "Alert: cannot split '$rfname', doesn't match '$splitter'";
+    }
+    return;
+}
+
 =head2 my $rfile = $obj->rfile
 
 Returns the full path of the I<recentfile>
@@ -1570,7 +1588,10 @@ resets the error count. See also accessor C<max_rsync_errors>.
 
 =head2 $clone = $obj->_sparse_clone
 
-Clones just as much from itself that it does not hurt. Experimental method.
+Clones just as much from itself that it does not hurt. Experimental
+method. 
+
+Note: what fits better: sparse or shallow? Other suggestions?
 
 =cut
 
@@ -1606,7 +1627,7 @@ sub _sparse_clone {
 
 sub ttl_reached {
     my($self) = @_;
-    my $have_mirrored = $self->have_mirrored;
+    my $have_mirrored = $self->have_mirrored || 0;
     my $now = Time::HiRes::time;
     my $ttl = $self->ttl;
     $ttl = 24.2 unless defined $ttl;

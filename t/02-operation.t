@@ -215,7 +215,6 @@ rmtree [$root_from, $root_to];
     $rf->aggregate;
     my $dagg2 = $rf->_debug_aggregate;
     undef $rf;
-    # $DB::single=1;
     ok($dagg1->[0]{size} < $dagg2->[0]{size}, "The second 5s file size larger: $dagg1->[0]{size} < $dagg2->[0]{size}");
     ok($dagg1->[1]{mtime} <= $dagg2->[1]{mtime}, "The second 30s file timestamp larger: $dagg1->[1]{mtime} <= $dagg2->[1]{mtime}");
     is $dagg1->[2]{size}, $dagg2->[2]{size}, "The 1m file size unchanged";
@@ -307,7 +306,7 @@ rmtree [$root_from, $root_to];
         } elsif (1 == $pass) {
             $success = $rf->mirror(after => $somefile_epoch);
         }
-        ok($success, "mirrored without dying");
+        ok($success, "mirrored pass[$pass] without dying");
     }
     {
         my $recc = File::Rsync::Mirror::Recent->new
@@ -318,10 +317,42 @@ rmtree [$root_from, $root_to];
     }
     {
         my $recc = File::Rsync::Mirror::Recent->new
-            (  # ($root_from, $root_to)
-             local => "$root_to/RECENT-30s.yaml",
+            (
+             # ignore_link_stat_errors => 1,
+             localroot => $root_to,
+             remote => "$root_from/RECENT-5s.yaml",
+             verbose => 1,
+             rsync_options => {
+                               links => 1,
+                               times => 1,
+                               compress => 1,
+                               checksum => 1,
+                              },
             );
-        # diag $recc->overview;
+        $recc->rmirror;
+    }
+    {
+        my $recc = File::Rsync::Mirror::Recent->new
+            (  # ($root_from, $root_to)
+             local => "$root_from/RECENT-5s.yaml",
+            );
+        diag $recc->overview;
+    }
+    {
+        my $recc = File::Rsync::Mirror::Recent->new
+            (
+             # ignore_link_stat_errors => 1,
+             localroot => $root_to,
+             remote => "$root_from/RECENT.recent",
+             verbose => 1,
+             rsync_options => {
+                               links => 1,
+                               times => 1,
+                               compress => 1,
+                               checksum => 1,
+                              },
+            );
+        $recc->rmirror;
     }
 }
 

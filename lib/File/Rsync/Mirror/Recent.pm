@@ -18,7 +18,7 @@ Version 0.0.1
 
 package File::Rsync::Mirror::Recent;
 
-use File::Basename qw(dirname fileparse);
+use File::Basename qw(basename dirname fileparse);
 use File::Copy qw(cp);
 use File::Path qw(mkpath);
 use File::Rsync;
@@ -377,8 +377,8 @@ sub recentfiles {
 
 XXX WORK IN PROGRESS XXX
 
-Mirrors all recentfiles of the I<remote> address. Afterwards it should
-work through all of them.
+Mirrors all recentfiles of the I<remote> address working through all
+of them, mirroring their contents.
 
 Testing this ATM with:
 
@@ -397,7 +397,7 @@ Testing this ATM with:
          verbose => 1,
 
   );
-  $rrr->rmirror ( "skip-deletes" => 1 );
+  $rrr->rmirror ( "skip-deletes" => 1, loop => 1 );
 
 
 =cut
@@ -425,7 +425,6 @@ sub rmirror {
                                     # mirror the principal!
   LOOP: while () {
         my $ttleave = time + $minimum_time_per_loop;
-        $_once_per_20s->();
       RECENTFILE: for my $i (0..$#$rfs) {
             my $rf = $rfs->[$i];
             last RECENTFILE if time > $ttleave;
@@ -459,6 +458,9 @@ sub rmirror {
                 }
             }
         }
+        unless ($options{loop}) {
+            last LOOP;
+        }
         my $sleep = $ttleave - time;
         if ($sleep > 0.01) {
             printf STDERR
@@ -470,6 +472,7 @@ sub rmirror {
         } else {
             # negative time not invented yet:)
         }
+        $_once_per_20s->();
     }
 }
 
@@ -478,8 +481,15 @@ sub _recentfile_object_for_remote {
     my($self) = @_;
     # get the remote recentfile
     my $rrfile = $self->remote or die "Alert: cannot construct a recentfile object without the 'remote' attribute";
-    my($remoteroot,$rfilename) = $rrfile =~ m{(.+)/([^/]+)};
+    my $splitter = qr{(.+)/([^/]*)};
+    my($remoteroot,$rfilename) = $rrfile =~ $splitter;
     $self->remoteroot($remoteroot);
+    my $abslfile;
+    if (!defined $rfilename) {
+        die "Alert: Cannot resolve '$rrfile', does not match $splitter";
+    } elsif (not length $rfilename or $rfilename eq "RECENT.recent") {
+        ($abslfile,$rfilename) = $self->_resolve_rfilename($rfilename);
+    }
     my @need_args =
         (
          "ignore_link_stat_errors",
@@ -489,30 +499,59 @@ sub _recentfile_object_for_remote {
          "rsync_options",
          "verbose",
         );
-    my $rf0 = File::Rsync::Mirror::Recentfile->new (map {($_ => $self->$_)} @need_args);
-    my $lfile = $rf0->get_remote_recentfile_as_tempfile ($rfilename);
-    # while it is a symlink, resolve it
-    while (-l $lfile) {
-        my $symlink = readlink $lfile;
-        if ($symlink =~ m|/|) {
-            die "FIXME: filenames containing '/' not supported, got '$symlink'";
-        }
-        $lfile = $rf0->get_remote_recentfile_as_tempfile ($symlink);
+    my $rf0;
+    unless ($abslfile) {
+        $rf0 = File::Rsync::Mirror::Recentfile->new (map {($_ => $self->$_)} @need_args);
+        $rf0->resolve_recentfilename($rfilename);
+        $abslfile = $rf0->get_remote_recentfile_as_tempfile ();
     }
-    my $rfpeek;
-    if (-s $lfile) {
-        $rfpeek = File::Rsync::Mirror::Recentfile->new_from_file ( $lfile );
-    } else {
-        die "Alert: recentfile '$lfile' is empty, cannot continue";
-    }
-    for my $peek (qw(_interval aggregator filenameroot protocol serializer_suffix)) {
-        $rf0->$peek($rfpeek->$peek);
-    }
-    for my $need_arg (@need_args) {
-        $rf0->$need_arg ( $self->$need_arg );
+    $rf0 = File::Rsync::Mirror::Recentfile->new_from_file ( $abslfile );
+    for my $override (@need_args) {
+        $rf0->$override ( $self->$override );
     }
     $rf0->is_slave (1);
     return $rf0;
+}
+
+sub _resolve_rfilename {
+    my($self, $rfilename) = @_;
+    $rfilename = "RECENT.recent" unless length $rfilename;
+    my $abslfile = undef;
+    if ($rfilename =~ /\.recent$/) {
+        # may be a file *or* a symlink, 
+        $abslfile = $self->_fetch_as_tempfile ($rfilename);
+        while (-l $abslfile) {
+            my $symlink = readlink $abslfile;
+            if ($symlink =~ m|/|) {
+                die "FIXME: filenames containing '/' not supported, got '$symlink'";
+            }
+            $abslfile = $self->_fetch_as_tempfile ($symlink);
+        }
+    }
+    return ($abslfile, $rfilename);
+}
+
+# takes a basename, returns an absolute name, does not delete the
+# file, throws the $fh away. Caller must rename or unlink
+sub _fetch_as_tempfile {
+    my($self, $rfile) = @_;
+    my($suffix) = $rfile =~ /(\.[^\.]+)$/;
+    $suffix = "" unless defined $suffix;
+    my $fh = File::Temp->new
+        (TEMPLATE => sprintf(".FRMRecent-%s-XXXX",
+                             $rfile,
+                            ),
+         DIR => $self->localroot,
+         SUFFIX => $suffix,
+         UNLINK => 0,
+        );
+    my $rsync = File::Rsync->new($self->rsync_options);
+    $rsync->exec
+        (
+         src => join("/",$self->remoteroot,$rfile),
+         dst => $fh->filename,
+        ) or die "Could not mirror '$rfile' to $fh\: ".$rsync->err;
+    return $fh->filename;
 }
 
 =head2 (void) $obj->rmirror_loop

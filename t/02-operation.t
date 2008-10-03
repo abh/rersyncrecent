@@ -313,6 +313,7 @@ rmtree [$root_from, $root_to];
             (  # ($root_from, $root_to)
              local => "$root_from/RECENT-5s.yaml",
             );
+        diag "\n";
         diag $recc->overview;
     }
     {
@@ -321,7 +322,7 @@ rmtree [$root_from, $root_to];
              # ignore_link_stat_errors => 1,
              localroot => $root_to,
              remote => "$root_from/RECENT-5s.yaml",
-             verbose => 1,
+             # verbose => 1,
              rsync_options => {
                                links => 1,
                                times => 1,
@@ -336,6 +337,7 @@ rmtree [$root_from, $root_to];
             (  # ($root_from, $root_to)
              local => "$root_from/RECENT-5s.yaml",
             );
+        diag "\n";
         diag $recc->overview;
     }
     {
@@ -344,7 +346,7 @@ rmtree [$root_from, $root_to];
              # ignore_link_stat_errors => 1,
              localroot => $root_to,
              remote => "$root_from/RECENT.recent",
-             verbose => 1,
+             # verbose => 1,
              rsync_options => {
                                links => 1,
                                times => 1,

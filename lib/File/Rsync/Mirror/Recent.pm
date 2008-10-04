@@ -458,8 +458,10 @@ sub rmirror {
                 }
             }
         }
-        unless ($options{loop}) {
-            last LOOP;
+        if ($rfs->[-1]->uptodate) {
+            unless ($options{loop}) {
+                last LOOP;
+            }
         }
         my $sleep = $ttleave - time;
         if ($sleep > 0.01) {

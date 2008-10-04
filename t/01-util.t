@@ -3,6 +3,7 @@ my $tests;
 BEGIN { $tests = 0 }
 use lib "lib";
 use File::Rsync::Mirror::Recentfile;
+use File::Rsync::Mirror::Recentfile::FakeBigFloat qw(_increase_a_bit _bigfloatlt);
 
 {
     BEGIN { $tests += 5 }
@@ -29,6 +30,38 @@ use File::Rsync::Mirror::Recentfile;
               ) {
         my $ret = $rf->interval_secs ( $x->[0] );
         is $ret, $x->[1];
+    }
+}
+
+{
+    my @x;
+    BEGIN {
+        @x = (
+              ["1" => "2"],
+              ["1" => undef],
+              ["0.99999999900000080543804870103485882282257080078125",
+               "0.9999999990000010274826536260661669075489044189453125"],
+
+# the following is an interesting example because I saw this in the debugger:
+#   DB<104> x "123456789123456789.2" <=> "123456789123456790"
+# 0  1
+
+              ["123456789123456789","123456789123456790"],
+             );
+        for (@x) {
+            if (defined $_->[1]) {
+                $tests += 2;
+            } else {
+                $tests++;
+            }
+        }
+    }
+    for my $x (@x) {
+        my $ret = _increase_a_bit ( $x->[0], $x->[1] );
+        ok _bigfloatlt($x->[0], $ret), "L: $x->[0] < $ret";
+        if (defined $x->[1]) {
+            ok _bigfloatlt($ret, $x->[1]), "R: $ret < $x->[1]";
+        }
     }
 }
 

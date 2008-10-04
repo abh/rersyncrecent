@@ -2,6 +2,7 @@ package File::Rsync::Mirror::Recentfile::FakeBigFloat;
 
 # use warnings;
 use strict;
+use Data::Float qw(nextup nextdown);
 
 # _bigfloat
 sub _bigfloatcmp ($$);
@@ -9,16 +10,15 @@ sub _bigfloatgt ($$);
 sub _bigfloatlt ($$);
 sub _bigfloatmax ($$);
 sub _bigfloatmin ($$);
+sub _increase_a_bit ($;$);
+sub _increase_a_bit_tail ($$);
+sub _my_sprintf_float ($);
 
 =encoding utf-8
 
 =head1 NAME
 
-File::Rsync::Mirror::Recentfile::FakeBigFloat - very limited bigfloat support
-
-=head1 VERSION
-
-Version 0.0.1
+File::Rsync::Mirror::Recentfile::FakeBigFloat - pseudo bigfloat support
 
 =cut
 
@@ -27,21 +27,34 @@ use version; our $VERSION = qv('0.0.1');
 use Exporter;
 use base qw(Exporter);
 our %EXPORT_TAGS;
-our @EXPORT_OK = qw( _bigfloatcmp _bigfloatmin _bigfloatmax _bigfloatlt _bigfloatgt );
+our @EXPORT_OK = qw(
+                    _bigfloatcmp
+                    _bigfloatgt
+                    _bigfloatlt
+                    _bigfloatmax
+                    _bigfloatmin
+                    _increase_a_bit
+                   );
 $EXPORT_TAGS{all} = \@EXPORT_OK;
 
 =head1 SYNOPSIS
 
   use File::Rsync::Mirror::Recentfile::FakeBigFloat qw(:all);
 
-=head1 EXPORT
-
-All functions are exported in the C<:all> tag.
-
 =head1 (ONLY) INTERNAL FUNCTIONS
 
 These functions are not part of a public interface and can be
 changed and go away any time without prior notice.
+
+=head1 DESCRIPTION
+
+We treat strings that look like floating point numbers. If the native
+floating point support is good enough we use it. If it isn't we make
+sure no two unequal numbers are treated the same.
+
+=head1 EXPORT
+
+All functions are exported in the C<:all> tag.
 
 =head2 _bigfloatcmp ( $l, $r )
 
@@ -51,11 +64,14 @@ mantissa than can be handled by native perl floats.
 =cut
 sub _bigfloatcmp ($$) {
     my($l,$r) = @_;
+    if ($l =~ /\./ || $r =~ /\./) {
+        # if one is a float, both must be, otherwise perl gets it wrong (see test)
+        for ($l, $r){
+            $_ .= ".0" unless /\./;
+        }
+    }
     my $native = $l <=> $r;
     return $native if $native;
-    for ($l, $r){
-        $_ .= ".0" unless /\./;
-    }
     $l =~ s/^/0/ while index($l,".") < index($r,".");
     $r =~ s/^/0/ while index($r,".") < index($l,".");
     $l cmp $r;
@@ -99,6 +115,94 @@ Same for min (of two arguments)
 sub _bigfloatmin ($$) {
     my($l,$r) = @_;
     return _bigfloatcmp($l,$r) <= 0 ? $l : $r;
+}
+
+=head2 _increase_a_bit ( $l, $r )
+
+=head2 _increase_a_bit ( $n )
+
+The first form calculates a string that is between the two numbers,
+closer to $l to prevent rounding effects towards $r. The second form
+calculates the second number itself based on the current architecture
+and L<Data::Float::nextup()>.
+
+Note: there is a %.128f hard coded that needs to be fixed
+
+=cut
+sub _my_sprintf_float ($) {
+    my($x) = @_;
+    my $r = sprintf "%.128f", $x;
+    $r =~ s/(\d)0+$/$1/;
+    return $r;
+}
+sub _increase_a_bit ($;$) {
+    my($l,$r) = @_;
+    unless (defined $l) {
+        die "Alert: _increase_a_bit called with undefined first argument";
+    }
+    if (defined $r){
+        if ($r eq $l){
+            die "Alert: _increase_a_bit called with identical arguments";
+        }
+    } else {
+        $r = _my_sprintf_float(Data::Float::nextup($l));
+    }
+    my $ret;
+    if ($l == $r) {
+    } else {
+        # native try
+        my $try = _my_sprintf_float((3*$l+$r)/4);
+        if (_bigfloatlt($l,$try) && _bigfloatlt($try,$r) ) {
+            $ret = $try;
+        }
+    }
+    return $ret if $ret;
+    return _increase_a_bit_tail($l,$r);
+}
+sub _increase_a_bit_tail ($$) {
+    my($l,$r) = @_;
+    my $ret;
+    for ($l, $r){
+        $_ .= ".0" unless /\./;
+    }
+    $l =~ s/^/0/ while index($l,".") < index($r,".");
+    $r =~ s/^/0/ while index($r,".") < index($l,".");
+    $l .= "0" while length($l) < length($r);
+    $r .= "0" while length($r) < length($l);
+    my $diffdigit;
+  DIG: for (my $i = 0; $i < length($l); $i++) {
+        if (substr($l,$i,1) ne substr($r,$i,1)) {
+            $diffdigit = $i;
+            last DIG;
+        }
+    }
+    $ret = substr($l,0,$diffdigit);
+    my $sl = substr($l,$diffdigit); # significant l
+    my $sr = substr($r,$diffdigit);
+    if ($ret =~ /\./) {
+        $sl .= ".0";
+        $sr .= ".0";
+    }
+    my $srlength = length $sr;
+    my $srmantissa = $srlength - index($sr,".");
+    # we want 1+$srlength because if l ends in 99999 and r in 00000,
+    # we need one digit more
+    my $fformat = sprintf "%%0%d.%df", 1+$srlength, $srmantissa;
+    my $appe = sprintf $fformat, (3*$sl+$sr)/4;
+    $appe =~ s/(\d)0+$/$1/;
+    if ($ret =~ /\./) {
+        $appe =~ s/\.//;
+    }
+    $ret .= $appe;
+  CHOP: while () {
+        my $try = substr($ret,0,length($ret)-1);
+        if (_bigfloatlt($l,$try) && _bigfloatlt($try,$r)) {
+            $ret = $try;
+        } else {
+            last CHOP;
+        }
+    }
+    return $ret;
 }
 
 =head1 COPYRIGHT & LICENSE

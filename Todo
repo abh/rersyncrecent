@@ -1,3 +1,50 @@
+2008-10-04  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* The problem of rounding. So far perl's default precision was
+	sufficient. One day it won't be. FakeFloat has an easy job when it is
+	only reading and other machines have written correctly. But when we want
+	to write a floating point number that is a bit larger than the other
+	one, then we need our own idea of precision.
+
+	Slaven said: just append a "1". This might be going towards the end of
+	usability too quickly. I'd like something that actually uses the decimal
+	system. Well, appending a 1 also does this but...
+
+	E.g. we have 1.0. nextup on this architecture is starting with
+	1.0000000000000004. So there is a gap to fill: 1,2,3. Now I have
+	taken the 1.0000000000000003 and the next user comes and the time tells
+	him 1.0 again. He has to beat my number without stepping over the
+	nextup. This is much less space than I had when I chose 1,2,3.
+
+	What is also irritating is that nextup is architecture dependent. The
+	128 bit guy must choose very long numbers to fit in between whereas the
+	other one with 16 bit uses larger steps. But then the algorithm is the
+	same for both, so that would be a nice thing.
+
+	I see two situation where we need this. One is when Time::HiRes returns
+	us a value that is <= the last entry in our recentfile. In this case
+	(let's call it the end-case) we must fill the region between that number
+	and the next higher native floating point number. The other is when we
+	inject an old file into an old recentfile (we would then also set a new
+	dirtymark). We find the integer value already taken and need a slightly
+	different one (let's call it the middle-case). The difference between
+	the two situations is that the next user will want to find something
+	higher than my number in the end-case and something lower than my number
+	in the middle case.
+
+	So I suggest we give the function both a value and an upper bound and it
+	calculates us a primitive middle. The upper bound in the middle-case is
+	the next integer. The upper bound on the end-case is the nextup floating
+	point number. But the latter poses another problem: if we have occupied
+	the middle m between x and nextup(x), then the nextup(m) will probably
+	not be the same as nextup(x) because some rounding will take place
+	before the nextup is calculated and when the rounding reaches the
+	nextup(x), we will end up at nextup(nextup(x)).
+
+	So we really need to consider the nextup and the nextdown from there and
+	then the middle and that's the number we may approach asymptotically.
+	Ugly.
+
 2008-10-03  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* consider deprecating the use of RECENT.recent as a symlink. It turns
@@ -9,6 +56,9 @@
 	get_remote_recentfile_as_tempfile with an argument. Rememberr this was
 	only introduced to resolve RECENT.recent and complicates the routine far
 	beyond what it deserves.
+
+	DONE. Won't deprecate RECENT.recent, just moved its handling to the
+	supervisor.
 
 2008-10-02  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
@@ -27,7 +77,9 @@
 
 	- a way to only mirror the recentfiles without mirroring the whole
 	remote system such that people can decide to mirror only partially see
-	also 2008-08-30
+	also 2008-08-30. .shadow-xxx directory? this also needed for a
+	filesystem that is still incomplete and might need the mirrorfiles for
+	lookup(?)
 	
 	- long living objects that mirror again and again. Inject something
 	into ta, see how it goes over to tb.
@@ -63,7 +115,9 @@
 
 	- fill up recentfiles with fake (historic) entries; fill up with
 	individual corrections; algorithm maybe to be done with bigfloat so that
-	we can always place something in the middle between two entries
+	we can always place something in the middle between two entries. Before
+	we must switch to bigfloat we could try to use Data::Float::nextup to
+	get the.
 
 	- the meta data field that must change when we fake something up so that
 	the downstream people know they have to re-fetch everything.

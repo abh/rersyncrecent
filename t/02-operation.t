@@ -88,79 +88,93 @@ rmtree [$root_from, $root_to];
     # very small tree, aggregate it
     my @intervals;
     BEGIN {
-        $tests += 16;
+        $tests += 30;
         @intervals = qw( 2s 4s 8s 16s 32s Z );
     }
     ok(1, "starting smalltree block");
     is 6, scalar @intervals, "array has 6 elements: @intervals";
-    my $rf0 = File::Rsync::Mirror::Recentfile->new
-        (
-         aggregator     => [@intervals[1..$#intervals]],
-         interval       => $intervals[0],
-         localroot      => $root_from,
-         rsync_options  => {
-                            compress          => 0,
-                            links             => 1,
-                            times             => 1,
-                            checksum          => 0,
-                           },
-        );
-    for my $iv (@intervals) {
-        for my $i (0..3) {
-            my $file = sprintf
-                (
-                 "%s/A%s-%02d",
-                 $root_from,
-                 $iv,
-                 $i,
-                );
-            mkpath dirname $file;
-            open my $fh, ">", $file or die "Could not open '$file': $!";
-            print $fh time, ":", $file, "\n";
-            close $fh or die "Could not close '$file': $!";
-            $rf0->update($file,"new");
-        }
-    }
-    my $recent_events = $rf0->recent_events;
-    # faking internals as if the contents were wide-spread in time
-    for my $evi (0..$#$recent_events) {
-        my $ev = $recent_events->[$evi];
-        $ev->{epoch} -= 2**($evi*.25);
-    }
-    $rf0->write_recent($recent_events);
-    $rf0->aggregate;
-    my $filesize_threshold = 1750; # XXX may be system dependent
-    for my $iv (@intervals) {
-        my $rf = "$root_from/RECENT-$iv.yaml";
-        my $filesize = -s $rf;
-        # now they have $filesize_threshold+ bytes because they were merged for the
-        # first time ever and could not be truncated for this reason.
-        ok($filesize_threshold < $filesize, "file $iv has good size[$filesize]");
-        utime 0, 0, $rf; # so that the next aggregate isn't skipped
-    }
-    open my $fh, ">", "$root_from/finissage" or die "Could not open: $!";
-    print $fh "fin";
-    close $fh or die "Could not close: $!";
-    $rf0->update("$root_from/finissage","new");
-    $rf0 = File::Rsync::Mirror::Recentfile->new_from_file("$root_from/RECENT-2s.yaml");
-    $rf0->aggregate;
-    for my $iv (@intervals) {
-        my $filesize = -s "$root_from/RECENT-$iv.yaml";
-        # now they have <$filesize_threshold bytes because the second aggregate could
-        # truncate them
-        ok($iv eq "Z" || $filesize_threshold > $filesize, "file $iv has good size[$filesize]");
-    }
-    my $dagg1 = $rf0->_debug_aggregate;
-    Time::HiRes::sleep 1.2;
-    $rf0->aggregate; # should not change the file
-    my $dagg2 = $rf0->_debug_aggregate;
-    is $dagg2->[0]{mtime}, $dagg1->[0]{mtime}, "no change by gratuitous aggregate";
-    {
-        my $recc = File::Rsync::Mirror::Recent->new
+    for my $pass (0,1) {
+        my $rf0 = File::Rsync::Mirror::Recentfile->new
             (
-             local => "$root_from/RECENT-2s.yaml",
+             aggregator     => [@intervals[1..$#intervals]],
+             interval       => $intervals[0],
+             localroot      => $root_from,
+             rsync_options  => {
+                                compress          => 0,
+                                links             => 1,
+                                times             => 1,
+                                checksum          => 0,
+                               },
             );
-        ok $recc->overview, "overview created";
+        my $timestampfutured = 0;
+        for my $iv (@intervals) {
+            for my $i (0..3) {
+                my $file = sprintf
+                    (
+                     "%s/A%s-%02d",
+                     $root_from,
+                     $iv,
+                     $i,
+                    );
+                mkpath dirname $file;
+                open my $fh, ">", $file or die "Could not open '$file': $!";
+                print $fh time, ":", $file, "\n";
+                close $fh or die "Could not close '$file': $!";
+                $rf0->update($file,"new");
+                if ($pass==1 && !$timestampfutured) {
+                    $DB::single++;
+                    my $recent_events = $rf0->recent_events;
+                    $recent_events->[0]{epoch} += 987654321;
+                    $rf0->write_recent($recent_events);
+                    $timestampfutured++;
+                }
+            }
+        }
+        my $recent_events = $rf0->recent_events;
+        # faking internals as if the contents were wide-spread in time
+        for my $evi (0..$#$recent_events) {
+            my $ev = $recent_events->[$evi];
+            $ev->{epoch} -= 2**($evi*.25);
+        }
+        $rf0->write_recent($recent_events);
+        $rf0->aggregate;
+        my $filesize_threshold = 1750; # XXX may be system dependent
+        my %size_before;
+        for my $iv (@intervals) {
+            my $rf = "$root_from/RECENT-$iv.yaml";
+            my $filesize = -s $rf;
+            $size_before{$iv} = $filesize;
+            # now they have $filesize_threshold+ bytes because they were merged for the
+            # first time ever and could not be truncated for this reason.
+            ok( $filesize > $filesize_threshold, "file $iv (before merging) has good size[$filesize]");
+            utime 0, 0, $rf; # so that the next aggregate isn't skipped
+        }
+        open my $fh, ">", "$root_from/finissage" or die "Could not open: $!";
+        print $fh "fin";
+        close $fh or die "Could not close: $!";
+        $rf0->update("$root_from/finissage","new");
+        $rf0 = File::Rsync::Mirror::Recentfile->new_from_file("$root_from/RECENT-2s.yaml");
+        $rf0->aggregate;
+        for my $iv (@intervals) {
+            my $filesize = -s "$root_from/RECENT-$iv.yaml";
+            # now they have <$filesize_threshold bytes because the second aggregate could
+            # truncate them
+            ok($iv eq "Z" || $filesize<$size_before{$iv}, "file $iv (after merging) has good size[$filesize]");
+        }
+        my $dagg1 = $rf0->_debug_aggregate;
+        Time::HiRes::sleep 1.2;
+        $rf0->aggregate; # should not change the file
+        my $dagg2 = $rf0->_debug_aggregate;
+        is $dagg2->[0]{mtime}, $dagg1->[0]{mtime}, "no change by gratuitous aggregate";
+        {
+            my $recc = File::Rsync::Mirror::Recent->new
+                (
+                 local => "$root_from/RECENT-2s.yaml",
+                );
+            ok $recc->overview, "overview created";
+            # diag $recc->overview;
+        }
+        rmtree [$root_from, $root_to];
     }
 }
 

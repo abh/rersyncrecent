@@ -1667,7 +1667,15 @@ as long as this recentfile has not been merged to another one, the
 timespan may grow without bounds.
 
 =cut
-
+sub _epoch_monotonically_increasing {
+    my($self,$epoch,$recent) = @_;
+    return $epoch unless @$recent; # the first one goes unoffended
+    if (_bigfloatgt("".$epoch,$recent->[0]{epoch})) {
+        return $epoch;
+    } else {
+        return _increase_a_bit($recent->[0]{epoch});
+    }
+}
 sub update {
     my($self,$path,$type) = @_;
     die "update called without path argument" unless defined $path;
@@ -1687,6 +1695,7 @@ sub update {
         # you must calculate the time after having locked, of course
         my $epoch = Time::HiRes::time;
         my $recent = $self->recent_events;
+        $epoch = $self->_epoch_monotonically_increasing($epoch,$recent);
         $recent ||= [];
         my $oldest_allowed = 0;
         if (my $merged = $self->merged) {

@@ -1,5 +1,9 @@
 2008-10-04  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
+	* Todo: now teach update to verify the timestamp is about to write
+	against the previous and use _increase_a_bit if it doesn't comply with
+	strict monotony. DONE
+
 	* The problem of rounding. So far perl's default precision was
 	sufficient. One day it won't be. FakeFloat has an easy job when it is
 	only reading and other machines have written correctly. But when we want
@@ -43,7 +47,7 @@
 
 	So we really need to consider the nextup and the nextdown from there and
 	then the middle and that's the number we may approach asymptotically.
-	Ugly.
+	Ugly. But DONE.
 
 2008-10-03  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 

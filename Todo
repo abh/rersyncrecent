@@ -1,3 +1,35 @@
+2008-10-06  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* I think, Done::register_one is doing wrong in that it does not
+	conflate neighboring pieces. The covered() method cannot do this because
+	it has no recent_events array at hand. But register_one has it and could
+	do it and for some reason misses to do it (sometimes).
+
+	This means that the three tests I just wrote can probably not survive
+	because they test with an already broken Done structure.
+
+	The art now is to detect how it happens, then to reproduce, then write a
+	test, then fix it.
+
+	So from the logfile this is what happens: we have a good interval with
+	newest file being F1 at T1. Now remotely F1 gets a change and F2 goes on
+	top of it. Locally we now mirror F2 and open a new done interval for it.
+	Then we mirror F1 but this time with the timestamp T1b. And when we then
+	try to close the gap, we do not find T1 but instead something older. We
+	should gladly accept this older piece and this would fix this bug.
+
+	FIXED
+
+	* bug to fix: when the 1h file changes while rmirror is running, we do
+	correctly sync the new files but never switch to the 6h file but rather
+	stay in a rather quick loop that fetches the 1h file again and again.
+
+	Is it possible that we initialize a new object? Or does
+	get_remote_recentfile_as_tempfile overwrite something in myself?
+
+	Want a new option: _runstatusfile => $file which frequently dumps the
+	state of all recentfiles to a file.
+
 2008-10-04  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* Todo: now teach update to verify the timestamp is about to write
@@ -168,7 +200,7 @@
 	- status file for not long running jobs that want to track upstream with
 	a, say, cronjob.
 
-	- revisit all XXX _float areas and study Sub::Exporter
+	- revisit all XXX _float areas and study Sub::Exporter DONE
 
 	- persistent DB even though we just said we do not need it. Just for
 	extended capabilities and time savings when, for example, upstream

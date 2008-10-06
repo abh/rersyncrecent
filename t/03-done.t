@@ -1,4 +1,7 @@
 use Data::Dumper;
+use File::Copy qw(cp);
+use File::Path qw(mkpath rmtree);
+use File::Rsync::Mirror::Recentfile;
 use File::Rsync::Mirror::Recentfile::Done;
 use List::Util qw(sum);
 use Storable qw(dclone);
@@ -99,6 +102,58 @@ my @snapshots;
         is $ok, $snapshots, "all merge operations OK";
     }
 }
+
+{
+    BEGIN {
+        $tests += 4;
+    }
+    mkpath "t/ta";
+    cp "t/RECENT-1h.yaml", "t/ta/RECENT-Z.yaml";
+    my $rf = bless( {
+    '-aggregator' => [
+      '1d',
+      '1W',
+      '1M',
+      '1Q',
+      '1Y',
+      'Z'
+    ],
+    '-_localroot' => "t/ta",
+    '-filenameroot' => 'RECENT',
+    '-serializer_suffix' => '.yaml',
+    '-minmax' => {
+      'mtime' => '1223270942',
+      'min' => '1223269222.00701',
+      'max' => '1223270911.76639'
+    },
+    '-verbose' => '1',
+    '-_done' => bless( {
+      '-__intervals' => [
+        [
+          '1223270911.76639',
+          '1223256470.41935'
+        ]
+      ]
+    }, 'File::Rsync::Mirror::Recentfile::Done' ),
+    '-have_mirrored' => '1223271134.78303',
+    '-_interval' => 'Z',
+    '-protocol' => '1'
+  }, 'File::Rsync::Mirror::Recentfile' );
+    my $rfile = $rf->_my_current_rfile ();
+    ok $rfile, "Could determine the current rfile[$rfile]";
+    my $re = $rf->recent_events;
+    my $cnt = scalar @$re;
+    ok $cnt, "re have more than one[$cnt] elements";
+    my $done = $rf->done;
+    ok $done->covered ($re->[0]{epoch},$re->[-1]{epoch}), "covered I";
+    $rf->update("t/ta/id/M/MS/MSIMERSON/Mail-Toaster-5.12_01.tar.gz","new");
+    $rf->update("t/ta/id/M/MS/MSIMERSON/Mail-Toaster-5.12_01.readme","new");
+    my $re2 = $rf->recent_events;
+    $done->register($re2, [0,1]);
+    ok $done->covered ($re2->[0]{epoch},$re2->[-1]{epoch}), "covered II";
+}
+
+rmtree ( "t/ta" );
 
 BEGIN { plan tests => $tests }
 

@@ -6,7 +6,9 @@ use Data::Float qw(nextup nextdown);
 
 # _bigfloat
 sub _bigfloatcmp ($$);
+sub _bigfloatge ($$);
 sub _bigfloatgt ($$);
+sub _bigfloatle ($$);
 sub _bigfloatlt ($$);
 sub _bigfloatmax ($$);
 sub _bigfloatmin ($$);
@@ -29,7 +31,9 @@ use base qw(Exporter);
 our %EXPORT_TAGS;
 our @EXPORT_OK = qw(
                     _bigfloatcmp
+                    _bigfloatge
                     _bigfloatgt
+                    _bigfloatle
                     _bigfloatlt
                     _bigfloatmax
                     _bigfloatmin
@@ -77,6 +81,16 @@ sub _bigfloatcmp ($$) {
     $l cmp $r;
 }
 
+=head2 _bigfloatge ( $l, $r )
+
+Same for ge
+
+=cut
+sub _bigfloatge ($$) {
+    my($l,$r) = @_;
+    _bigfloatcmp($l,$r) >= 0;
+}
+
 =head2 _bigfloatgt ( $l, $r )
 
 Same for gt
@@ -85,6 +99,16 @@ Same for gt
 sub _bigfloatgt ($$) {
     my($l,$r) = @_;
     _bigfloatcmp($l,$r) > 0;
+}
+
+=head2 _bigfloatle ( $l, $r )
+
+Same for lt
+
+=cut
+sub _bigfloatle ($$) {
+    my($l,$r) = @_;
+    _bigfloatcmp($l,$r) <= 0;
 }
 
 =head2 _bigfloatlt ( $l, $r )

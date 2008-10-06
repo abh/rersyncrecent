@@ -211,6 +211,7 @@ BEGIN {
                   "_localroot",
                   "_merged",
                   "_pathdb",
+                  "_remember_last_uptodate_call",
                   "_remote_dir",
                   "_remoteroot",
                   "_rfile",
@@ -465,8 +466,8 @@ sub _assert_symlink {
 =head2 $done = $obj->done
 
 $done is a reference to a File::Rsync::Mirror::Recentfile::Done object
-that keeps track of rsync activities. Only used/needed when we are a
-mirroring slave.
+that keeps track of rsync activities. Only needed and used when we are
+a mirroring slave.
 
 =cut
 
@@ -836,20 +837,22 @@ sub merged {
     my $into;
     if ($merged and $into = $merged->{into_interval} and defined $self->_interval) {
         if ($into eq $self->interval) {
-            warn sprintf
+            require Carp;
+            Carp::cluck(sprintf
                 (
                  "Warning: into_interval[%s] same as own interval[%s]. Danger ahead.",
                  $into,
                  $self->interval,
-                );
+                ));
         } elsif ($self->interval_secs($into) < $self->interval_secs) {
-            warn sprintf
+            require Carp;
+            Carp::cluck(sprintf
                 (
                  "Warning: into_interval[%s] smaller than own interval[%s] on interval[%s]. Danger ahead.",
                  $self->interval_secs($into),
                  $self->interval_secs,
                  $self->interval,
-                );
+                ));
         }
     }
     $merged;
@@ -1731,37 +1734,42 @@ current recentfile.
 =cut
 
 sub uptodate {
-    my($self, $debug) = @_;
+    my($self) = @_;
+    my $uptodate;
+    my $why;
     if ($self->ttl_reached){
-        if ($debug) {
-            warn "ttl_reached returned true, so we are not uptodate";
-        }
-        return 0 ;
+        $why = "ttl_reached returned true, so we are not uptodate";
+        $uptodate = 0 ;
     }
 
-    # look if recentfile has unchanged timestamp
-    my $minmax = $self->minmax;
-    if (exists $minmax->{mtime}) {
-        my $rfile = $self->_my_current_rfile;
-        my @stat = stat $rfile;
-        my $mtime = $stat[9];
-        if ($mtime > $minmax->{mtime}) {
-            if ($debug) {
-                warn "$mtime > $minmax->{mtime}, so we are not uptodate";
+    unless (defined $uptodate) {
+        # look if recentfile has unchanged timestamp
+        my $minmax = $self->minmax;
+        if (exists $minmax->{mtime}) {
+            my $rfile = $self->_my_current_rfile;
+            my @stat = stat $rfile;
+            my $mtime = $stat[9];
+            if ($mtime > $minmax->{mtime}) {
+                $why = "mtime[$mtime] of rfile[$rfile] > minmax/mtime[$minmax->{mtime}], so we are not uptodate";
+                $uptodate = 0;
+            } else {
+                my $covered = $self->done->covered(@$minmax{qw(max min)});
+                $why = "minmax covered[$covered], so we return that";
+                $uptodate = $covered;
             }
-            return 0;
-        } else {
-            my $covered = $self->done->covered(@$minmax{qw(max min)});
-            if ($debug) {
-                warn "minmax covered[$covered], so we return that";
-            }
-            return $covered;
         }
     }
-    if ($debug) {
-        warn "fallthrough, so not uptodate";
+    unless (defined $uptodate) {
+        $why = "fallthrough, so not uptodate";
+        $uptodate = 0;
     }
-    return 0;
+    my $remember =
+        {
+         uptodate => $uptodate,
+         why => $why,
+        };
+    $self->_remember_last_uptodate_call($remember);
+    return $uptodate;
 }
 
 =head2 $obj->write_recent ($recent_files_arrayref)

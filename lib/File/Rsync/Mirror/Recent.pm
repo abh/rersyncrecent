@@ -100,6 +100,8 @@ BEGIN {
                   "_principal_recentfile",
                   "_recentfiles",
                   "_rsync",
+                  "_runstatusfile",  # frequenty dumps all rfs
+                  "_logfilefordone", # turns on _logfile on the DONE of the principal recentfile
                  );
 
     my @pod_lines =
@@ -392,10 +394,11 @@ Testing this ATM with:
                            compress => 1,
                            links => 1,
                            times => 1,
-                           checksum => 1,
+                           checksum => 0,
                           },
          verbose => 1,
-
+         _runstatusfile => "recent-rmirror-state.yml",
+         _logfilefordone => "recent-rmirror-donelog.log",
   );
   $rrr->rmirror ( "skip-deletes" => 1, loop => 1 );
 
@@ -410,8 +413,6 @@ sub rmirror {
 
     my $_once_per_20s = sub {
         my $p = $self->principal_recentfile;
-        require YAML::Syck; YAML::Syck::DumpFile("recent-rmirror-state-$$.yml",$self); # XXX
-
         for my $i (1) {
             print STDERR ("TODO: refetch prince and let it reset what needs to be resetted\n");
             sleep 1;
@@ -423,10 +424,24 @@ sub rmirror {
     my $minimum_time_per_loop = 20; # XXX needs accessor: warning, if
                                     # set too low, we do nothing but
                                     # mirror the principal!
+    if (my $logfile = $self->_logfilefordone) {
+        $rfs->[0]->done->_logfile($logfile);
+    }
   LOOP: while () {
         my $ttleave = time + $minimum_time_per_loop;
       RECENTFILE: for my $i (0..$#$rfs) {
             my $rf = $rfs->[$i];
+            if (my $file = $self->_runstatusfile) {
+                require YAML::Syck;
+                YAML::Syck::DumpFile
+                      (
+                       $file,
+                       {i => $i,
+                        self => $self,
+                        time => time,
+                        uptodate => {map {($_=>$rfs->[$_]->uptodate)} 0..$#$rfs},
+                       });
+            }
             last RECENTFILE if time > $ttleave;
             if ($rf->uptodate){
                 $rfs->[$i+1]->done->merge($rf->done) if $i < $#$rfs;

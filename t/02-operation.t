@@ -1,9 +1,15 @@
+use Getopt::Long;
 use Test::More;
 use strict;
 my $tests;
 BEGIN { $tests = 0 }
 use lib "lib";
 
+my %Opt;
+GetOptions(
+           "verbose!",
+          ) or die;
+$Opt{verbose} ||= $ENV{PERL_RERSYNCRECENT_TEST_VERBOSE};
 
 my $HAVE;
 BEGIN {
@@ -29,6 +35,7 @@ use YAML::Syck;
 
 my $root_from = "t/ta";
 my $root_to = "t/tb";
+my $statusfile = "t/recent-rmirror-state.yml";
 rmtree [$root_from, $root_to];
 
 {
@@ -360,19 +367,27 @@ rmtree [$root_from, $root_to];
              # ignore_link_stat_errors => 1,
              localroot => $root_to,
              remote => "$root_from/RECENT.recent",
-             # verbose => 1,
+             verbose => $Opt{verbose},
              rsync_options => {
                                links => 1,
                                times => 1,
                                compress => 1,
                                checksum => 1,
                               },
+             _runstatusfile => $statusfile,
             );
+        $recc->rmirror;
+        my $rf2 = File::Rsync::Mirror::Recentfile->new_from_file("$root_from/RECENT-5s.yaml");
+        my $file = "$root_from/about-re-mirroring.txt";
+        open my $fh, ">", $file or die "Could not open '$file': $!";
+        print $fh time;
+        close $fh or die "Could not close '$file': $!";
+        $rf2->update($file, "new");
         $recc->rmirror;
     }
 }
 
-rmtree [$root_from, $root_to];
+rmtree [$root_from, $root_to, $statusfile] unless $Opt{verbose};
 
 BEGIN { plan tests => $tests }
 

@@ -25,6 +25,10 @@ use version; our $VERSION = qv('0.0.1');
  $done->register ( $recent_events, [3,4,5,9] ); # registers elements 3-5 and 9
  my $boolean = $done->covered ( $epoch );
 
+=head1 DESCRIPTION
+
+Keeping track of already rsynced timespans.
+
 =head1 EXPORT
 
 No exports.
@@ -57,6 +61,7 @@ my @accessors;
 BEGIN {
     @accessors = (
                   "__intervals",
+                  "_logfile",
                  );
 
     my @pod_lines =
@@ -81,7 +86,8 @@ use accessors @accessors;
 =head2 $boolean = $obj->covered ( $epoch )
 
 The first form returns true if both timestamps $epoch1 and $epoch2 in
-floating point notation have been registered, otherwise false.
+floating point notation have been registered within one interval,
+otherwise false.
 
 The second form returns true if this timestamp has been registered.
 
@@ -89,6 +95,7 @@ The second form returns true if this timestamp has been registered.
 
 sub covered {
     my($self, $epoch_high, $epoch_low) = @_;
+    die "Alert: covered() called without or with undefined first argument" unless defined $epoch_high;
     my $intervals = $self->_intervals;
     return unless @$intervals;
     if (defined $epoch_low) {
@@ -173,12 +180,34 @@ sub register {
         $reg = [0..$#$re];
     }
   REGISTRANT: for my $i (@$reg) {
+        my $logfile = $self->_logfile;
+        if ($logfile) {
+            require YAML::Syck;
+            open my $fh, ">>", $logfile or die "Could not open '$logfile': $!";
+            print $fh YAML::Syck::Dump({
+                                        t => "before",
+                                        i => $i,
+                                        ($i>0 ? ("re-1" => $re->[$i-1]) : ()),
+                                        "re-0" => $re->[$i],
+                                        ($i<$#$re ? ("re+1" => $re->[$i+1]) : ()),
+                                        intervals => $intervals,
+                                       });
+        }
         $self->_register_one
             ({
               i => $i,
               re => $re,
               intervals => $intervals,
              });
+        if ($logfile) {
+            require YAML::Syck;
+            open my $fh, ">>", $logfile or die "Could not open '$logfile': $!";
+            print $fh YAML::Syck::Dump({
+                                        t => "after",
+                                        i => $i,
+                                        intervals => $intervals,
+                                       });
+        }
     }
 }
 
@@ -192,14 +221,18 @@ sub _register_one {
     if (@$intervals) {
         my $registered = 0;
         for my $iv (@$intervals) {
-            my($upper,$lower) = @$iv; # may be the same
+            my($ivupper,$ivlower) = @$iv; # may be the same
             if ($i > 0
-                && $re->[$i-1]{epoch} eq $lower) {
+                && _bigfloatge($re->[$i-1]{epoch}, $ivlower)
+                && _bigfloatle($re->[$i-1]{epoch}, $ivupper)
+               ) {
                 $iv->[1] = $epoch;
                 $registered++;
             }
             if ($i < $#$re
-                && $re->[$i+1]{epoch} eq $upper) {
+                && _bigfloatle($re->[$i+1]{epoch}, $ivupper)
+                && _bigfloatge($re->[$i+1]{epoch}, $ivlower)
+               ) {
                 $iv->[0] = $epoch;
                 $registered++;
             }

@@ -477,6 +477,7 @@ sub done {
     if (!$done) {
         require File::Rsync::Mirror::Recentfile::Done;
         $done = File::Rsync::Mirror::Recentfile::Done->new();
+        $done->_rfinterval ($self->interval);
         $self->_done ( $done );
     }
     return $done;

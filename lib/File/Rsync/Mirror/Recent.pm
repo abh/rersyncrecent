@@ -101,7 +101,7 @@ BEGIN {
                   "_recentfiles",
                   "_rsync",
                   "_runstatusfile",  # frequenty dumps all rfs
-                  "_logfilefordone", # turns on _logfile on the DONE of the principal recentfile
+                  "_logfilefordone", # turns on _logfile on all DONE systems (disk intensive)
                  );
 
     my @pod_lines =
@@ -425,7 +425,9 @@ sub rmirror {
                                     # set too low, we do nothing but
                                     # mirror the principal!
     if (my $logfile = $self->_logfilefordone) {
-        $rfs->[0]->done->_logfile($logfile);
+        for my $i (0..$#$rfs) {
+            $rfs->[$i]->done->_logfile($logfile);
+        }
     }
   LOOP: while () {
         my $ttleave = time + $minimum_time_per_loop;

@@ -1,3 +1,48 @@
+2008-10-07  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* bug: rrr-news --max does not count correctly. with "35" it shows me 35
+	lines but with 36 it shows 110. First it repeats 35, gives 70, and then
+	it lets 40 follow.
+
+	* idea: have a new flag on recentfiles with the meaning: if this
+	changes, you're required to run a full rsync over all the files. The
+	reason why we set it would probably be: some foul happened. we injected
+	files in arbitrary places or didn't inject them although they changed.
+	The content of the flag? Timestamp? The relation between the
+	recentfiles would have to be inheritance from the principal, because any
+	out of band changes would soon later propagate to the next recentfile.
+
+	By upping the flag often one can easily ruin the slaves.
+
+	last out of band change? dirtymark?
+
+	Anyway, this implies that we read a potentially existing recentfile
+	before we write one.
+
+	And it implies that we have an eventloop that keeps us busy in 2-3
+	cycles, one for current stuff (tight loop) and one for the recentfiles
+	(cascade when principal has changed), one for the old stuff after a
+	dirtymark change.
+
+	* See that the long running process really only updates the principal
+	file unless it has missed a timespan during which something happened. If
+	nothing happened, it must notice even when it misses the timespan.
+
+	* fill up recentfiles with fake (historic) entries; fill up with
+	individual corrections; algorithm maybe to be done with bigfloat so that
+	we can always place something in the middle between two entries. Before
+	we must switch to bigfloat we could try to use Data::Float::nextup to
+	get the.
+
+	* we must throw away the pathdb when we have reached the end of Z. From
+	that moment we can have a very small pathdb because the only reason for
+	a pathdb is that we know to ignore old records in old files. We won't
+	need this pathdb again before the next full pass over the data is
+	necessary and then we will rebuild it as we go along.
+
+	* lookup by epoch and by path and use this ability on the pause to never
+	again register a file twice that doesn't need it.
+	
 2008-10-06  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* I think, Done::register_one is doing wrong in that it does not
@@ -123,37 +168,7 @@
 	- how do we continue filling up the DONE system when we use an object
 	for the second time? "fully covered" and "uptodate" or new terminology.
 
-	- idea: have a new flag on recentfiles with the meaning: if this
-	changes, you're required to run a full rsync over all the files. The
-	reason why we set it would probably be: some foul happened. we injected
-	files in arbitrary places or didn't inject them although they changed.
-	The content of the flag? Timestamp? The relation between the
-	recentfiles would have to be inheritance from the principal, because any
-	out of band changes would soon later propagate to the next recentfile.
-
-	By upping the flag often one can easily ruin the slaves.
-
-	last out of band change? dirtymark?
-
-	Anyway, this implies that we read a potentially existing recentfile
-	before we write one.
-
-	And it implies that we have an eventloop that keeps us busy in 2-3
-	cycles, one for current stuff (tight loop) and one for the recentfiles
-	(cascade when principal has changed), one for the old stuff after a
-	dirtymark change.
-
 	- overview called on the wrong file should be understandable
-
-	- See that the long running process really only updates the principal
-	file unless it has missed a timespan during which something happened. If
-	nothing happened, it must notice even when it misses the timespan.
-
-	- fill up recentfiles with fake (historic) entries; fill up with
-	individual corrections; algorithm maybe to be done with bigfloat so that
-	we can always place something in the middle between two entries. Before
-	we must switch to bigfloat we could try to use Data::Float::nextup to
-	get the.
 
 	- the meta data field that must change when we fake something up so that
 	the downstream people know they have to re-fetch everything.
@@ -191,12 +206,6 @@
 	- remember to verify that no temp files are left lying around and the
 	signal handler
 
-	- we must throw away the pathdb when we have reached the end of Z. From
-	that moment we can have a very small pathdb because the only reason for
-	a pathdb is that we know to ignore old records in old files. We won't
-	need this pathdb again before the next full pass over the data is
-	necessary and then we will rebuild it as we go along.
-
 	- status file for not long running jobs that want to track upstream with
 	a, say, cronjob.
 
@@ -209,9 +218,6 @@
 	first pass and would only then do the loop to verify the rest. Or
 	something.
 
-	- lookup by epoch and by path and use this ability on the pause to never
-	again register a file twice that doesn't need it.
-	
 	* Todo: aggregate files should know their feed and finding the principal
 	should be done stepwise. (?)
 

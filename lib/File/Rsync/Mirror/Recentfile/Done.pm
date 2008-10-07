@@ -61,7 +61,8 @@ my @accessors;
 BEGIN {
     @accessors = (
                   "__intervals",
-                  "_logfile",
+                  "_logfile", # undocced: a small yaml dump appended on every change
+                  "_rfinterval", # undocced: the interval of the holding rf
                  );
 
     my @pod_lines =
@@ -185,12 +186,13 @@ sub register {
             require YAML::Syck;
             open my $fh, ">>", $logfile or die "Could not open '$logfile': $!";
             print $fh YAML::Syck::Dump({
-                                        t => "before",
-                                        i => $i,
-                                        ($i>0 ? ("re-1" => $re->[$i-1]) : ()),
-                                        "re-0" => $re->[$i],
-                                        ($i<$#$re ? ("re+1" => $re->[$i+1]) : ()),
-                                        intervals => $intervals,
+                                        At => "before",
+                                        Brfinterval => $self->_rfinterval,
+                                        Ci => $i,
+                                        ($i>0 ? ("Dre-1" => $re->[$i-1]) : ()),
+                                        "Dre-0" => $re->[$i],
+                                        ($i<$#$re ? ("Dre+1" => $re->[$i+1]) : ()),
+                                        Eintervals => $intervals,
                                        });
         }
         $self->_register_one
@@ -203,8 +205,7 @@ sub register {
             require YAML::Syck;
             open my $fh, ">>", $logfile or die "Could not open '$logfile': $!";
             print $fh YAML::Syck::Dump({
-                                        t => "after",
-                                        i => $i,
+                                        At => "after",
                                         intervals => $intervals,
                                        });
         }

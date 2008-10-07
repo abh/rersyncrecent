@@ -1316,7 +1316,7 @@ sub recent_events {
              $rfile_or_tempfile,
             );
     }
-    return $re unless defined $options{after}; # XXX same for before and max
+    return $re unless grep {defined $options{$_}} qw(after before max);
     my $last_item = $#$re;
     if ($info) {
         $info->{first} = $re->[0];

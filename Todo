@@ -1,5 +1,16 @@
 2008-10-08  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
+	* current bugs: the pathdb seems to get no reset, the seeding of the
+	secondaryttl stuff seems not to have an effect. Have helped myself with
+	a rand(10), need to fix this back. So not checked in. Does the rand
+	thing even help?
+
+	The rand thing helps. The secondaryttl stuff was in the wrong line,
+	fixed now.
+
+	The pathdb stuff was because I called either _pathdb or __pathdb on the
+	wrong object. Fixed now.
+
 	* do not forget the dirtymark!
 
 	* It's not so beautiful if we never fetch the recentfiles that are not

@@ -1100,10 +1100,10 @@ sub _empty_xcollector {
 }
 
 sub _register_path {
-    my($self,$db,$coll,$activity) = @_;
+    my($self,$pathdb,$coll,$activity) = @_;
     my $time = time;
     for my $item (@$coll) {
-        $db->{$item->{path}} =
+        $pathdb->{$item->{path}} =
             {
              recentepoch => $item->{epoch},
              ($activity."_on") => $time,

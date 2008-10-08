@@ -325,11 +325,11 @@ sub _pathdb {
     if ($set) {
         $self->__pathdb ($set);
     }
-    my $db = $self->__pathdb;
-    unless (defined $db) {
+    my $pathdb = $self->__pathdb;
+    unless (defined $pathdb) {
         $self->__pathdb(+{});
     }
-    return $db;
+    return $self->__pathdb;
 }
 
 =head2 $recentfile = $obj->principal_recentfile ()
@@ -373,18 +373,18 @@ recentfiles exist or have been read. They are just bare objects.
 
 sub recentfiles {
     my($self) = @_;
-    my $rfs = $self->_recentfiles;
+    my $rfs        = $self->_recentfiles;
     return $rfs if defined $rfs;
-    my $rf0 = $self->principal_recentfile;
-    my $db = +{};
-    $rf0->_pathdb ( $db );
+    my $rf0        = $self->principal_recentfile;
+    my $pathdb     = $self->_pathdb;
+    $rf0->_pathdb ($pathdb);
     my $aggregator = $rf0->aggregator;
-    my @rf = $rf0;
+    my @rf         = $rf0;
     for my $agg (@$aggregator) {
         my $nrf = $rf0->_sparse_clone;
         $nrf->interval      ( $agg );
         $nrf->have_mirrored ( 0    );
-        $nrf->_pathdb       ( $db  );
+        $nrf->_pathdb       ( $pathdb  );
         push @rf, $nrf;
     }
     $self->_recentfiles(\@rf);
@@ -452,6 +452,7 @@ sub rmirror {
                       (
                        $file,
                        {i => $i,
+                        options => \%options,
                         self => $self,
                         time => time,
                         uptodate => {map {($_=>$rfs->[$_]->uptodate)} 0..$#$rfs},
@@ -499,7 +500,10 @@ sub rmirror {
         $self->_max_one_state(0);
         if ($rfs->[-1]->uptodate) {
             if ($options{loop}) {
-                $self->_pathdb(+{});
+                my $pathdb = $self->_pathdb();
+                for my $k (keys %$pathdb) {
+                    delete $pathdb->{$k};
+                }
                 if (my $ttl = $self->secondaryttl) {
                     if (time > $secondary_timestamp+$ttl) {
                         my @names;
@@ -508,8 +512,8 @@ sub rmirror {
                             push @names, $xrf->interval;
                         }
                         warn "DEBUG: seeded @names\n";
+                        $secondary_timestamp = time;
                     }
-                    $secondary_timestamp = time;
                 }
             } else {
                 last LOOP;

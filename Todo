@@ -1,8 +1,21 @@
+2008-10-08  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* do not forget the dirtymark!
+
+	* It's not so beautiful if we never fetch the recentfiles that are not
+	the principal, even if this is correct behaviour. We really do not need
+	them after we have fetched the whole content.
+
+	OK, we want a switch for that: secondaryttl
+
+	* Inotify2 on an arbitrary tree and then play with that instead of PAUSE
+	directly.
+
 2008-10-07  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* bug: rrr-news --max does not count correctly. with "35" it shows me 35
 	lines but with 36 it shows 110. First it repeats 35, gives 70, and then
-	it lets 40 follow.
+	it lets 40 follow. FIXED
 
 	* idea: have a new flag on recentfiles with the meaning: if this
 	changes, you're required to run a full rsync over all the files. The

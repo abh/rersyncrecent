@@ -216,6 +216,8 @@ BEGIN {
                   "_remoteroot",
                   "_rfile",
                   "_rsync",
+                  "_seeded",
+                  "_uptodateness_ever_reached",
                   "_use_tempfile",
                  );
 
@@ -543,8 +545,10 @@ sub get_remote_recentfile_as_tempfile {
         my $doing = -e $dst ? "Syncing" : "Getting";
         printf STDERR
             (
-             "%s (1/1) temporary %s ... ",
+             "%s (1/1/%s\@%d) temporary %s ... ",
              $doing,
+             $self->interval,
+             time,
              $dst,
             );
     }
@@ -611,8 +615,10 @@ sub get_remotefile {
         my $doing = -e $dst ? "Syncing" : "Getting";
         printf STDERR
             (
-             "%s (1/1) %s ... ",
+             "%s (1/1/%s\@%d) %s ... ",
              $doing,
+             $self->interval,
+             time,
              $path,
             );
     }
@@ -944,6 +950,8 @@ sub mirror {
             print STDERR "DONE\n";
         }
     }
+    # once we've gone to the end we consider ourselve free of obligations
+    $self->_seeded(0);
     my $rfile = $self->rfile;
     unless (rename $trecentfile, $rfile) {
         require Carp;
@@ -1043,11 +1051,12 @@ sub _mirror_item_new {
         my $doing = -e $dst ? "Syncing" : "Getting";
         printf STDERR
             (
-             "%s (%d/%d/%s) %s ... ",
+             "%s (%d/%d/%s\@%d) %s ... ",
              $doing,
              1+$i,
              1+$last_item,
              $self->interval,
+             time,
              $recent_event->{path},
             );
     }
@@ -1725,6 +1734,16 @@ sub update {
     }
 }
 
+=head2 seed
+
+Sets this recentfile in the state to re-evaluate its uptodateness.
+
+=cut
+sub seed {
+    my($self) = @_;
+    $self->_seeded(1);
+}
+
 =head2 uptodate
 
 True if this object has mirrored the complete interval covered by the
@@ -1733,16 +1752,20 @@ current recentfile.
 *** WIP ***
 
 =cut
-
 sub uptodate {
     my($self) = @_;
     my $uptodate;
     my $why;
-    if ($self->ttl_reached){
-        $why = "ttl_reached returned true, so we are not uptodate";
-        $uptodate = 0 ;
+    if ($self->_uptodateness_ever_reached and not $self->_seeded) {
+        $why = "saturated";
+        $uptodate = 1;
     }
-
+    unless (defined $uptodate) {
+        if ($self->ttl_reached){
+            $why = "ttl_reached returned true, so we are not uptodate";
+            $uptodate = 0 ;
+        }
+    }
     unless (defined $uptodate) {
         # look if recentfile has unchanged timestamp
         my $minmax = $self->minmax;
@@ -1763,6 +1786,10 @@ sub uptodate {
     unless (defined $uptodate) {
         $why = "fallthrough, so not uptodate";
         $uptodate = 0;
+    }
+    if ($uptodate) {
+        $self->_uptodateness_ever_reached(1);
+        $self->_seeded(0);
     }
     my $remember =
         {

@@ -97,6 +97,7 @@ my @accessors;
 BEGIN {
     @accessors = (
                   "__pathdb",
+                  "_max_one_state",
                   "_principal_recentfile",
                   "_recentfiles",
                   "_rsync",
@@ -143,6 +144,18 @@ the principal remote recentfile has.
 
 Things like compress, links, times or checksums. Passed in to the
 File::Rsync object used to run the mirror.
+
+=item ttl
+
+Minimum time before fetching the principal recentfile again.
+
+=item secondaryttl
+
+During normal, healthy operation, only the principal recentfile is
+needed on slaves. But sometimes it is desireable to fetch them all,
+even if we have downloaded the whole lot of ordinary files. If
+secondaryttl is set, we will update the unneeded recentfiles after
+this interval.
 
 =item verbose
 
@@ -308,10 +321,13 @@ its own accessors.
 =cut
 
 sub _pathdb {
-    my($self) = @_;
-    my $db = $self->_pathdb;
+    my($self, $set) = @_;
+    if ($set) {
+        $self->__pathdb ($set);
+    }
+    my $db = $self->__pathdb;
     unless (defined $db) {
-        $self->_pathdb(+{});
+        $self->__pathdb(+{});
     }
     return $db;
 }
@@ -412,11 +428,7 @@ sub rmirror {
     my $rfs = $self->recentfiles;
 
     my $_once_per_20s = sub {
-        my $p = $self->principal_recentfile;
-        for my $i (1) {
-            print STDERR ("TODO: refetch prince and let it reset what needs to be resetted\n");
-            sleep 1;
-        }
+        $self->principal_recentfile->seed;
     };
     my $_sigint = sub {
         # XXX exit gracefully (reminder)
@@ -429,6 +441,7 @@ sub rmirror {
             $rfs->[$i]->done->_logfile($logfile);
         }
     }
+    my $secondary_timestamp = time;
   LOOP: while () {
         my $ttleave = time + $minimum_time_per_loop;
       RECENTFILE: for my $i (0..$#$rfs) {
@@ -444,7 +457,10 @@ sub rmirror {
                         uptodate => {map {($_=>$rfs->[$_]->uptodate)} 0..$#$rfs},
                        });
             }
-            last RECENTFILE if time > $ttleave;
+            if (time > $ttleave){
+                # Must make sure that one file can get fetched in any case
+                $self->_max_one_state(1);
+            }
             if ($rf->uptodate){
                 $rfs->[$i+1]->done->merge($rf->done) if $i < $#$rfs;
                 next RECENTFILE;
@@ -453,7 +469,7 @@ sub rmirror {
                     if ($rf->uptodate) {
                         my $sleep = $rf->sleep_per_connection;
                         $sleep = 0.42 unless defined $sleep; # XXX double accessor!
-                        for (($sleep)x5) { # want a bit more
+                        for ($sleep) {
                             if ($rf->verbose) {
                                 printf STDERR
                                     (
@@ -467,16 +483,35 @@ sub rmirror {
                         $rfs->[$i+1]->done->merge($rf->done) if $i < $#$rfs;
                         next RECENTFILE;
                     } else {
-                        $rf->mirror (
-                                     piecemeal => 1,
-                                     %options,
-                                    );
+                        my %locopt = %options;
+                        if ($self->_max_one_state) {
+                            $locopt{max} = 1;
+                        }
+                        $locopt{piecemeal} = 1;
+                        $rf->mirror (%locopt);
+                        if ($rf->_seeded) {
+                            $rfs->[$i+1]->seed if $i < $#$rfs;
+                        }
                     }
                 }
             }
         }
+        $self->_max_one_state(0);
         if ($rfs->[-1]->uptodate) {
-            unless ($options{loop}) {
+            if ($options{loop}) {
+                $self->_pathdb(+{});
+                if (my $ttl = $self->secondaryttl) {
+                    if (time > $secondary_timestamp+$ttl) {
+                        my @names;
+                        for my $xrf (@{$self->recentfiles}) {
+                            $xrf->seed;
+                            push @names, $xrf->interval;
+                        }
+                        warn "DEBUG: seeded @names\n";
+                    }
+                    $secondary_timestamp = time;
+                }
+            } else {
                 last LOOP;
             }
         }
@@ -484,8 +519,9 @@ sub rmirror {
         if ($sleep > 0.01) {
             printf STDERR
                 (
-                 "Retreat to the Dormitory (%s) ...",
+                 "Dormitory (%ssecs\@%d)\n",
                  $sleep,
+                 time,
                 );
             sleep $sleep;
         } else {
@@ -517,6 +553,7 @@ sub _recentfile_object_for_remote {
          "remoteroot",
          "rsync_options",
          "verbose",
+         "ttl",
         );
     my $rf0;
     unless ($abslfile) {

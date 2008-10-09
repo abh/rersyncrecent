@@ -465,6 +465,7 @@ sub rmirror {
     my $_once_per_20s = sub {
         $self->principal_recentfile->seed;
     };
+    $_once_per_20s->();
     my $_sigint = sub {
         # XXX exit gracefully (reminder)
     };

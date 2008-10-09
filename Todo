@@ -1,5 +1,7 @@
 2008-10-09  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
+	* wish feedback when we are slow.
+
 	* reduce mccabe
 
 	* Remove a few DEBUG statements.

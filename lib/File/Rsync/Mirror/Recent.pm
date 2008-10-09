@@ -149,6 +149,11 @@ File::Rsync object used to run the mirror.
 
 Minimum time before fetching the principal recentfile again.
 
+=item secondary_timestamp
+
+Remembers when we ttl'd the secondary recentfile objects (not the
+principal) for the last time.
+
 =item secondaryttl
 
 During normal, healthy operation, only the principal recentfile is
@@ -471,7 +476,7 @@ sub rmirror {
             $rfs->[$i]->done->_logfile($logfile);
         }
     }
-    my $secondary_timestamp = time;
+    $self->secondary_timestamp(time);
   LOOP: while () {
         my $ttleave = time + $minimum_time_per_loop;
       RECENTFILE: for my $i (0..$#$rfs) {
@@ -519,22 +524,22 @@ sub rmirror {
         }
         $self->_max_one_state(0);
         if ($rfs->[-1]->uptodate) {
-            if ($options{loop}) {
-                my $pathdb = $self->_pathdb();
-                for my $k (keys %$pathdb) {
-                    delete $pathdb->{$k};
-                }
-                if (my $ttl = $self->secondaryttl) {
-                    if (time > $secondary_timestamp+$ttl) {
-                        my @names;
-                        for my $xrf (@{$self->recentfiles}) {
-                            $xrf->seed;
-                            push @names, $xrf->interval;
-                        }
-                        warn "DEBUG: seeded @names\n";
-                        $secondary_timestamp = time;
+            my $pathdb = $self->_pathdb();
+            for my $k (keys %$pathdb) {
+                delete $pathdb->{$k};
+            }
+            if (my $ttl = $self->secondaryttl) {
+                if (time > $self->secondary_timestamp + $ttl) {
+                    my @names;
+                    for my $xrf (@{$self->recentfiles}) {
+                        $xrf->seed;
+                        push @names, $xrf->interval;
                     }
+                    warn "DEBUG: seeded @names\n";
+                    $self->secondary_timestamp(time);
                 }
+            }
+            if ($options{loop}) {
             } else {
                 last LOOP;
             }

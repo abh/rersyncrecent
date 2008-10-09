@@ -1,5 +1,9 @@
 2008-10-09  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
+	* reduce mccabe
+
+	* Remove a few DEBUG statements.
+
 	* The multiple-rrr way of doing things needs a new option to rmirror,
 	like piecemeal or so. Not urgent because after the first pass through,
 	things run smoothely. It's only ugly during the first pass.

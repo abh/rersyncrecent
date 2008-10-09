@@ -405,7 +405,7 @@ Testing this ATM with:
          ignore_link_stat_errors => 1,
          localroot => "/home/ftp/pub/PAUSE/authors",
          remote => "pause.perl.org::authors/RECENT.recent",
-         max_files_per_connection => 5,
+         max_files_per_connection => 5000,
          rsync_options => {
                            compress => 1,
                            links => 1,
@@ -417,6 +417,36 @@ Testing this ATM with:
          _logfilefordone => "recent-rmirror-donelog.log",
   );
   $rrr->rmirror ( "skip-deletes" => 1, loop => 1 );
+
+And since the above seems to work, I try now without the llop
+parameter:
+
+  use File::Rsync::Mirror::Recent;
+  my @rrr;
+  for my $t ("authors","modules"){
+      my $rrr = File::Rsync::Mirror::Recent->new(
+         ignore_link_stat_errors => 1,
+         localroot => "/home/ftp/pub/PAUSE/$t",
+         remote => "pause.perl.org::$t/RECENT.recent",
+         max_files_per_connection => 512,
+         rsync_options => {
+                           compress => 1,
+                           links => 1,
+                           times => 1,
+                           checksum => 0,
+                          },
+         verbose => 1,
+         _runstatusfile => "recent-rmirror-state-$t.yml",
+         _logfilefordone => "recent-rmirror-donelog-$t.log",
+      );
+      push @rrr, $rrr;
+  }
+  while (){
+    for my $rrr (@rrr){
+      $rrr->rmirror ( "skip-deletes" => 1 );
+    }
+    warn "sleeping 23\n"; sleep 23;
+  }
 
 
 =cut
@@ -469,18 +499,8 @@ sub rmirror {
               WORKUNIT: while (time < $ttleave) {
                     if ($rf->uptodate) {
                         my $sleep = $rf->sleep_per_connection;
-                        $sleep = 0.42 unless defined $sleep; # XXX double accessor!
-                        for ($sleep) {
-                            if ($rf->verbose) {
-                                printf STDERR
-                                    (
-                                     "Napping (%s/%s) ...\n",
-                                     $_,
-                                     $rf->interval,
-                                    );
-                            }
-                            Time::HiRes::sleep $_ if $_;
-                        }
+                        $sleep = 0.42 unless defined $sleep; # XXX accessor!
+                        Time::HiRes::sleep $sleep;
                         $rfs->[$i+1]->done->merge($rf->done) if $i < $#$rfs;
                         next RECENTFILE;
                     } else {
@@ -523,9 +543,9 @@ sub rmirror {
         if ($sleep > 0.01) {
             printf STDERR
                 (
-                 "Dormitory (%ssecs\@%d)\n",
-                 $sleep,
+                 "Dorm %d (%s secs)\n",
                  time,
+                 $sleep,
                 );
             sleep $sleep;
         } else {

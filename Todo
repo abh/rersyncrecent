@@ -1,3 +1,31 @@
+2008-10-09  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* The multiple-rrr way of doing things needs a new option to rmirror,
+	like piecemeal or so. Not urgent because after the first pass through,
+	things run smoothely. It's only ugly during the first pass.
+
+	* I have the suspicion that the code is broken that decides if the
+	neighboring RF needs to be seeded. I fear when too much time has gone
+	between two calls (in our case more than one hour), it would not seed
+	the neighbor. Of course this will never be noticed, so we need a good
+	test for it.
+
+	* local/localroot confusion
+
+	* accounts for early birds
+
+	* hardcoded 20 seconds
+
+	* who mirrors the index?
+
+	* which CPAN mirrors offer rsync?
+
+	* visit all XXX, visit all _float places
+
+	* rename the pathdb stuff, it's too confusing. No idea how.
+
+	* rrr-inotify, backpan, rrr-register
+
 2008-10-08  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* current bugs: the pathdb seems to get no reset, the seeding of the

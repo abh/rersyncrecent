@@ -23,7 +23,7 @@ for my $package (
     $HAVE->{$package} = eval qq{ require $package; };
 }
 use Config;
-use File::Basename qw(dirname fileparse);
+use File::Basename qw(basename dirname fileparse);
 use File::Copy qw(cp);
 use File::Path qw(mkpath);
 use File::Rsync::Mirror::Recentfile::FakeBigFloat qw(:all);
@@ -542,14 +542,15 @@ sub get_remote_recentfile_as_tempfile {
                     $trfilename,
                    );
     if ($self->verbose) {
-        my $doing = -e $dst ? "Syncing" : "Getting";
+        my $doing = -e $dst ? "Sync" : "Get";
+        my $display_dst = join "/", "...", basename(dirname($dst)), basename($dst);
         printf STDERR
             (
-             "%s (1/1/%s\@%d) temporary %s ... ",
+             "%-4s %d (1/1/%s) temp %s ... ",
              $doing,
-             $self->interval,
              time,
-             $dst,
+             $self->interval,
+             $display_dst,
             );
     }
     my $gaveup = 0;
@@ -612,13 +613,13 @@ sub get_remotefile {
     my $dst = File::Spec->catfile($self->localroot, $path);
     mkpath dirname $dst;
     if ($self->verbose) {
-        my $doing = -e $dst ? "Syncing" : "Getting";
+        my $doing = -e $dst ? "Sync" : "Get";
         printf STDERR
             (
-             "%s (1/1/%s\@%d) %s ... ",
+             "%-4s %d (1/1/%s) %s ... ",
              $doing,
-             $self->interval,
              time,
+             $self->interval,
              $path,
             );
     }
@@ -1048,15 +1049,15 @@ sub _mirror_item_new {
        $options,
       ) = @_;
     if ($self->verbose) {
-        my $doing = -e $dst ? "Syncing" : "Getting";
+        my $doing = -e $dst ? "Sync" : "Get";
         printf STDERR
             (
-             "%s (%d/%d/%s\@%d) %s ... ",
+             "%-4s %d (%d/%d/%s) %s ... ",
              $doing,
+             time,
              1+$i,
              1+$last_item,
              $self->interval,
-             time,
              $recent_event->{path},
             );
     }

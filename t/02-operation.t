@@ -129,7 +129,6 @@ rmtree [$root_from, $root_to];
                 close $fh or die "Could not close '$file': $!";
                 $rf0->update($file,"new");
                 if ($pass==1 && !$timestampfutured) {
-                    $DB::single++;
                     my $recent_events = $rf0->recent_events;
                     $recent_events->[0]{epoch} += 987654321;
                     $rf0->write_recent($recent_events);

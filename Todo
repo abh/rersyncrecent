@@ -1,4 +1,64 @@
+2008-10-10  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* Slaven suggests to have the current epoch or the whole current
+	recentfile available from the HTTP server and take it away with
+	keepalive. This direction goes the granularity down to subseconds.
+
+	We might want to rewrite everything to factor out transport and allow
+	the whole thing to run via HTTP.
+
 2008-10-09  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* are we sure we do NOT LEAVE DOT FILES around? Especially on the
+	symlink?
+
+	* smoker on k81 fetching from k75 to verify cascading works. See
+	2008-07-17 in upgradexxx and rsync-over-recentfile-3.pl.
+
+	* maybe the loop should wait for CHECKSUMS file after every upload. And
+	CPAN.pm needs to deal with timestamps in the future.
+
+	* do not forget the dirtymark!
+
+	Text: have a new flag on recentfiles with the meaning: if this
+	changes, you're required to run a full rsync over all the files. The
+	reason why we set it would probably be: some foul happened. we injected
+	files in arbitrary places or didn't inject them although they changed.
+	The content of the flag? Timestamp? The relation between the
+	recentfiles would have to be inheritance from the principal, because any
+	out of band changes would soon later propagate to the next recentfile.
+
+	By upping the flag often one can easily ruin the slaves.
+
+	last out of band change? dirtymark?
+
+	Anyway, this implies that we read a potentially existing recentfile
+	before we write one.
+
+	And it implies that we have an eventloop that keeps us busy in 2-3
+	cycles, one for current stuff (tight loop) and one for the recentfiles
+	(cascade when principal has changed), one for the old stuff after a
+	dirtymark change.
+
+	And it implies that the out-of-band change in any of the recentfiles
+	must have a lock on the principal file and there is the place to set the
+	dirtymark.
+
+	* after the dirtymark is done: fill up recentfiles with fake (historic)
+	entries; fill up with individual corrections; algorithm maybe to be done
+	with bigfloat so that we can always place something in the middle
+	between two entries. Before we must switch to bigfloat we could try to
+	use Data::Float::nextup to get the.
+
+	* lookup by epoch and by path and use this ability on the pause to never
+	again register a file twice that doesn't need it.
+	
+	* Inotify2 on an arbitrary tree and then play with that instead of PAUSE
+	directly.
+
+	* start a FAQ, especially quick start guide questions. Also to aid those
+	problematic areas where we have no good solution, like the "links"
+	option to rsync.
 
 	* wish feedback when we are slow.
 
@@ -16,13 +76,14 @@
 	the neighbor. Of course this will never be noticed, so we need a good
 	test for it.
 
-	* local/localroot confusion
+	* local/localroot confusion: I currently pass both options but one must
+	do.
 
-	* accounts for early birds
+	* accounts for early birds on PAUSE rsync daemon.
 
 	* hardcoded 20 seconds
 
-	* who mirrors the index?
+	* who mirrors the index? DOING now.
 
 	* which CPAN mirrors offer rsync?
 
@@ -43,18 +104,13 @@
 	fixed now.
 
 	The pathdb stuff was because I called either _pathdb or __pathdb on the
-	wrong object. Fixed now.
-
-	* do not forget the dirtymark!
+	wrong object. FIXED now.
 
 	* It's not so beautiful if we never fetch the recentfiles that are not
 	the principal, even if this is correct behaviour. We really do not need
 	them after we have fetched the whole content.
 
-	OK, we want a switch for that: secondaryttl
-
-	* Inotify2 on an arbitrary tree and then play with that instead of PAUSE
-	directly.
+	OK, we want a switch for that: secondaryttl DONE
 
 2008-10-07  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
@@ -62,45 +118,16 @@
 	lines but with 36 it shows 110. First it repeats 35, gives 70, and then
 	it lets 40 follow. FIXED
 
-	* idea: have a new flag on recentfiles with the meaning: if this
-	changes, you're required to run a full rsync over all the files. The
-	reason why we set it would probably be: some foul happened. we injected
-	files in arbitrary places or didn't inject them although they changed.
-	The content of the flag? Timestamp? The relation between the
-	recentfiles would have to be inheritance from the principal, because any
-	out of band changes would soon later propagate to the next recentfile.
-
-	By upping the flag often one can easily ruin the slaves.
-
-	last out of band change? dirtymark?
-
-	Anyway, this implies that we read a potentially existing recentfile
-	before we write one.
-
-	And it implies that we have an eventloop that keeps us busy in 2-3
-	cycles, one for current stuff (tight loop) and one for the recentfiles
-	(cascade when principal has changed), one for the old stuff after a
-	dirtymark change.
-
 	* See that the long running process really only updates the principal
 	file unless it has missed a timespan during which something happened. If
-	nothing happened, it must notice even when it misses the timespan.
-
-	* fill up recentfiles with fake (historic) entries; fill up with
-	individual corrections; algorithm maybe to be done with bigfloat so that
-	we can always place something in the middle between two entries. Before
-	we must switch to bigfloat we could try to use Data::Float::nextup to
-	get the.
+	nothing happened, it must notice even when it misses the timespan. DONE
 
 	* we must throw away the pathdb when we have reached the end of Z. From
 	that moment we can have a very small pathdb because the only reason for
 	a pathdb is that we know to ignore old records in old files. We won't
 	need this pathdb again before the next full pass over the data is
-	necessary and then we will rebuild it as we go along.
+	necessary and then we will rebuild it as we go along. DONE
 
-	* lookup by epoch and by path and use this ability on the pause to never
-	again register a file twice that doesn't need it.
-	
 2008-10-06  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* I think, Done::register_one is doing wrong in that it does not
@@ -132,6 +159,8 @@
 
 	Want a new option: _runstatusfile => $file which frequently dumps the
 	state of all recentfiles to a file.
+
+	FIXED
 
 2008-10-04  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
@@ -212,7 +241,7 @@
 
 	- verifytree or something like that. fsck maybe.
 
-	- rersyncrecent, the script itself
+	- rersyncrecent, the script itself? What it do?
 
 	- a way to only mirror the recentfiles without mirroring the whole
 	remote system such that people can decide to mirror only partially see

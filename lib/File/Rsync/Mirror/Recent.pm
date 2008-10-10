@@ -443,6 +443,8 @@ parameter:
          verbose => 1,
          _runstatusfile => "recent-rmirror-state-$t.yml",
          _logfilefordone => "recent-rmirror-donelog-$t.log",
+         ttl => 5,
+         secondaryttl => 900,
       );
       push @rrr, $rrr;
   }
@@ -477,7 +479,8 @@ sub rmirror {
             $rfs->[$i]->done->_logfile($logfile);
         }
     }
-    $self->secondary_timestamp(time);
+    $self->secondary_timestamp(time) unless
+        $self->secondary_timestamp();
   LOOP: while () {
         my $ttleave = time + $minimum_time_per_loop;
       RECENTFILE: for my $i (0..$#$rfs) {

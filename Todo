@@ -1,5 +1,29 @@
 2008-10-11  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
+	* another bug is the fact that the mirror command deletes files before
+	it unhides the index file, thus confusing downstream slaves. We must not
+	delete before unhiding and must delete after unhiding. Sigh.
+
+	* new complication about the slave that is playing a server role.
+	Currently we mirror from newest to oldest with a hidden temporary file
+	as index. And when one file is finished, we unhide the index file.
+	Imagine the cascading server/slave is dead for a day. It then starts
+	mirroring again with the freshest thing and unhides the freshest index
+	file when it has worked through it. In that moment it exposes a time
+	hole. Because it now works on the second recentfile which is still
+	hidden.
+
+	We currently do nothing special to converge after such a drop out. At
+	least not intentionally and robustly and thought through.
+
+	The algorithm we use to seed the next file needs quite a lot of more
+	robustness than it currently has. Something to do with looking at the
+	merged element of the next rf and when it has dropped off, we seed
+	immediately. And if it ramains dropped off, we seed again, of course.
+
+	And we need a public accessor seed and unseed or seeded. But not the mix
+	of public and private stuff that then is used behind the back.
+	
 	* dirtymark now lives in Recentfile, needs to be used in rmirror.
 
 2008-10-10  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>

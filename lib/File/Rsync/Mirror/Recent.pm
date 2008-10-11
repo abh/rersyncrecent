@@ -267,10 +267,12 @@ sub overview {
             my $span = $re->[0]{epoch}-$re->[-1]{epoch};
             $rfsummary =
                 [
-                 "Iv",
+                 "Ival",
                  $rf->interval,
                  "Cnt",
                  scalar @$re,
+                 "Dirtymark",
+                 $rf->dirtymark ? sprintf("%.2f",$rf->dirtymark) : "-",
                  "Max",
                  sprintf ("%.2f", $re->[0]{epoch}),
                  "Min",
@@ -307,7 +309,7 @@ sub overview {
     }
     my @sprintf;
     for  (my $i = 0; $i <= $#{$s[0]}; $i+=2) {
-        my $maxlength = max map { length $_->[$i+1] } @s;
+        my $maxlength = max ((map { length $_->[$i+1] } @s), length $s[0][$i]);
         push @sprintf, "%" . $maxlength . "s";
     }
     my $sprintf = join " ", @sprintf;

@@ -650,6 +650,18 @@ sub _resolve_rfilename {
             if ($symlink =~ m|/|) {
                 die "FIXME: filenames containing '/' not supported, got '$symlink'";
             }
+            my $localrfile = File::Spec->catfile($self->localroot, $rfilename);
+            if (-e $localrfile) {
+                my $old_symlink = readlink $localrfile;
+                if ($old_symlink eq $symlink) {
+                    unlink $abslfile or die "Cannot unlink '$abslfile': $!";
+                } else {
+                    unlink $localrfile; # may fail
+                    rename $abslfile, $localrfile or die "Cannot rename to '$localrfile': $!";
+                }
+            } else {
+                rename $abslfile, $localrfile or die "Cannot rename to '$localrfile': $!";
+            }
             $abslfile = $self->_fetch_as_tempfile ($symlink);
         }
     }

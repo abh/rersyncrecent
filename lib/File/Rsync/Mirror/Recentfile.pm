@@ -1327,16 +1327,22 @@ sub recent_events {
             );
     }
     return $re unless grep {defined $options{$_}} qw(after before max);
+    $self->_recent_events_handle_options ($re, \%options);
+}
+
+sub _recent_events_handle_options {
+    my($self, $re, $options) = @_;
     my $last_item = $#$re;
+    my $info = $options->{info};
     if ($info) {
         $info->{first} = $re->[0];
         $info->{last} = $re->[-1];
     }
-    if (defined $options{after}) {
-        if ($re->[0]{epoch} > $options{after}) {
+    if (defined $options->{after}) {
+        if ($re->[0]{epoch} > $options->{after}) {
             if (
                 my $f = first
-                        {$re->[$_]{epoch} <= $options{after}}
+                        {$re->[$_]{epoch} <= $options->{after}}
                         0..$#$re
                ) {
                 $last_item = $f-1;
@@ -1346,11 +1352,11 @@ sub recent_events {
         }
     }
     my $first_item = 0;
-    if (defined $options{before}) {
-        if ($re->[0]{epoch} > $options{before}) {
+    if (defined $options->{before}) {
+        if ($re->[0]{epoch} > $options->{before}) {
             if (
                 my $f = first
-                        {$re->[$_]{epoch} < $options{before}}
+                        {$re->[$_]{epoch} < $options->{before}}
                         0..$last_item
                ) {
                 $first_item = $f;
@@ -1360,11 +1366,11 @@ sub recent_events {
         }
     }
     my @rre = splice @$re, $first_item, 1+$last_item-$first_item;
-    if ($options{'skip-deletes'}) {
+    if ($options->{'skip-deletes'}) {
         @rre = grep { $_->{type} ne "delete" } @rre;
     }
-    if ($options{max} && @rre > $options{max}) {
-        @rre = splice @rre, 0, $options{max};
+    if ($options->{max} && @rre > $options->{max}) {
+        @rre = splice @rre, 0, $options->{max};
     }
     \@rre;
 }

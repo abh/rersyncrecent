@@ -486,16 +486,7 @@ sub rmirror {
       RECENTFILE: for my $i (0..$#$rfs) {
             my $rf = $rfs->[$i];
             if (my $file = $self->_runstatusfile) {
-                require YAML::Syck;
-                YAML::Syck::DumpFile
-                      (
-                       $file,
-                       {i => $i,
-                        options => \%options,
-                        self => $self,
-                        time => time,
-                        uptodate => {map {($_=>$rfs->[$_]->uptodate)} 0..$#$rfs},
-                       });
+                $self->_rmirror_runstatusfile ($file, $i, \%options);
             }
             if (time > $ttleave){
                 # Must make sure that one file can get fetched in any case
@@ -507,42 +498,17 @@ sub rmirror {
             } else {
               WORKUNIT: while (time < $ttleave) {
                     if ($rf->uptodate) {
-                        my $sleep = $rf->sleep_per_connection;
-                        $sleep = 0.42 unless defined $sleep; # XXX accessor!
-                        Time::HiRes::sleep $sleep;
-                        $rfs->[$i+1]->done->merge($rf->done) if $i < $#$rfs;
+                        $self->_rmirror_sleep_per_connection ($i);
                         next RECENTFILE;
                     } else {
-                        my %locopt = %options;
-                        if ($self->_max_one_state) {
-                            $locopt{max} = 1;
-                        }
-                        $locopt{piecemeal} = 1;
-                        $rf->mirror (%locopt);
-                        if ($rf->_seeded) {
-                            $rfs->[$i+1]->seed if $i < $#$rfs;
-                        }
+                        $self->_rmirror_mirror ($i, \%options);
                     }
                 }
             }
         }
         $self->_max_one_state(0);
         if ($rfs->[-1]->uptodate) {
-            my $pathdb = $self->_pathdb();
-            for my $k (keys %$pathdb) {
-                delete $pathdb->{$k};
-            }
-            if (my $ttl = $self->secondaryttl) {
-                if (time > $self->secondary_timestamp + $ttl) {
-                    my @names;
-                    for my $xrf (@{$self->recentfiles}) {
-                        $xrf->seed;
-                        push @names, $xrf->interval;
-                    }
-                    warn "DEBUG: seeded @names\n";
-                    $self->secondary_timestamp(time);
-                }
-            }
+            $self->_rmirror_cleanup;
             if ($options{loop}) {
             } else {
                 last LOOP;
@@ -550,17 +516,87 @@ sub rmirror {
         }
         my $sleep = $ttleave - time;
         if ($sleep > 0.01) {
-            printf STDERR
-                (
-                 "Dorm %d (%s secs)\n",
-                 time,
-                 $sleep,
-                );
-            sleep $sleep;
+            $self->_rmirror_endofloop_sleep ($sleep);
         } else {
             # negative time not invented yet:)
         }
         $_once_per_20s->();
+    }
+}
+
+sub _rmirror_secondaryttl {
+    my($self, $ttl) = @_;
+    if (time > $self->secondary_timestamp + $ttl) {
+        my @names;
+        for my $xrf (@{$self->recentfiles}) {
+            $xrf->seed;
+            push @names, $xrf->interval;
+        }
+        $self->secondary_timestamp(time);
+    }
+}
+
+sub _rmirror_mirror {
+    my($self, $i, $options) = @_;
+    my $rfs = $self->recentfiles;
+    my $rf = $rfs->[$i];
+    my %locopt = %$options;
+    if ($self->_max_one_state) {
+        $locopt{max} = 1;
+    }
+    $locopt{piecemeal} = 1;
+    $rf->mirror (%locopt);
+    if ($rf->_seeded) {
+        $rfs->[$i+1]->seed if $i < $#$rfs;
+    }
+}
+
+sub _rmirror_sleep_per_connection {
+    my($self, $i) = @_;
+    my $rfs = $self->recentfiles;
+    my $rf = $rfs->[$i];
+    my $sleep = $rf->sleep_per_connection;
+    $sleep = 0.42 unless defined $sleep; # XXX accessor!
+    Time::HiRes::sleep $sleep;
+    $rfs->[$i+1]->done->merge($rf->done) if $i < $#$rfs;
+}
+
+sub _rmirror_cleanup {
+    my($self) = @_;
+    my $pathdb = $self->_pathdb();
+    for my $k (keys %$pathdb) {
+        delete $pathdb->{$k};
+    }
+    if (my $ttl = $self->secondaryttl) {
+        $self->_rmirror_secondaryttl ($ttl);
+    }
+}
+
+sub _rmirror_runstatusfile {
+    my($self, $file, $i, $options) = @_;
+    my $rfs = $self->recentfiles;
+    require YAML::Syck;
+    YAML::Syck::DumpFile
+          (
+           $file,
+           {i => $i,
+            options => $options,
+            self => $self,
+            time => time,
+            uptodate => {map {($_=>$rfs->[$_]->uptodate)} 0..$#$rfs},
+           });
+}
+
+sub _rmirror_endofloop_sleep {
+    my($self, $sleep) = @_;
+    if ($self->verbose) {
+        printf STDERR
+            (
+             "Dorm %d (%s secs)\n",
+             time,
+             $sleep,
+            );
+        sleep $sleep;
     }
 }
 

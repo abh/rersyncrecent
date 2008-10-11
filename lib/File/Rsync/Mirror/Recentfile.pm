@@ -240,6 +240,14 @@ supported value is C<naive_path_normalize>. Defaults to that.
 
 A comment about this tree and setup.
 
+=item dirtymark
+
+A timestamp. The dirtymark is updated whenever an out of band change
+on the origin server is performed that violates the protocol. Say,
+they add or remove files in the middle somewhere. Slaves must react
+with a devaluation of their C<done> structure which then leads to a
+full re-sync of all files.
+
 =item filenameroot
 
 The (prefix of the) filename we use for this I<recentfile>. Defaults to
@@ -804,17 +812,25 @@ sub merge {
         }
     }
     if ($something_done) {
-        push @$recent, grep { !$have{$_->{path}}++ } @$my_recent;
-        $self->write_recent($recent);
-        $other->merged({
-                        time => Time::HiRes::time, # not used anywhere
-                        epoch => $epoch, # used in oldest_allowed
-                        into_interval => $self->interval, # not used anywhere
-                       });
-        $other->write_recent($other_recent);
+        $self->_merge_something_done ($recent, $my_recent, $other_recent, $other, \%have, $epoch);
     }
     $self->unlock;
     $other->unlock;
+}
+
+sub _merge_something_done {
+    my($self, $recent, $my_recent, $other_recent, $other, $have, $epoch) = @_;
+    push @$recent, grep { !$have->{$_->{path}}++ } @$my_recent;
+    if (_bigfloatgt($other->dirtymark, $self->dirtymark)) {
+        $self->dirtymark ( $other->dirtymark );
+    }
+    $self->write_recent($recent);
+    $other->merged({
+                    time => Time::HiRes::time, # not used anywhere
+                    epoch => $epoch, # used in oldest_allowed
+                    into_interval => $self->interval, # not used anywhere
+                   });
+    $other->write_recent($other_recent);
 }
 
 sub _merge_sanitycheck {
@@ -880,6 +896,7 @@ sub meta_data {
                "aggregator",
                "canonize",
                "comment",
+               "dirtymark",
                "filenameroot",
                "merged",
                "interval",
@@ -898,6 +915,7 @@ sub meta_data {
                            '$0', $0,
                            'time', Time::HiRes::time,
                           };
+    $ret->{dirtymark} ||= Time::HiRes::time;
     return $ret;
 }
 
@@ -1609,7 +1627,7 @@ resets the error count. See also accessor C<max_rsync_errors>.
 =head2 $clone = $obj->_sparse_clone
 
 Clones just as much from itself that it does not hurt. Experimental
-method. 
+method.
 
 Note: what fits better: sparse or shallow? Other suggestions?
 
@@ -1625,6 +1643,7 @@ sub _sparse_clone {
                   _rfile
                   _use_tempfile
                   aggregator
+                  dirtymark
                   filenameroot
                   is_slave
                   max_files_per_connection

@@ -299,7 +299,7 @@ rmtree [$root_from, $root_to];
 
 {
     # running mirror
-    BEGIN { $tests += 2 }
+    BEGIN { $tests += 4 }
     my $rf = File::Rsync::Mirror::Recentfile->new
         (
          filenameroot   => "RECENT",
@@ -308,6 +308,7 @@ rmtree [$root_from, $root_to];
          max_rsync_errors  => 0,
          remote_dir     => $root_from,
          # verbose        => 1,
+         max_files_per_connection => 512,
          rsync_options  => {
                             compress          => 0,
                             links             => 1,
@@ -343,6 +344,7 @@ rmtree [$root_from, $root_to];
              localroot => $root_to,
              remote => "$root_from/RECENT-5s.yaml",
              # verbose => 1,
+             max_files_per_connection => 512,
              rsync_options => {
                                links => 1,
                                times => 1,
@@ -367,6 +369,7 @@ rmtree [$root_from, $root_to];
              localroot => $root_to,
              remote => "$root_from/RECENT.recent",
              verbose => $Opt{verbose},
+             max_files_per_connection => 512,
              rsync_options => {
                                links => 1,
                                times => 1,
@@ -383,6 +386,23 @@ rmtree [$root_from, $root_to];
         close $fh or die "Could not close '$file': $!";
         $rf2->update($file, "new");
         $recc->rmirror;
+    }
+    {
+        my $recc = File::Rsync::Mirror::Recent->new
+            (
+             # ignore_link_stat_errors => 1,
+             localroot => $root_to,
+             local => "$root_to/RECENT.recent",
+            );
+        my %seen;
+        for my $rf (@{$recc->recentfiles}) {
+            unless (%seen) {
+                my $dirtymark = $rf->dirtymark;
+                ok $dirtymark, "dirtymark[$dirtymark]";
+            }
+            $seen{ $rf->dirtymark }++;
+        }
+        is scalar keys %seen, 1, "all recentfiles have the same dirtymark";
     }
 }
 

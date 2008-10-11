@@ -53,6 +53,7 @@ WriteMakefile
       'File::Basename'   => 0,
       'File::Path'       => 0,
       'File::Temp'       => 0,
+      'List::Pairwise'   => 0,
       'Scalar::Util'     => 0,
       'Time::HiRes'      => 0,
       'YAML::Syck'       => 0,

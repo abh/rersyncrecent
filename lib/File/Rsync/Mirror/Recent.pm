@@ -23,6 +23,7 @@ use File::Copy qw(cp);
 use File::Path qw(mkpath);
 use File::Rsync;
 use File::Temp;
+use List::Pairwise qw(mapp grepp);
 use List::Util qw(first max);
 use Scalar::Util qw(reftype);
 use Storable;
@@ -266,11 +267,17 @@ sub overview {
             my $span = $re->[0]{epoch}-$re->[-1]{epoch};
             $rfsummary =
                 [
+                 "Iv",
                  $rf->interval,
+                 "Cnt",
                  scalar @$re,
-                 sprintf ("%.3f", $re->[0]{epoch}),
-                 sprintf ("%.3f", $re->[-1]{epoch}),
-                 sprintf ("%.3f", $span),
+                 "Max",
+                 sprintf ("%.2f", $re->[0]{epoch}),
+                 "Min",
+                 sprintf ("%.2f", $re->[-1]{epoch}),
+                 "Span",
+                 sprintf ("%.2f", $span),
+                 "Util", # u9n:)
                  ($rf->interval eq "Z"
                   ?
                   "-"
@@ -278,7 +285,7 @@ sub overview {
                   sprintf ("%5.1f%%", 100 * $span / $rf->interval_secs)
                  ),
                 ];
-            @rank{@{$rfsummary}[2,3]} = ();
+            @rank{mapp {$b} grepp {$a =~ /^(Max|Min)$/} @$rfsummary} = ();
         } else {
             next RECENTFILE;
         }
@@ -286,35 +293,27 @@ sub overview {
     }
     @rank{sort {$b <=> $a} keys %rank} = 1..keys %rank;
     my $maxrank = max values %rank;
-    for my $s (@s) {
+    for my $rfsummary (@s) {
         my $string = " " x $maxrank;
         my @borders;
-        for (2,3) {
-            push @borders, $rank{$s->[$_]}-1;
+        for my $ele (qw(Max Min)) {
+            my($r) = mapp {$b} grepp {$a eq $ele} @$rfsummary;
+            push @borders, $rank{$r}-1;
         }
         for ($borders[0],$borders[1]) {
             substr($string,$_,1) = "^";
         }
-        push @$s, $string;
+        push @$rfsummary, "Cloud", $string;
     }
     my @sprintf;
-    for my $i (0..$#{$s[0]}) {
-        my $maxlength = max map { length $_->[$i] } @s;
+    for  (my $i = 0; $i <= $#{$s[0]}; $i+=2) {
+        my $maxlength = max map { length $_->[$i+1] } @s;
         push @sprintf, "%" . $maxlength . "s";
     }
     my $sprintf = join " ", @sprintf;
     $sprintf .= "\n";
-    my $headline = sprintf $sprintf,
-        (
-         "",
-         "Cnt",
-         "Max",
-         "Min",
-         "Span",
-         "Util", # u9n:)
-         "Cloud",
-        );
-    join "", $headline, map { sprintf $sprintf, @$_ } @s;
+    my $headline = sprintf $sprintf, mapp {$a} @{$s[0]};
+    join "", $headline, map { sprintf $sprintf, mapp {$b} @$_ } @s;
 }
 
 =head2 _pathdb

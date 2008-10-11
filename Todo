@@ -1,3 +1,7 @@
+2008-10-11  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* dirtymark now lives in Recentfile, needs to be used in rmirror.
+
 2008-10-10  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* Slaven suggests to have the current epoch or the whole current

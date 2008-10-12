@@ -980,7 +980,7 @@ sub mirror {
         }
     }
     # once we've gone to the end we consider ourselve free of obligations
-    $self->_seeded(0);
+    $self->unseed;
     $self->_mirror_unhide_tempfile ($trecentfile);
     $self->_mirror_perform_delayed_ops;
     return !@error;
@@ -1721,6 +1721,16 @@ sub unlock {
     $self->_is_locked (0);
 }
 
+=head2 unseed
+
+Sets this recentfile in the state of not 'seeded'.
+
+=cut
+sub unseed {
+    my($self) = @_;
+    $self->seeded(0);
+}
+
 =head2 $ret = $obj->update ($path, $type)
 
 Enter one file into the local I<recentfile>. $path is the (usually
@@ -1792,12 +1802,31 @@ sub update {
 
 =head2 seed
 
-Sets this recentfile in the state to re-evaluate its uptodateness.
+Sets this recentfile in the state of 'seeded' which means it has to
+re-evaluate its uptodateness.
 
 =cut
 sub seed {
     my($self) = @_;
-    $self->_seeded(1);
+    $self->seeded(1);
+}
+
+=head2 seeded
+
+Tells if the recentfile is in the state 'seeded'.
+
+=cut
+sub seeded {
+    my($self, $set) = @_;
+    if (defined $set) {
+        $self->_seeded ($set);
+    }
+    my $x = $self->_seeded;
+    unless (defined $x) {
+        $x = 0;
+        $self->_seeded ($x);
+    }
+    return $x;
 }
 
 =head2 uptodate
@@ -1812,7 +1841,7 @@ sub uptodate {
     my($self) = @_;
     my $uptodate;
     my $why;
-    if ($self->_uptodateness_ever_reached and not $self->_seeded) {
+    if ($self->_uptodateness_ever_reached and not $self->seeded) {
         $why = "saturated";
         $uptodate = 1;
     }
@@ -1845,7 +1874,7 @@ sub uptodate {
     }
     if ($uptodate) {
         $self->_uptodateness_ever_reached(1);
-        $self->_seeded(0);
+        $self->unseed;
     }
     my $remember =
         {

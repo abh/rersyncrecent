@@ -547,7 +547,7 @@ sub _rmirror_mirror {
     }
     $locopt{piecemeal} = 1;
     $rf->mirror (%locopt);
-    if ($rf->_seeded) {
+    if ($rf->seeded) {
         $rfs->[$i+1]->seed if $i < $#$rfs;
     }
 }

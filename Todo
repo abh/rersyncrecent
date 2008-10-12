@@ -2,7 +2,7 @@
 
 	* another bug is the fact that the mirror command deletes files before
 	it unhides the index file, thus confusing downstream slaves. We must not
-	delete before unhiding and must delete after unhiding. Sigh.
+	delete before unhiding and must delete after unhiding. FIXED.
 
 	* new complication about the slave that is playing a server role.
 	Currently we mirror from newest to oldest with a hidden temporary file

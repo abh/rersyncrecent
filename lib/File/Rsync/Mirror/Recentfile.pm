@@ -493,18 +493,6 @@ sub done {
     return $done;
 }
 
-=head2 $success = $obj->full_mirror
-
-(TBD) Mirrors the whole remote site, starting with the smallest I<recentfile>,
-switching to larger ones ...
-
-=cut
-
-sub full_mirror {
-    my($self) = @_;
-    die "FIXME: Not yet implemented";
-}
-
 =head2 $tempfilename = $obj->get_remote_recentfile_as_tempfile ()
 
 Stores the remote I<recentfile> locally as a tempfile. The caller is

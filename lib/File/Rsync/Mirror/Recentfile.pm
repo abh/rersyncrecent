@@ -205,6 +205,7 @@ BEGIN {
     @accessors = (
                   "_current_tempfile",
                   "_current_tempfile_fh",
+                  "_delayed_operations",
                   "_done",
                   "_interval",
                   "_is_locked",
@@ -471,6 +472,27 @@ sub _assert_symlink {
         cp $self->rfilename, "$recentrecentfile.$$" or die "Could not copy to '$recentrecentfile.$$': $!";
         rename "$recentrecentfile.$$", $recentrecentfile or die "Could not rename '$recentrecentfile.$$' to $recentrecentfile: $!";
     }
+}
+
+=head2 $hashref = $obj->delayed_operations
+
+A hash of hashes containing unlink and rmdir operations which had to
+wait until the recentfile got unhidden in order to not confuse
+downstream mirrors (in case we have some).
+
+=cut
+
+sub delayed_operations {
+    my($self) = @_;
+    my $x = $self->_delayed_operations;
+    unless (defined $x) {
+        $x = {
+              unlink => {},
+              rmdir => {},
+             };
+        $self->_delayed_operations ($x);
+    }
+    return $x;
 }
 
 =head2 $done = $obj->done
@@ -960,6 +982,7 @@ sub mirror {
     # once we've gone to the end we consider ourselve free of obligations
     $self->_seeded(0);
     $self->_mirror_unhide_tempfile ($trecentfile);
+    $self->_mirror_perform_delayed_ops;
     return !@error;
 }
 
@@ -1010,16 +1033,10 @@ sub _mirror_item {
             if (! -e $dst) {
                 $activity = "not_found";
             } elsif (-l $dst or not -d _) {
-                unless (unlink $dst) {
-                    require Carp;
-                    Carp::cluck ( "Warning: Error while unlinking '$dst': $!" );
-                }
+                $self->delayed_operations->{unlink}{$dst}++;
                 $activity = "deleted";
             } else {
-                unless (rmdir $dst) {
-                    require Carp;
-                    Carp::cluck ( "Warning: Error on rmdir '$dst': $!" );
-                }
+                $self->delayed_operations->{rmdir}{$dst}++;
                 $activity = "deleted";
             }
         }
@@ -1122,6 +1139,25 @@ sub _mirror_unhide_tempfile {
         $self->_current_tempfile_fh (undef);
     }
 
+}
+
+sub _mirror_perform_delayed_ops {
+    my($self) = @_;
+    my $delayed = $self->delayed_operations;
+    for my $dst (keys %{$delayed->{unlink}}) {
+        unless (unlink $dst) {
+            require Carp;
+            Carp::cluck ( "Warning: Error while unlinking '$dst': $!" );
+        }
+        delete $delayed->{unlink}{$dst};
+    }
+    for my $dst (keys %{$delayed->{rmdir}}) {
+        unless (rmdir $dst) {
+            require Carp;
+            Carp::cluck ( "Warning: Error on rmdir '$dst': $!" );
+        }
+        delete $delayed->{rmdir}{$dst};
+    }
 }
 
 =head2 (void) $obj->mirror_loop

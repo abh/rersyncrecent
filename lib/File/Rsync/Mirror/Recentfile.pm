@@ -959,16 +959,7 @@ sub mirror {
     }
     # once we've gone to the end we consider ourselve free of obligations
     $self->_seeded(0);
-    my $rfile = $self->rfile;
-    unless (rename $trecentfile, $rfile) {
-        require Carp;
-        Carp::confess("Could not rename '$trecentfile' to '$rfile': $!");
-    }
-    $self->_use_tempfile (0);
-    if (my $ctfh = $self->_current_tempfile_fh) {
-        $ctfh->unlink_on_destroy (0);
-        $self->_current_tempfile_fh (undef);
-    }
+    $self->_mirror_unhide_tempfile ($trecentfile);
     return !@error;
 }
 
@@ -1116,6 +1107,21 @@ sub _mirror_register_path {
              ($activity."_on") => $time,
             };
     }
+}
+
+sub _mirror_unhide_tempfile {
+    my($self, $trecentfile) = @_;
+    my $rfile = $self->rfile;
+    unless (rename $trecentfile, $rfile) {
+        require Carp;
+        Carp::confess("Could not rename '$trecentfile' to '$rfile': $!");
+    }
+    $self->_use_tempfile (0);
+    if (my $ctfh = $self->_current_tempfile_fh) {
+        $ctfh->unlink_on_destroy (0);
+        $self->_current_tempfile_fh (undef);
+    }
+
 }
 
 =head2 (void) $obj->mirror_loop

@@ -947,7 +947,7 @@ sub mirror {
         return if $status->{mustreturn};
     }
     if (@xcollector) {
-        my $success = eval { $self->_empty_xcollector (\@xcollector,$pathdb,$recent_events);};
+        my $success = eval { $self->_mirror_empty_xcollector (\@xcollector,$pathdb,$recent_events);};
         if (!$success || $@) {
             warn "Warning: Unknown error while mirroring: $@";
             push @error, $@;
@@ -1034,7 +1034,7 @@ sub _mirror_item {
         }
         $done->register ($recent_events, [$i]);
         if ($pathdb) {
-            $self->_register_path($pathdb,[$recent_event],$activity);
+            $self->_mirror_register_path($pathdb,[$recent_event],$activity);
         }
     } else {
         warn "Warning: invalid upload type '$recent_event->{type}'";
@@ -1074,7 +1074,7 @@ sub _mirror_item_new {
     }
     push @$xcollector, { rev => $recent_event, i => $i };
     if (@$xcollector >= $max_files_per_connection) {
-        $success = eval {$self->_empty_xcollector ($xcollector,$pathdb,$recent_events);};
+        $success = eval {$self->_mirror_empty_xcollector ($xcollector,$pathdb,$recent_events);};
         my $sleep = $self->sleep_per_connection;
         $sleep = 0.42 unless defined $sleep;
         Time::HiRes::sleep $sleep;
@@ -1095,18 +1095,18 @@ sub _mirror_item_new {
     }
 }
 
-sub _empty_xcollector {
+sub _mirror_empty_xcollector {
     my($self,$xcoll,$pathdb,$recent_events) = @_;
     my $success = $self->mirror_path([map {$_->{rev}{path}} @$xcoll]);
     if ($pathdb) {
-        $self->_register_path($pathdb,[map {$_->{rev}} @$xcoll],"rsync");
+        $self->_mirror_register_path($pathdb,[map {$_->{rev}} @$xcoll],"rsync");
     }
     $self->done->register($recent_events, [map {$_->{i}} @$xcoll]);
     @$xcoll = ();
     return $success;
 }
 
-sub _register_path {
+sub _mirror_register_path {
     my($self,$pathdb,$coll,$activity) = @_;
     my $time = time;
     for my $item (@$coll) {

@@ -768,7 +768,7 @@ Bulk update of this object with another one. It's used to merge a
 smaller and younger $other object into the current one. If this file
 is a C<Z> file, then we do not merge in objects of type C<delete>. But
 if we encounter an object of type delete we delete the corresponding
-C<new> object.
+C<new> object if we have it.
 
 If there is nothing to be merged, nothing is done.
 

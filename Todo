@@ -21,8 +21,20 @@
 	merged element of the next rf and when it has dropped off, we seed
 	immediately. And if it ramains dropped off, we seed again, of course.
 
+	Nope, looking from smaller to larger RFS we look at the merged element
+	of this RF and at the minmax/max element of the next RF. If that
+	$rf[next]->{minmax}{max} >= $rf[this]->{merged}{epoch}, then we can stop
+	seeding it.
+
 	And we need a public accessor seed and unseed or seeded. But not the mix
 	of public and private stuff that then is used behind the back.
+
+	And then the secondary* stuff must go.
+
+	And we must understand what the impact is on the DONE system. Can it go
+	unnoticed that there was a hole? And could the DONE system have decided
+	the hole is covered? This sould be testable with three directories where
+	the middle stops working for a while.
 	
 	* dirtymark now lives in Recentfile, needs to be used in rmirror.
 

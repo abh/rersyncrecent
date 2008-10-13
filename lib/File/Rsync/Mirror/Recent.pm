@@ -268,6 +268,7 @@ sub overview {
         my $rfsummary;
         if (@$re) {
             my $span = $re->[0]{epoch}-$re->[-1]{epoch};
+            my $merged = $rf->merged;
             $rfsummary =
                 [
                  "Ival",
@@ -276,6 +277,8 @@ sub overview {
                  scalar @$re,
                  "Dirtymark",
                  $rf->dirtymark ? sprintf("%.2f",$rf->dirtymark) : "-",
+                 "Merged",
+                 sprintf ("%.2f", $merged->{epoch} || 0),
                  "Max",
                  sprintf ("%.2f", $re->[0]{epoch}),
                  "Min",

@@ -68,7 +68,11 @@ my $rf = File::Rsync::Mirror::Recent->new
     (
      local => $ARGV[0],
     );
-print $rf->overview();
+my @args;
+if ($Opt{verbose}) {
+    push @args, "verbose", $Opt{verbose};
+}
+print $rf->overview(@args);
 
 __END__
 

@@ -165,7 +165,8 @@ this interval.
 
 =item verbose
 
-Boolean to turn on a bit verbosity.
+Boolean to turn on a bit verbosity. This is in experimental stage, we
+will have to decide which output we want when the dust has settled.
 
 =back
 
@@ -250,14 +251,16 @@ sub news {
     $ret;
 }
 
-=head2 overview
+=head2 overview ( %options )
 
 returns a string that summarizes the state of all recentfiles
 collected in this Recent object.
 
+$options{verbose}=1 increases the number of data displayed.
+
 =cut
 sub overview {
-    my($self) = @_;
+    my($self,%options) = @_;
     my $rfs = $self->recentfiles;
     my(@s,%rank);
   RECENTFILE: for my $rf (@$rfs) {
@@ -306,6 +309,12 @@ sub overview {
             substr($string,$_,1) = "^";
         }
         push @$rfsummary, "Cloud", $string;
+    }
+    unless ($options{verbose}) {
+        my %filter = map {($_=>1)} qw(Ival Cnt Max Min Span Util Cloud);
+        for (@s) {
+            $_ = [mapp {($a,$b)} grepp {$filter{$a}>0} @$_];
+        }
     }
     my @sprintf;
     for  (my $i = 0; $i <= $#{$s[0]}; $i+=2) {

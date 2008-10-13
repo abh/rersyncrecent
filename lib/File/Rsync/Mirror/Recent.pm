@@ -316,7 +316,7 @@ sub overview {
     unless ($options{verbose}) {
         my %filter = map {($_=>1)} qw(Ival Cnt Max Min Span Util Cloud);
         for (@s) {
-            $_ = [mapp {($a,$b)} grepp {$filter{$a}>0} @$_];
+            $_ = [mapp {($a,$b)} grepp {!!$filter{$a}} @$_];
         }
     }
     my @sprintf;

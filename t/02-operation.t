@@ -334,8 +334,8 @@ rmtree [$root_from, $root_to];
             (  # ($root_from, $root_to)
              local => "$root_from/RECENT-5s.yaml",
             );
-        diag "\n";
-        diag $recc->overview;
+        #diag "\n";
+        #diag $recc->overview;
     }
     {
         my $recc = File::Rsync::Mirror::Recent->new
@@ -359,8 +359,8 @@ rmtree [$root_from, $root_to];
             (  # ($root_from, $root_to)
              local => "$root_from/RECENT-5s.yaml",
             );
-        diag "\n";
-        diag $recc->overview;
+        #diag "\n";
+        #diag $recc->overview;
     }
     {
         my $recc = File::Rsync::Mirror::Recent->new

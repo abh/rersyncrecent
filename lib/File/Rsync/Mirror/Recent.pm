@@ -22,6 +22,7 @@ use File::Basename qw(basename dirname fileparse);
 use File::Copy qw(cp);
 use File::Path qw(mkpath);
 use File::Rsync;
+use File::Rsync::Mirror::Recentfile::FakeBigFloat qw(:all);
 use File::Temp;
 use List::Pairwise qw(mapp grepp);
 use List::Util qw(first max);
@@ -149,19 +150,6 @@ File::Rsync object used to run the mirror.
 =item ttl
 
 Minimum time before fetching the principal recentfile again.
-
-=item secondary_timestamp
-
-Remembers when we ttl'd the secondary recentfile objects (not the
-principal) for the last time.
-
-=item secondaryttl
-
-During normal, healthy operation, only the principal recentfile is
-needed on slaves. But sometimes it is desireable to fetch them all,
-even if we have downloaded the whole lot of ordinary files. If
-secondaryttl is set, we will update the unneeded recentfiles after
-this interval.
 
 =item verbose
 
@@ -457,7 +445,6 @@ parameter:
          _runstatusfile => "recent-rmirror-state-$t.yml",
          _logfilefordone => "recent-rmirror-donelog-$t.log",
          ttl => 5,
-         secondaryttl => 900,
       );
       push @rrr, $rrr;
   }
@@ -492,8 +479,6 @@ sub rmirror {
             $rfs->[$i]->done->_logfile($logfile);
         }
     }
-    $self->secondary_timestamp(time) unless
-        $self->secondary_timestamp();
   LOOP: while () {
         my $ttleave = time + $minimum_time_per_loop;
       RECENTFILE: for my $i (0..$#$rfs) {
@@ -506,7 +491,9 @@ sub rmirror {
                 $self->_max_one_state(1);
             }
             if ($rf->uptodate){
-                $rfs->[$i+1]->done->merge($rf->done) if $i < $#$rfs;
+                if ($i < $#$rfs){
+                    $rfs->[$i+1]->done->merge($rf->done);
+                }
                 next RECENTFILE;
             } else {
               WORKUNIT: while (time < $ttleave) {
@@ -537,18 +524,6 @@ sub rmirror {
     }
 }
 
-sub _rmirror_secondaryttl {
-    my($self, $ttl) = @_;
-    if (time > $self->secondary_timestamp + $ttl) {
-        my @names;
-        for my $xrf (@{$self->recentfiles}) {
-            $xrf->seed;
-            push @names, $xrf->interval;
-        }
-        $self->secondary_timestamp(time);
-    }
-}
-
 sub _rmirror_mirror {
     my($self, $i, $options) = @_;
     my $rfs = $self->recentfiles;
@@ -559,9 +534,6 @@ sub _rmirror_mirror {
     }
     $locopt{piecemeal} = 1;
     $rf->mirror (%locopt);
-    if ($rf->seeded) {
-        $rfs->[$i+1]->seed if $i < $#$rfs;
-    }
 }
 
 sub _rmirror_sleep_per_connection {
@@ -580,8 +552,15 @@ sub _rmirror_cleanup {
     for my $k (keys %$pathdb) {
         delete $pathdb->{$k};
     }
-    if (my $ttl = $self->secondaryttl) {
-        $self->_rmirror_secondaryttl ($ttl);
+    my $rfs = $self->recentfiles;
+    for my $i (0..$#$rfs-1) {
+        my $thismerged = $rfs->[$i]->merged;
+        my $next = $rfs->[$i+1];
+        my $nextminmax = $next->minmax;
+        if (_bigfloatlt($nextminmax->{max},$thismerged->{epoch})){
+            $next->seed;
+            warn sprintf "DEBUG: %s seeded\n", $next->interval;
+        }
     }
 }
 

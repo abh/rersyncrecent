@@ -1,3 +1,7 @@
+2008-10-14  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* revisit all $rfs->[$i+1] places if they now make sense still
+
 2008-10-11  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* another bug is the fact that the mirror command deletes files before
@@ -33,10 +37,10 @@
 
 	And we must understand what the impact is on the DONE system. Can it go
 	unnoticed that there was a hole? And could the DONE system have decided
-	the hole is covered? This sould be testable with three directories where
+	the hole is covered? This should be testable with three directories where
 	the middle stops working for a while. Done->merge is suspicious, we must
 	stop it from merging non-conflatable neighbors due to broken continuity.
-	
+
 	* dirtymark now lives in Recentfile, needs to be used in rmirror.
 
 2008-10-10  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>

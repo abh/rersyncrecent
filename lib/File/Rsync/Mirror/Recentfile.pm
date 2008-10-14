@@ -837,7 +837,7 @@ sub _merge_something_done {
     $self->write_recent($recent);
     $other->merged({
                     time => Time::HiRes::time, # not used anywhere
-                    epoch => $my_recent->[0]{epoch},
+                    epoch => $recent->[0]{epoch},
                     into_interval => $self->interval, # not used anywhere
                    });
     $other->write_recent($other_recent);

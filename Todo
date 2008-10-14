@@ -34,7 +34,8 @@
 	And we must understand what the impact is on the DONE system. Can it go
 	unnoticed that there was a hole? And could the DONE system have decided
 	the hole is covered? This sould be testable with three directories where
-	the middle stops working for a while.
+	the middle stops working for a while. Done->merge is suspicious, we must
+	stop it from merging non-conflatable neighbors due to broken continuity.
 	
 	* dirtymark now lives in Recentfile, needs to be used in rmirror.
 

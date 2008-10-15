@@ -1,3 +1,21 @@
+2008-10-15  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* reconsider the HTTP epoch only. Not the whole thing over HTTP because
+	it makes less sense with tight coupling for secondary files. But asking
+	the server what the current epoch is might be cheaper on HTTP than on
+	rsync. (Needs to be evaluated)
+
+	* remove the 0.00 from the verbose overview in the Merged column in the
+	Z row.
+
+	* write tests that expose the problems of the last few days: cascading
+	client/server roles, tight coupling for secondary RFs, deletes after
+	copies.
+
+	* Some day we might want to have policy options for the slave:
+	tight/loose/no coupling with upstream for secondary RFs. tight is what
+	we have now. loose would wait until a gap occurs that can be closed.
+
 2008-10-14  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* revisit all $rfs->[$i+1] places if they now make sense still
@@ -40,6 +58,8 @@
 	the hole is covered? This should be testable with three directories where
 	the middle stops working for a while. Done->merge is suspicious, we must
 	stop it from merging non-conflatable neighbors due to broken continuity.
+
+	FIXED
 
 	* dirtymark now lives in Recentfile, needs to be used in rmirror.
 

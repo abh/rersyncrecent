@@ -584,7 +584,10 @@ sub get_remote_recentfile_as_tempfile {
             last;
         }
     }
-    unless ($gaveup) {
+    if ($gaveup) {
+        printf STDERR "Warning: gave up mirroring %s, will try again later", $self->interval;
+    } else {
+        $self->_refresh_internals ($dst);
         $self->have_mirrored (Time::HiRes::time);
         $self->un_register_rsync_error ();
     }
@@ -966,6 +969,7 @@ sub mirror {
              $status,
              \@error,
             );
+        last if $i == $last_item;
         return if $status->{mustreturn};
     }
     if (@xcollector) {
@@ -975,9 +979,9 @@ sub mirror {
             push @error, $@;
             sleep 1;
         }
-        if ($self->verbose) {
-            print STDERR "DONE\n";
-        }
+    }
+    if ($self->verbose) {
+        print STDERR "DONE\n";
     }
     # once we've gone to the end we consider ourselve free of obligations
     $self->unseed;
@@ -1129,7 +1133,9 @@ sub _mirror_register_path {
 sub _mirror_unhide_tempfile {
     my($self, $trecentfile) = @_;
     my $rfile = $self->rfile;
-    unless (rename $trecentfile, $rfile) {
+    if (rename $trecentfile, $rfile) {
+        warn "DEBUG: renamed '$trecentfile' to '$rfile'";
+    } else {
         require Carp;
         Carp::confess("Could not rename '$trecentfile' to '$rfile': $!");
     }
@@ -1138,7 +1144,6 @@ sub _mirror_unhide_tempfile {
         $ctfh->unlink_on_destroy (0);
         $self->_current_tempfile_fh (undef);
     }
-
 }
 
 sub _mirror_perform_delayed_ops {
@@ -1466,6 +1471,18 @@ sub _try_deserialize {
         $serializer->raw_deserialize($serialized);
     } else {
         die "Data::Serializer not installed, cannot proceed with suffix '$suffix'";
+    }
+}
+
+sub _refresh_internals {
+    my($self, $dst) = @_;
+    my $class = ref $self;
+    my $rfpeek = $class->new_from_file ($dst);
+    for my $acc (qw(
+                    _merged
+                    minmax
+                   )) {
+        $self->$acc ( $rfpeek->$acc );
     }
 }
 

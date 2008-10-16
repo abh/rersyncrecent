@@ -165,7 +165,7 @@ sub merge {
 
 =head2 (void) $obj->register ( $recent_events_arrayref )
 
-The first arrayref is a list fo hashes that contain a key called
+The first arrayref is a list of hashes that contain a key called
 C<epoch> which is a string looking like a number. The second arrayref
 is a list if integers which point to elements in the first arrayref to
 be registered.

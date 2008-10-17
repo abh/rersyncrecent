@@ -300,13 +300,28 @@ sub _register_one_fold2 {
     }
 }
 
+=head2 reset
+
+Forgets everything ever done and gives way for a new round of
+mirroring. Usually called when the dirtymark on upstream has changed.
+
+=cut
+
+sub reset {
+    my($self) = @_;
+    $self->_intervals(undef);
+}
+
 =head1 PRIVATE METHODS
 
 =head2 _intervals
 
 =cut
 sub _intervals {
-    my($self) = @_;
+    my($self,$set) = @_;
+    if (@_ >= 2) {
+        $self->__intervals($set);
+    }
     my $x = $self->__intervals;
     unless (defined $x) {
         $x = [];

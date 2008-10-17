@@ -1134,7 +1134,7 @@ sub _mirror_unhide_tempfile {
     my($self, $trecentfile) = @_;
     my $rfile = $self->rfile;
     if (rename $trecentfile, $rfile) {
-        warn "DEBUG: renamed '$trecentfile' to '$rfile'";
+        # warn "DEBUG: renamed '$trecentfile' to '$rfile'";
     } else {
         require Carp;
         Carp::confess("Could not rename '$trecentfile' to '$rfile': $!");
@@ -1483,6 +1483,13 @@ sub _refresh_internals {
                     minmax
                    )) {
         $self->$acc ( $rfpeek->$acc );
+    }
+    my $old_dirtymark = $self->dirtymark;
+    my $new_dirtymark = $rfpeek->dirtymark;
+    if ($old_dirtymark && $new_dirtymark && _bigfloatgt($new_dirtymark,$old_dirtymark)) {
+        $self->done->reset;
+        $self->dirtymark ( $new_dirtymark );
+        $self->seed;
     }
 }
 

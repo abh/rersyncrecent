@@ -63,8 +63,6 @@ use File::Rsync::Mirror::Recentfile::FakeBigFloat qw(_increase_a_bit _bigfloatlt
             ok _bigfloatlt($ret, $x->[1]), "R: $ret < $x->[1]";
         }
     }
-    diag sprintf 'testing "native" big math: "123456789123456789.2" <=> "123456789123456790" [%d]',
-        "123456789123456789.2" <=> "123456789123456790";
 }
 
 BEGIN { plan tests => $tests }

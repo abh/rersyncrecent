@@ -10,10 +10,6 @@ use File::Rsync::Mirror::Recentfile;
 
 File::Rsync::Mirror::Recent - mirroring via rsync made efficient
 
-=head1 VERSION
-
-Version 0.0.1
-
 =cut
 
 package File::Rsync::Mirror::Recent;

@@ -240,7 +240,35 @@ sub news {
 returns a string that summarizes the state of all recentfiles
 collected in this Recent object.
 
-$options{verbose}=1 increases the number of data displayed.
+$options{verbose}=1 increases the number of columns displayed.
+
+Here is an example output:
+
+ Ival   Cnt           Max           Min       Span   Util          Cloud
+   1h    47 1225053014.38 1225049650.91    3363.47  93.4% ^  ^
+   6h   324 1225052939.66 1225033394.84   19544.82  90.5%  ^   ^
+   1d   437 1225049651.53 1224966402.53   83248.99  96.4%   ^    ^
+   1W  1585 1225039015.75 1224435339.46  603676.29  99.8%     ^    ^
+   1M  5855 1225017376.65 1222428503.57 2588873.08  99.9%       ^    ^
+   1Q 17066 1224578930.40 1216803512.90 7775417.50 100.0%         ^   ^
+   1Y 15901 1223966162.56 1216766820.67 7199341.89  22.8%           ^  ^
+    Z  9909 1223966162.56 1216766820.67 7199341.89      -           ^  ^
+
+I<Max> is the name of the interval.
+
+I<Cnt> is the number of entries in this recentfile.
+
+I<Max> is the highest(first) epoch in this recentfile, rounded.
+
+I<Min> is the lowest(last) epoch in thie recentfile, rounded.
+
+I<Span> is the timespan currently covered, rounded.
+
+I<Util> is I<Span> devided by the designated timespan of this
+recentfile.
+
+I<Cloud> is ascii art illustrating the sequence of the Max and Min
+timestamps.
 
 =cut
 sub overview {
@@ -262,7 +290,11 @@ sub overview {
                  "Dirtymark",
                  $rf->dirtymark ? sprintf("%.2f",$rf->dirtymark) : "-",
                  "Merged",
-                 sprintf ("%.2f", $merged->{epoch} || 0),
+                 ($rf->interval eq "Z"
+                  ?
+                  "-"
+                  :
+                  sprintf ("%.2f", $merged->{epoch} || 0)),
                  "Max",
                  sprintf ("%.2f", $re->[0]{epoch}),
                  "Min",

@@ -160,6 +160,17 @@ use accessors @accessors;
 
 =head1 METHODS
 
+=head2 $bool = $obj->contains ( %query )
+
+(TBD)
+
+=cut
+
+sub contains {
+    my($self, %query) = @_;
+    
+}
+
 =head2 $arrayref = $obj->news ( %options )
 
 XXX WORK IN PROGRESS XXX
@@ -219,10 +230,10 @@ sub news {
             last;
         }
         if ($opt{after}){
-            if ( $locopt{info}{last} && $locopt{info}{last}{epoch} < $opt{after} ) {
+            if ( $locopt{info}{last} && _bigfloatlt($locopt{info}{last}{epoch},$opt{after}) ) {
                 last;
             }
-            if ( $opt{after} > $locopt{info}{first}{epoch} ) {
+            if ( _bigfloatgt($opt{after},$locopt{info}{first}{epoch}) ) {
                 last;
             }
         }
@@ -230,7 +241,7 @@ sub news {
             next;
         }
         $before = $res->[-1]{epoch};
-        $before = $opt{before} if $opt{before} && $opt{before} < $before;
+        $before = $opt{before} if $opt{before} && _bigfloatlt($opt{before},$before);
     }
     $ret;
 }

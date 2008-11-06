@@ -1,3 +1,33 @@
+2008-10-31  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* memory leak in the syncher? It currently weighs 100M.
+
+	Update 2008-11-02:
+
+	root     10705  1.0  4.9  80192 76596 pts/32   S+   Nov02  24:05 /home/src/perl/repoperls/installed-perls/perl/pVNtS9N/perl-5.8.0@32642/bin/perl -Ilib /home/k/sources/CPAN/GIT/trunk/bin/testing-rmirror.pl
+
+
+2008-10-29  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* lookup by epoch and by path and use this ability on the pause to never
+	again register a file twice that doesn't need it. Let's call it
+	contains().
+	
+	* after the dirtymark is done: fill up recentfiles with fake (historic)
+	entries; fill up with individual corrections; algorithm maybe to be done
+	with bigfloat so that we can always place something in the middle
+	between two entries. Before we must switch to bigfloat we could try to
+	use Data::Float::nextup to get the.
+
+	* Inotify2 on an arbitrary tree and then play with that instead of PAUSE
+	directly.
+
+	* dirtymark now lives in Recentfile, needs to be used in rmirror.
+
+	* find out why the downloader died after a couple of hours without a net
+	connection. Write a test that survives the not-existence of the other
+	end forever.
+
 2008-10-15  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* reconsider the HTTP epoch only. Not the whole thing over HTTP because
@@ -6,7 +36,7 @@
 	rsync. (Needs to be evaluated)
 
 	* remove the 0.00 from the verbose overview in the Merged column in the
-	Z row.
+	Z row. DONE
 
 	* write tests that expose the problems of the last few days: cascading
 	client/server roles, tight coupling for secondary RFs, deletes after
@@ -61,8 +91,6 @@
 
 	FIXED
 
-	* dirtymark now lives in Recentfile, needs to be used in rmirror.
-
 2008-10-10  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* Slaven suggests to have the current epoch or the whole current
@@ -108,18 +136,6 @@
 	And it implies that the out-of-band change in any of the recentfiles
 	must have a lock on the principal file and there is the place to set the
 	dirtymark.
-
-	* after the dirtymark is done: fill up recentfiles with fake (historic)
-	entries; fill up with individual corrections; algorithm maybe to be done
-	with bigfloat so that we can always place something in the middle
-	between two entries. Before we must switch to bigfloat we could try to
-	use Data::Float::nextup to get the.
-
-	* lookup by epoch and by path and use this ability on the pause to never
-	again register a file twice that doesn't need it.
-	
-	* Inotify2 on an arbitrary tree and then play with that instead of PAUSE
-	directly.
 
 	* start a FAQ, especially quick start guide questions. Also to aid those
 	problematic areas where we have no good solution, like the "links"

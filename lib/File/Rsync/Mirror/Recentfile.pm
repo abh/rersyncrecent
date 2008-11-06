@@ -2142,6 +2142,7 @@ places. Uses a small metadata cocktail and pull technology.
 
  rsnapshot           www.rsnapshot.org                       focus on backup
  csync               www.csync.org                           more like unison
+ multi-rsync         sourceforge 167893                      lan push to many
 
 =head2 COMPETITORS
 

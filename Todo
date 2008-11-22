@@ -1,3 +1,14 @@
+2008-11-22  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* bzcat uploads.csv.bz2 | perl -F, -nale '$Seen{$F[-1]}++ and print'
+
+	Strangest output being HAKANARDO who managed to upload 
+
+	Here is a better oneliner that includes also the first line of each
+	finding:
+
+	bzcat uploads.csv.bz2 | perl -MYAML::Syck -F, -nale '$F[-1]=~s/\s+\z//; push @{$Seen{$F[-1]}||=[]},$_; END {for my $k (keys %Seen){ delete $Seen{$k} if @{$Seen{$k}}==1; } print YAML::Syck::Dump(\%Seen)}'
+
 2008-10-31  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* memory leak in the syncher? It currently weighs 100M.

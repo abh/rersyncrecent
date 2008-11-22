@@ -294,7 +294,7 @@ Defaults to the arbitrary value 42.
 =item max_rsync_errors
 
 When rsync operations encounter that many errors without any resetting
-success in between, then we die. Defaults to arbitrary 12. A value of
+success in between, then we die. Defaults to unlimited. A value of
 -1 means we run forever ignoring all rsync errors.
 
 =item minmax
@@ -1644,7 +1644,7 @@ resets the error count. See also accessor C<max_rsync_errors>.
         $no_success_time = time;
         $no_success_count++;
         my $max_rsync_errors = $self->max_rsync_errors;
-        $max_rsync_errors = 12 unless defined $max_rsync_errors;
+        $max_rsync_errors = MAX_INT unless defined $max_rsync_errors;
         if ($max_rsync_errors>=0 && $no_success_count >= $max_rsync_errors) {
             require Carp;
             Carp::confess
@@ -1658,7 +1658,7 @@ resets the error count. See also accessor C<max_rsync_errors>.
                    ));
         }
         my $sleep = 12 * $no_success_count;
-        $sleep = 120 if $sleep > 120;
+        $sleep = 300 if $sleep > 300;
         require Carp;
         Carp::cluck
               (sprintf

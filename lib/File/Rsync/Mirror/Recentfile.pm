@@ -2182,6 +2182,11 @@ convenient and economic general purpose solution. I'm looking forward
 to see a CPAN backbone that is only a few seconds behind PAUSE. And
 then ... the first FUSE based CPAN filesystem anyone?
 
+=head1 SEE ALSO
+
+Barbie is providing a database of release dates. See
+http://use.perl.org/~barbie/journal/37907
+
 =head1 AUTHOR
 
 Andreas König

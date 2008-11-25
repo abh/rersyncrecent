@@ -613,7 +613,7 @@ sub _rmirror_runstatusfile {
            $file,
            {i => $i,
             options => $options,
-            self => $self,
+            self => [keys %$self], # passing $self leaks, dclone refuses because of globs
             time => time,
             uptodate => {map {($_=>$rfs->[$_]->uptodate)} 0..$#$rfs},
            });

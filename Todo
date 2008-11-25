@@ -1,5 +1,11 @@
 2008-11-22  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
+	* 10705 root      17   0  725m 710m 1712 S  0.0 46.8 834:56.05 /home/src/perl/repoperls/installed-perls/perl/pVNtS9N/perl-5.8.0@32642/bin/perl -Ilib /home/k/sources/CPAN/GIT/trunk/bin/testing-rmirror.pl
+
+	leak!
+
+	https://rt.cpan.org/Ticket/Display.html?id=41199
+
 	* bzcat uploads.csv.bz2 | perl -F, -nale '$Seen{$F[-1]}++ and print'
 
 	Strangest output being HAKANARDO who managed to upload 

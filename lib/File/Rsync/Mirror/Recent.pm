@@ -160,36 +160,6 @@ use accessors @accessors;
 
 =head1 METHODS
 
-=head2 $bool = $obj->contains ( %query )
-
-DEPRECATED: use news() directly!
-
-Similar to news() but returns a boolean answer: undef for false; a
-hashref to the last matching recent_event in the interval.
-
-The query may contain the keys C<epoch>, C<path>, and C<type>. Each
-represents a condition that must be met. If there is more than one
-such key, the conditions are ANDed.
-
-=cut
-
-sub contains {
-    my($self, %opt) = @_;
-    my $contopt;
-    for my $allow (qw(epoch path type)) {
-        if (exists $opt{$allow}) {
-            $contopt->{$allow} = delete $opt{$allow};
-        }
-    }
-    if (keys %opt) {
-        require Carp;
-        Carp::confess
-                (sprintf "unknown query: %s", join ", ", %opt);
-    }
-    my $ret = $self->news(max => 1, contains => $contopt);
-    return @$ret ? $ret->[0] : undef;
-}
-
 =head2 $arrayref = $obj->news ( %options )
 
 XXX WORK IN PROGRESS XXX

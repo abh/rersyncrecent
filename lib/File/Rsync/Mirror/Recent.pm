@@ -162,13 +162,32 @@ use accessors @accessors;
 
 =head2 $bool = $obj->contains ( %query )
 
-(TBD)
+DEPRECATED: use news() directly!
+
+Similar to news() but returns a boolean answer: undef for false; a
+hashref to the last matching recent_event in the interval.
+
+The query may contain the keys C<epoch>, C<path>, and C<type>. Each
+represents a condition that must be met. If there is more than one
+such key, the conditions are ANDed.
 
 =cut
 
 sub contains {
-    my($self, %query) = @_;
-    
+    my($self, %opt) = @_;
+    my $contopt;
+    for my $allow (qw(epoch path type)) {
+        if (exists $opt{$allow}) {
+            $contopt->{$allow} = delete $opt{$allow};
+        }
+    }
+    if (keys %opt) {
+        require Carp;
+        Carp::confess
+                (sprintf "unknown query: %s", join ", ", %opt);
+    }
+    my $ret = $self->news(max => 1, contains => $contopt);
+    return @$ret ? $ret->[0] : undef;
 }
 
 =head2 $arrayref = $obj->news ( %options )
@@ -248,7 +267,7 @@ sub news {
 
 =head2 overview ( %options )
 
-returns a string that summarizes the state of all recentfiles
+returns a small table that summarizes the state of all recentfiles
 collected in this Recent object.
 
 $options{verbose}=1 increases the number of columns displayed.

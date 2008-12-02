@@ -1329,7 +1329,7 @@ sub read_recent_1 {
 Note: the code relies on the resource being written atomically. We
 cannot lock because we may have no write access. If the caller has
 write access (eg. aggregate() or update()), it has to care for any
-necessary locking.
+necessary locking and it MUST write atomically.
 
 If $options{after} is specified, only file events after this timestamp
 are returned.
@@ -1340,7 +1340,13 @@ timestamp are returned.
 IF $options{'skip-deletes'} is specified, no files-to-be-deleted will
 be returned.
 
-If $options{max} is specified only this many events are returned.
+If $options{max} is specified only a maximum of this many events is
+returned.
+
+If $options{contains} is specified the value must be a hash reference
+containing a query. The query may contain the keys C<epoch>, C<path>,
+and C<type>. Each represents a condition that must be met. If there is
+more than one such key, the conditions are ANDed.
 
 If $options{info} is specified, it must be a hashref. This hashref
 will be filled with metadata about the unfiltered recent_events of
@@ -1418,14 +1424,24 @@ sub _recent_events_handle_options {
             $first_item = 0;
         }
     }
-    my @rre = splice @$re, $first_item, 1+$last_item-$first_item;
+    if (0 != $first_item || -1 != $last_item) {
+        @$re = splice @$re, $first_item, 1+$last_item-$first_item;
+    }
     if ($options->{'skip-deletes'}) {
-        @rre = grep { $_->{type} ne "delete" } @rre;
+        @$re = grep { $_->{type} ne "delete" } @$re;
     }
-    if ($options->{max} && @rre > $options->{max}) {
-        @rre = splice @rre, 0, $options->{max};
+    if (my $contopt = $options->{contains}) {
+        for my $allow (qw(epoch path type)) {
+            if (exists $contopt->{$allow}) {
+                my $v = delete $contopt->{$allow};
+                @$re = grep { $_->{$allow} eq $v } @$re;
+            }
+        }
     }
-    \@rre;
+    if ($options->{max} && @$re > $options->{max}) {
+        @$re = splice @$re, 0, $options->{max};
+    }
+    $re;
 }
 
 sub _recent_events_protocol_x {

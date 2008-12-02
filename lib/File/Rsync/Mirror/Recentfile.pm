@@ -1437,6 +1437,11 @@ sub _recent_events_handle_options {
                 @$re = grep { $_->{$allow} eq $v } @$re;
             }
         }
+        if (keys %$contopt) {
+            require Carp;
+            Carp::confess
+                    (sprintf "unknown query: %s", join ", ", %$contopt);
+        }
     }
     if ($options->{max} && @$re > $options->{max}) {
         @$re = splice @$re, 0, $options->{max};

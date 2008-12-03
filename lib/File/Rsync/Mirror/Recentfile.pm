@@ -1431,13 +1431,15 @@ sub _recent_events_handle_options {
         @$re = grep { $_->{type} ne "delete" } @$re;
     }
     if (my $contopt = $options->{contains}) {
+        my $seen_allowed = 0;
         for my $allow (qw(epoch path type)) {
             if (exists $contopt->{$allow}) {
-                my $v = delete $contopt->{$allow};
+                $seen_allowed++;
+                my $v = $contopt->{$allow};
                 @$re = grep { $_->{$allow} eq $v } @$re;
             }
         }
-        if (keys %$contopt) {
+        if (keys %$contopt > $seen_allowed) {
             require Carp;
             Carp::confess
                     (sprintf "unknown query: %s", join ", ", %$contopt);

@@ -1242,14 +1242,14 @@ sub mirror_path {
                 dst => $dst,
                 'files-from' => $fh->filename,
                )) {
-            my($err) = $self->rsync->err;
-            if ($self->ignore_link_stat_errors && $err =~ m{^ rsync: \s link_stat }x ) {
+            my(@err) = $self->rsync->err;
+            if ($self->ignore_link_stat_errors && "@err" =~ m{^ rsync: \s link_stat }x ) {
                 if ($self->verbose) {
-                    warn "Info: ignoring link_stat error '$err'";
+                    warn "Info: ignoring link_stat error '@err'";
                 }
                 return 1;
             }
-            $self->register_rsync_error ($err);
+            $self->register_rsync_error (@err);
             if (++$retried >= 3) {
                 warn "XXX giving up.";
                 $gaveup = 1;
@@ -1270,14 +1270,14 @@ sub mirror_path {
                            ),
                 dst => $dst,
                 )) {
-            my($err) = $self->rsync->err;
-            if ($self->ignore_link_stat_errors && $err =~ m{^ rsync: \s link_stat }x ) {
+            my(@err) = $self->rsync->err;
+            if ($self->ignore_link_stat_errors && "@err" =~ m{^ rsync: \s link_stat }x ) {
                 if ($self->verbose) {
-                    warn "Info: ignoring link_stat error '$err'";
+                    warn "Info: ignoring link_stat error '@err'";
                 }
                 return 1;
             }
-            $self->register_rsync_error ($err);
+            $self->register_rsync_error (@err);
         }
         $self->un_register_rsync_error ();
     }
@@ -1647,7 +1647,7 @@ sub rsync {
     return $rsync;
 }
 
-=head2 (void) $obj->register_rsync_error($err)
+=head2 (void) $obj->register_rsync_error(@err)
 
 =head2 (void) $obj->un_register_rsync_error()
 
@@ -1662,8 +1662,8 @@ resets the error count. See also accessor C<max_rsync_errors>.
     my $no_success_count = 0;
     my $no_success_time = 0;
     sub register_rsync_error {
-        my($self, $err) = @_;
-        chomp $err;
+        my($self, @err) = @_;
+        chomp @err;
         $no_success_time = time;
         $no_success_count++;
         my $max_rsync_errors = $self->max_rsync_errors;
@@ -1676,7 +1676,7 @@ resets the error count. See also accessor C<max_rsync_errors>.
                    (
                     "Alert: Error while rsyncing (%s): '%s', error count: %d, exiting now,",
                     $self->interval,
-                    $err,
+                    join(" ",@err),
                     $no_success_count,
                    ));
         }
@@ -1689,7 +1689,7 @@ resets the error count. See also accessor C<max_rsync_errors>.
                 "Warning: %s, Error while rsyncing (%s): '%s', sleeping %d",
                 scalar(localtime($no_success_time)),
                 $self->interval,
-                $err,
+                join(" ",@err),
                 $sleep,
                ));
         sleep $sleep
@@ -1786,7 +1786,7 @@ ignored.
 
 $type is one of C<new> or C<delete>.
 
-The new file event is uhshifted to the array of recent_events and the
+The new file event is unshifted to the array of recent_events and the
 array is shortened to the length of the timespan allowed. This is
 usually the timespan specified by the interval of this recentfile but
 as long as this recentfile has not been merged to another one, the

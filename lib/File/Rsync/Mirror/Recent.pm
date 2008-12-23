@@ -708,7 +708,7 @@ sub _fetch_as_tempfile {
         (
          src => join("/",$self->remoteroot,$rfile),
          dst => $fh->filename,
-        ) or die "Could not mirror '$rfile' to $fh\: ".$rsync->err;
+        ) or die "Could not mirror '$rfile' to $fh\: ".join(" ",$rsync->err);
     return $fh->filename;
 }
 

@@ -1,0 +1,73 @@
+#!/usr/bin/perl -- -*- mode: cperl -*-
+
+=head1 NAME
+
+rrr-dirtyupdate - add files with an old timestamp to the dataset
+
+=head1 SYNOPSIS
+
+  rrr-dirtyupdate [options] file ...
+
+=head1 OPTIONS
+
+=over 8
+
+=cut
+
+my @opt = <<'=back' =~ /B<--(\S+)>/g;
+
+=item B<--dry-run!>
+
+(TBD) Do not really run the command, ...
+
+=item B<--help|h>
+
+Prints a brief message and exists.
+
+=item B<--verbose|v+>
+
+More feedback.
+
+=back
+
+=head1 DESCRIPTION
+
+(TBD)
+
+=cut
+
+
+use strict;
+use warnings;
+
+use File::Rsync::Mirror::Recent;
+use Getopt::Long;
+use Pod::Usage qw(pod2usage);
+
+our %Opt;
+GetOptions(\%Opt,
+           @opt,
+          ) or pod2usage(1);
+
+if ($Opt{help}) {
+    pod2usage(0);
+}
+
+unless (@ARGV) {
+    pod2usage(1);
+}
+
+if ($Opt{'dry-run'}) {
+    die "FIXME: not yet implemented";
+}
+
+die "Nothing implemented yet";
+
+__END__
+
+
+# Local Variables:
+# mode: cperl
+# coding: utf-8
+# cperl-indent-level: 4
+# End:

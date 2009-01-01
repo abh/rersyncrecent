@@ -14,7 +14,7 @@ rrr-news - list files added to the dataset
 
 =cut
 
-my $optpod = <<'=back';
+my @opt = <<'=back' =~ /B<--(\S+)>/g;
 
 =item B<--after=s>
 
@@ -106,8 +106,6 @@ use Getopt::Long;
 use Pod::Usage qw(pod2usage);
 
 our %Opt;
-my @opt = $optpod =~ /B<--(\S+)>/g;
-
 GetOptions(\%Opt,
            @opt,
           ) or pod2usage(2);
@@ -133,7 +131,7 @@ for my $opt (qw(local remote localroot)) {
 my $rf = File::Rsync::Mirror::Recent->new
     (
      @constr,
-     # stupid, need no rsync options when running wiht -local!
+     # stupid, need no rsync options when running with -local!
      rsync_options => {
                        compress => 1,
                        links => 1,

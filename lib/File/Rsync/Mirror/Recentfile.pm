@@ -1781,7 +1781,7 @@ sub unseed {
 =head2 $ret = $obj->update ($path, $type)
 
 Enter one file into the local I<recentfile>. $path is the (usually
-absolute) path. If the path is outside the I<our> tree, then it is
+absolute) path. If the path is outside I<our> tree, then it is
 ignored.
 
 $type is one of C<new> or C<delete>.

@@ -1,3 +1,22 @@
+2008-12-26  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* maybe we need a closest_entry or fitting_interval or something like
+	that. We want to merge an event into the middle of some recentfile.
+	First we do not know which file, then we do not know where to lock,
+	where to enter the new item, when and where to correct the dirtymark.
+
+	So my thought is we should first find which file.
+
+	Another part of my brain answers: what would happen if we would enter
+	the new file into the smallest file just like an ordinary new event,
+	just as an old event?
+
+	(1) we would write a duplicate timestamp? No, this would be easy to
+	avoid
+
+	(2) we would make the file large quickly? Yes, but so what? We are
+	changing the dirtymark, so are willing to disturb the downstream hosts.
+
 2008-11-22  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* 10705 root      17   0  725m 710m 1712 S  0.0 46.8 834:56.05 /home/src/perl/repoperls/installed-perls/perl/pVNtS9N/perl-5.8.0@32642/bin/perl -Ilib /home/k/sources/CPAN/GIT/trunk/bin/testing-rmirror.pl

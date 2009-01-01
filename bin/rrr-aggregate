@@ -14,7 +14,7 @@ rrr-aggregate - merge a set of recentfiles
 
 =cut
 
-my $optpod = <<'=back';
+my @opt = <<'=back' =~ /B<--(\S+)>/g;
 
 =item B<--dry-run!>
 
@@ -56,8 +56,6 @@ use Getopt::Long;
 use Pod::Usage qw(pod2usage);
 
 our %Opt;
-my @opt = $optpod =~ /B<--(\S+)>/g;
-
 GetOptions(\%Opt,
            @opt,
           ) or pod2usage(2);

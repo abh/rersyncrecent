@@ -150,12 +150,20 @@ closer to $l to prevent rounding effects towards $r. The second form
 calculates the second number itself based on the current architecture
 and L<Data::Float::nextup()>.
 
-Note: there is a %.128f hard coded that needs to be fixed
-
 =cut
 sub _my_sprintf_float ($) {
     my($x) = @_;
-    my $r = sprintf "%.128f", $x;
+    my $r;
+    my $lom = 16; # length of mantissa
+ NORMALIZE: while () {
+        my $sprintf = "%." . $lom . "f";
+        $r = sprintf $sprintf, $x;
+        if ($r =~ /\.\d+0$/) {
+            last NORMALIZE;
+        } else {
+            $lom *= 2;
+        }
+    }
     $r =~ s/(\d)0+$/$1/;
     return $r;
 }
@@ -231,7 +239,7 @@ sub _increase_a_bit_tail ($$) {
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright 2008 Andreas König.
+Copyright 2008,2009 Andreas König.
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.

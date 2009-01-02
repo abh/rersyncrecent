@@ -1778,7 +1778,7 @@ sub unseed {
     $self->seeded(0);
 }
 
-=head2 $ret = $obj->update ($path, $type)
+=head2 $ret = $obj->update ($path, $type, $dirty_epoch)
 
 Enter one file into the local I<recentfile>. $path is the (usually
 absolute) path. If the path is outside I<our> tree, then it is
@@ -1786,8 +1786,18 @@ ignored.
 
 $type is one of C<new> or C<delete>.
 
-The new file event is unshifted to the array of recent_events and the
-array is shortened to the length of the timespan allowed. This is
+$dirty_epoch is normally not used and the epoch is calculated by the
+update() routine itself. But if there is the demand to update the
+dataset with an old event, then the caller sets $dirty_epoch. This
+causes the epoch of the registered event to become $dirty_epoch. As
+compensation the dirtymark of the whole dataset is set to the current
+epoch. The whole operation may fail if $dirty_epoch is already in use.
+In this case update raises an exception.
+
+The new file event is unshifted (or, if dirty_epoch is set, inserted
+at the place it belongs to, according to the rule to have a sequence
+of strictly decreasing timestamps) to the array of recent_events and
+the array is shortened to the length of the timespan allowed. This is
 usually the timespan specified by the interval of this recentfile but
 as long as this recentfile has not been merged to another one, the
 timespan may grow without bounds.
@@ -1803,7 +1813,7 @@ sub _epoch_monotonically_increasing {
     }
 }
 sub update {
-    my($self,$path,$type) = @_;
+    my($self,$path,$type,$dirty_epoch) = @_;
     die "update called without path argument" unless defined $path;
     die "update called without type argument" unless defined $type;
     die "update called with illegal type argument: $type" unless $type =~ /(new|delete)/;
@@ -1819,13 +1829,20 @@ sub update {
         my $secs = $self->interval_secs();
         $self->lock;
         # you must calculate the time after having locked, of course
-        my $epoch = Time::HiRes::time;
+        my $epoch;
+        my $now = Time::HiRes::time;
         my $recent = $self->recent_events;
-        $epoch = $self->_epoch_monotonically_increasing($epoch,$recent);
+        if ($dirty_epoch) {
+            die "FIXME: must verify that the dirty_epoch '$dirty_epoch' is unique";
+            die "FIXME: must set the dirtymark";
+            $epoch = $dirty_epoch;
+        } else {
+            $epoch = $self->_epoch_monotonically_increasing($now,$recent);
+        }
         $recent ||= [];
         my $oldest_allowed = 0;
         if (my $merged = $self->merged) {
-            $oldest_allowed = min($epoch - $secs, $merged->{epoch});
+            $oldest_allowed = min($now - $secs, $merged->{epoch});
         } else {
             # as long as we are not merged at all, no limits!
         }
@@ -1838,8 +1855,11 @@ sub update {
         }
         # remove older duplicates of this $path, irrespective of $type:
         $recent = [ grep { $_->{path} ne $path } @$recent ];
-
-        unshift @$recent, { epoch => $epoch, path => $path, type => $type };
+        my $splicepos = 0;
+        if ($dirty_epoch) {
+            die "FIXME: must calculate the splicepos";
+        }
+        splice @$recent, $splicepos, 0, { epoch => $epoch, path => $path, type => $type };
         $self->write_recent($recent);
         $self->_assert_symlink;
         $self->unlock;

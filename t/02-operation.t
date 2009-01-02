@@ -165,7 +165,7 @@ rmtree [$root_from, $root_to];
             my $filesize = -s "$root_from/RECENT-$iv.yaml";
             # now they have <$filesize_threshold bytes because the second aggregate could
             # truncate them
-            ok($iv eq "Z" || $filesize<$size_before{$iv}, "file $iv (after merging) has good size[$filesize]");
+            ok($iv eq "Z" || $filesize<$size_before{$iv}, "file $iv (after merging) has good size[$filesize<$size_before{$iv}]");
         }
         my $dagg1 = $rf0->_debug_aggregate;
         Time::HiRes::sleep 1.2;

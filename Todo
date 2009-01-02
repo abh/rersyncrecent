@@ -1,3 +1,8 @@
+2009-01-01  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* Todo: continue working on update(...,$dirty_epoch). It must be
+	followed by a fast_aggregate.
+
 2008-12-26  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* maybe we need a closest_entry or fitting_interval or something like

@@ -10,6 +10,11 @@ if ( $@ ) {
     plan( skip_all => $msg );
 }
 
+unless ($ENV{AUTHOR_TEST}) {
+    my $msg = 'Test::Perl::Critic only run when AUTHOR_TEST set';
+    plan( skip_all => $msg );
+}
+
 my $rcfile = File::Spec->catfile( 't', 'perlcriticrc' );
 Test::Perl::Critic->import( -profile => $rcfile );
 all_critic_ok();

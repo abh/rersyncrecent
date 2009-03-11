@@ -141,9 +141,9 @@ sub _bigfloatmin ($$) {
     return _bigfloatcmp($l,$r) <= 0 ? $l : $r;
 }
 
-=head2 _increase_a_bit ( $l, $r )
+=head2 $big = _increase_a_bit ( $l, $r )
 
-=head2 _increase_a_bit ( $n )
+=head2 $big = _increase_a_bit ( $n )
 
 The first form calculates a string that is between the two numbers,
 closer to $l to prevent rounding effects towards $r. The second form

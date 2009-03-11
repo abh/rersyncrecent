@@ -1,7 +1,15 @@
+2009-03-11  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* $obj->merge ($other) needs to learn about equal epoch which may happen
+	since dirty_epoch intruded.
+
+	* Wontfix anytime soon: I think we currently do not support mkdir. Only
+	files!
+
 2009-01-01  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* Todo: continue working on update(...,$dirty_epoch). It must be
-	followed by a fast_aggregate.
+	followed by a fast_aggregate!
 
 2008-12-26  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 

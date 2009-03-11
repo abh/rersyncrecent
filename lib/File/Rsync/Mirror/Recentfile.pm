@@ -28,7 +28,7 @@ use File::Copy qw(cp);
 use File::Path qw(mkpath);
 use File::Rsync::Mirror::Recentfile::FakeBigFloat qw(:all);
 use File::Temp;
-use List::Util qw(first min);
+use List::Util qw(first max min);
 use Scalar::Util qw(reftype);
 use Storable;
 use Time::HiRes qw();
@@ -799,9 +799,7 @@ sub merge {
             my $secs = $self->interval_secs();
             $oldest_allowed = min($epoch - $secs, $merged->{epoch});
         }
-        # throw away outsiders
-        # XXX _bigfloat!
-        while (@$my_recent && $my_recent->[-1]{epoch} < $oldest_allowed) {
+        while (@$my_recent && _bigfloatlt($my_recent->[-1]{epoch}, $oldest_allowed)) {
             pop @$my_recent;
             $something_done=1;
         }
@@ -811,14 +809,14 @@ sub merge {
     my $recent = [];
     for my $oev (@$other_recent) {
         my $oevepoch = $oev->{epoch} || 0;
-        next if $oevepoch < $oldest_allowed;
+        next if _bigfloatlt($oevepoch, $oldest_allowed);
         my $path = $oev->{path};
         next if $have{$path}++;
         if (    $self->interval eq "Z"
             and $oev->{type}     eq "delete") {
             # do nothing
         } else {
-            if (!$myepoch || $oevepoch > $myepoch) {
+            if (!$myepoch || _bigfloatgt($oevepoch, $myepoch)) {
                 $something_done=1;
             }
             push @$recent, { epoch => $oev->{epoch}, path => $path, type => $oev->{type} };
@@ -1778,7 +1776,9 @@ sub unseed {
     $self->seeded(0);
 }
 
-=head2 $ret = $obj->update ($path, $type, $dirty_epoch)
+=head2 $ret = $obj->update ($path, $type)
+
+=head2 $ret = $obj->update ($path, "new", $dirty_epoch)
 
 Enter one file into the local I<recentfile>. $path is the (usually
 absolute) path. If the path is outside I<our> tree, then it is
@@ -1786,13 +1786,14 @@ ignored.
 
 $type is one of C<new> or C<delete>.
 
-$dirty_epoch is normally not used and the epoch is calculated by the
-update() routine itself. But if there is the demand to update the
-dataset with an old event, then the caller sets $dirty_epoch. This
-causes the epoch of the registered event to become $dirty_epoch. As
-compensation the dirtymark of the whole dataset is set to the current
-epoch. The whole operation may fail if $dirty_epoch is already in use.
-In this case update raises an exception.
+Events of type C<new> may set $dirty_epoch. $dirty_epoch is normally
+not used and the epoch is calculated by the update() routine itself
+based on current time. But if there is the demand to insert a
+not-so-current file into the dataset, then the caller sets
+$dirty_epoch. This causes the epoch of the registered event to become
+$dirty_epoch or -- if the exact value given is already taken -- a tiny
+bit more. As compensation the dirtymark of the whole dataset is set to
+the current epoch.
 
 The new file event is unshifted (or, if dirty_epoch is set, inserted
 at the place it belongs to, according to the rule to have a sequence
@@ -1817,6 +1818,8 @@ sub update {
     die "update called without path argument" unless defined $path;
     die "update called without type argument" unless defined $type;
     die "update called with illegal type argument: $type" unless $type =~ /(new|delete)/;
+    die "update called with \$type=$type and \$dirty_epoch=$dirty_epoch; ".
+        "dirty_epoch only allowed with type=new" if $dirty_epoch and $type ne "new";
     my $canonmeth = $self->canonize;
     unless ($canonmeth) {
         $canonmeth = "naive_path_normalize";
@@ -1829,40 +1832,92 @@ sub update {
         my $secs = $self->interval_secs();
         $self->lock;
         # you must calculate the time after having locked, of course
-        my $epoch;
         my $now = Time::HiRes::time;
         my $recent = $self->recent_events;
+
+        my $epoch;
         if ($dirty_epoch) {
-            die "FIXME: must verify that the dirty_epoch '$dirty_epoch' is unique";
-            die "FIXME: must set the dirtymark";
             $epoch = $dirty_epoch;
         } else {
             $epoch = $self->_epoch_monotonically_increasing($now,$recent);
         }
+
         $recent ||= [];
         my $oldest_allowed = 0;
         if (my $merged = $self->merged) {
-            $oldest_allowed = min($now - $secs, $merged->{epoch});
+            my $virtualnow = max($now,$epoch);
+            # for the lower bound could we need big math?
+            $oldest_allowed = min($virtualnow - $secs, $merged->{epoch}, $epoch);
         } else {
             # as long as we are not merged at all, no limits!
         }
       TRUNCATE: while (@$recent) {
-            if ($recent->[-1]{epoch} < $oldest_allowed) {
+            if (_bigfloatlt($recent->[-1]{epoch}, $oldest_allowed)) {
                 pop @$recent;
             } else {
                 last TRUNCATE;
             }
         }
-        # remove older duplicates of this $path, irrespective of $type:
-        $recent = [ grep { $_->{path} ne $path } @$recent ];
-        my $splicepos = 0;
+        my $splicepos;
+        # remove the older duplicates of this $path, irrespective of $type:
         if ($dirty_epoch) {
-            die "FIXME: must calculate the splicepos";
+            my $ctx = $self->_update_with_dirty_epoch($path,$recent,$epoch);
+            $recent    = $ctx->{recent};
+            $splicepos = $ctx->{splicepos};
+            $epoch     = $ctx->{epoch};
+        } else {
+            $recent = [ grep { $_->{path} ne $path } @$recent ];
+            $splicepos = 0;
         }
-        splice @$recent, $splicepos, 0, { epoch => $epoch, path => $path, type => $type };
+        if (defined $splicepos) {
+            splice @$recent, $splicepos, 0, { epoch => $epoch, path => $path, type => $type };
+        }
+
         $self->write_recent($recent);
         $self->_assert_symlink;
         $self->unlock;
+    }
+}
+
+sub _update_with_dirty_epoch {
+    my($self,$path,$recent,$epoch) = @_;
+    my $splicepos;
+    my $new_recent = [];
+    if (grep { $_->{path} ne $path } @$recent) {
+        my $cancel = 0;
+    KNOWN_EVENT: for my $i (0..$#$recent) {
+            if ($recent->[$i]{path} eq $path) {
+                if ($recent->[$i]{epoch} eq $epoch) {
+                    # nothing to do
+                    $cancel = 1;
+                    last KNOWN_EVENT;
+                }
+            } else {
+                push @$new_recent, $recent->[$i];
+            }
+        }
+        @$recent = @$new_recent unless $cancel;
+    }
+    if (!exists $recent->[0] or _bigfloatgt($epoch,$recent->[0]{epoch})) {
+        $splicepos = 0;
+    } elsif (_bigfloatlt($epoch,$recent->[0]{epoch})) {
+        $splicepos = @$recent;
+    } else {
+    RECENT: for my $i (0..$#$recent) {
+            my $ev = $recent->[$i];
+            if ($epoch eq $recent->[$i]{epoch}) {
+                $epoch = _increase_a_bit($epoch, $i ? $recent->[$i-1]{epoch} : undef);
+            }
+            if (_bigfloatgt($epoch,$recent->[$i]{epoch})) {
+                $splicepos = $i;
+                last RECENT;
+            }
+        }
+    }
+    return {
+            recent => $recent,
+            splicepos => $splicepos,
+            epoch => $epoch,
     }
 }
 

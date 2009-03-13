@@ -1865,6 +1865,12 @@ sub update {
             $recent    = $ctx->{recent};
             $splicepos = $ctx->{splicepos};
             $epoch     = $ctx->{epoch};
+            my $dirtymark = $self->dirtymark;
+            my $new_dm = $now;
+            if (_bigfloatgt($epoch, $now)) {
+                $new_dm = $epoch;
+            }
+            $self->dirtymark($new_dm);
         } else {
             $recent = [ grep { $_->{path} ne $path } @$recent ];
             $splicepos = 0;

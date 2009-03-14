@@ -154,7 +154,9 @@ and L<Data::Float::nextup()>.
 sub _my_sprintf_float ($) {
     my($x) = @_;
     my $r;
-    my $lom = 16; # length of mantissa
+    require Config;
+    my $nvsize = $Config::Config{nvsize} || 8;
+    my $lom = 2*$nvsize; # "length of mantissa": nextup needs more digits
  NORMALIZE: while () {
         my $sprintf = "%." . $lom . "f";
         $r = sprintf $sprintf, $x;

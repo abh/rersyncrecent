@@ -1887,7 +1887,7 @@ sub update {
     }
     my $something_done = 0;
  TRUNCATE: while (@$recent) {
-        $DB::single++ unless defined $oldest_allowed;
+        # $DB::single++ unless defined $oldest_allowed;
         if (_bigfloatlt($recent->[-1]{epoch}, $oldest_allowed)) {
             pop @$recent;
             $something_done = 1;

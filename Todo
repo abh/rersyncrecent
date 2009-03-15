@@ -1,5 +1,33 @@
 2009-03-15  Andreas J. Koenig  <andk@cpan.org>
 
+	* The bug below is -- after a lot of trying -- not reproducible on a
+	small script, only in the large test script. The closest to the output
+	below was:
+
+#!perl
+use strict;
+use Devel::Peek;
+my $x = "01237123229.8814";
+my($l,$r);
+for ($l,$r) {
+    $_ = "x"x34;
+}
+($l,$r) = ($1,$2) if $x =~ /(.)(.+)/;
+$r = int $r;
+$l = "1237123231.22458";
+$r = "1237123231.22458";
+1 if $l/1.1;
+Devel::Peek::Dump $l;
+Devel::Peek::Dump $r;
+Devel::Peek::Dump $x = $l <=> $r;
+die "BROKE" if $x;
+__END__
+
+	The checked in state at ... fails the test with my
+	/usr/local/perl-5.10-uld/bin/perl on 64bit but curiously not with
+	/usr/local/perl-5.10-g/bin/perl. So it seems the behaviour is not even
+	in the test script always consistent.
+
 	* Todo: write a test that inserts a second dirty file with an already
 	existing timestamp
 
@@ -51,8 +79,7 @@ SV = PVMG(0x19e0240) at 0x142a3e8
   CUR = 16
   LEN = 40
 
-	Retry with uselongdouble gives same effect.
-
+	Retry with uselongdouble gives same effect. Not reproducable on 32bit box (k75).
 
 	* Todo: reset "done" or "covered" and "minmax" after a dirty operation?
 

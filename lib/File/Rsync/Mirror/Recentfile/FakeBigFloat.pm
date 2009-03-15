@@ -75,6 +75,7 @@ sub _bigfloatcmp ($$) {
         }
         Carp::confess("_bigfloatcmp called with l[$l]r[$r]: but both must be defined");
     }
+    #### return 0 if $l eq $r;
     if ($l =~ /\./ || $r =~ /\./) {
         # if one is a float, both must be, otherwise perl gets it wrong (see test)
         for ($l, $r){
@@ -83,8 +84,8 @@ sub _bigfloatcmp ($$) {
     }
     #### XXXX bug in some perls, we cannot trust native comparison on floating point values:
     #### see Todo file entry on 2009-03-15
-    #### my $native = $l <=> $r;
-    #### return $native if $native;
+    my $native = $l <=> $r;
+    return $native if $native;
     $l =~ s/^/0/ while index($l,".") < index($r,".");
     $r =~ s/^/0/ while index($r,".") < index($l,".");
     $l cmp $r;

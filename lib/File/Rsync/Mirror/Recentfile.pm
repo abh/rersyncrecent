@@ -837,7 +837,7 @@ sub _merge_something_done {
  ZIP: while (@$other_recent_filtered || @$my_recent) {
         my $event;
         if (!@$my_recent ||
-            @$other_recent_filtered && _bigfloatgt($other_recent_filtered->[0]{epoch},$my_recent->[0]{epoch})) {
+            @$other_recent_filtered && _bigfloatge($other_recent_filtered->[0]{epoch},$my_recent->[0]{epoch})) {
             $event = shift @$other_recent_filtered;
         } else {
             $event = shift @$my_recent;

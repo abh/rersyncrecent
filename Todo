@@ -1,5 +1,9 @@
 2009-03-15  Andreas J. Koenig  <andk@cpan.org>
 
+	* currently recent_events has the side effect of setting dirtymark
+	because it forces a read on the file. That should be transparent, so
+	that the dirtymark call always forces a cache-able(?) read.
+
 	* The bug below is -- after a lot of trying -- not reproducible on a
 	small script, only in the large test script. The closest to the output
 	below was:
@@ -23,13 +27,13 @@ Devel::Peek::Dump $x = $l <=> $r;
 die "BROKE" if $x;
 __END__
 
-	The checked in state at ... fails the test with my
+	The checked in state at c404a85 fails the test with my
 	/usr/local/perl-5.10-uld/bin/perl on 64bit but curiously not with
 	/usr/local/perl-5.10-g/bin/perl. So it seems the behaviour is not even
 	in the test script always consistent.
 
 	* Todo: write a test that inserts a second dirty file with an already
-	existing timestamp
+	existing timestamp. DONE
 
 	* Bug in perl 5.10 on my 64bit box:
 
@@ -82,10 +86,6 @@ SV = PVMG(0x19e0240) at 0x142a3e8
 	Retry with uselongdouble gives same effect. Not reproducable on 32bit box (k75).
 
 	* Todo: reset "done" or "covered" and "minmax" after a dirty operation?
-
-	* currently recent_events has the side effect of setting dirtymark
-	because it forces a read on the file. That should be transparent, so
-	that the dirtymark call always forces a cache-able(?) read.
 
 2009-03-11  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 

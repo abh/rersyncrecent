@@ -9,10 +9,6 @@ use strict;
 
 File::Rsync::Mirror::Recentfile - mirroring via rsync made efficient
 
-=head1 VERSION
-
-Version 0.0.1
-
 =cut
 
 my $HAVE = {};
@@ -35,7 +31,6 @@ use Time::HiRes qw();
 use YAML::Syck;
 
 use version; our $VERSION = qv('0.0.1');
-
 
 use constant MAX_INT => ~0>>1; # anything better?
 use constant DEFAULT_PROTOCOL => 1;
@@ -797,7 +792,7 @@ sub merge {
     if ($epoch) {
         if (my $merged = $self->merged) {
             my $secs = $self->interval_secs();
-            $oldest_allowed = min($epoch - $secs, $merged->{epoch});
+            $oldest_allowed = min($epoch - $secs, $merged->{epoch}||0);
         }
         while (@$my_recent && _bigfloatlt($my_recent->[-1]{epoch}, $oldest_allowed)) {
             pop @$my_recent;
@@ -805,13 +800,13 @@ sub merge {
         }
     }
 
-    my %have;
-    my $recent = [];
+    my %have_path;
+    my $other_recent_filtered = [];
     for my $oev (@$other_recent) {
         my $oevepoch = $oev->{epoch} || 0;
         next if _bigfloatlt($oevepoch, $oldest_allowed);
         my $path = $oev->{path};
-        next if $have{$path}++;
+        next if $have_path{$path}++;
         if (    $self->interval eq "Z"
             and $oev->{type}     eq "delete") {
             # do nothing
@@ -819,19 +814,47 @@ sub merge {
             if (!$myepoch || _bigfloatgt($oevepoch, $myepoch)) {
                 $something_done=1;
             }
-            push @$recent, { epoch => $oev->{epoch}, path => $path, type => $oev->{type} };
+            push @$other_recent_filtered, { epoch => $oev->{epoch}, path => $path, type => $oev->{type} };
         }
     }
     if ($something_done) {
-        $self->_merge_something_done ($recent, $my_recent, $other_recent, $other, \%have, $epoch);
+        $self->_merge_something_done ($other_recent_filtered, $my_recent, $other_recent, $other, \%have_path, $epoch);
     }
     $self->unlock;
     $other->unlock;
 }
 
 sub _merge_something_done {
-    my($self, $recent, $my_recent, $other_recent, $other, $have, $epoch) = @_;
-    push @$recent, grep { !$have->{$_->{path}}++ } @$my_recent;
+    my($self, $other_recent_filtered, $my_recent, $other_recent, $other, $have_path, $epoch) = @_;
+    my $recent = [];
+    my $epoch_conflict = 0;
+    my $last_epoch;
+ ZIP: while (@$other_recent_filtered || @$my_recent) {
+        my $event;
+        if (!@$my_recent ||
+            @$other_recent_filtered && _bigfloatgt($other_recent_filtered->[0]{epoch},$my_recent->[0]{epoch})) {
+            $event = shift @$other_recent_filtered;
+        } else {
+            $event = shift @$my_recent;
+            next ZIP if $have_path->{$event->{path}}++;
+        }
+        $epoch_conflict=1 if defined $last_epoch && $event->{epoch} eq $last_epoch;
+        $last_epoch = $event->{epoch};
+        push @$recent, $event;
+    }
+    if ($epoch_conflict) {
+        my %have_epoch;
+        for (my $i = $#$recent;$i>=0;$i--) {
+            my $epoch = $recent->[$i]{epoch};
+            if ($have_epoch{$epoch}++) {
+                while ($have_epoch{$epoch}) {
+                    $epoch = _increase_a_bit($epoch);
+                }
+                $recent->[$i]{epoch} = $epoch;
+                $have_epoch{$epoch}++;
+            }
+        }
+    }
     if (_bigfloatgt($other->dirtymark, $self->dirtymark)) {
         $self->dirtymark ( $other->dirtymark );
     }
@@ -871,6 +894,7 @@ sub merged {
     my $merged = $self->_merged;
     my $into;
     if ($merged and $into = $merged->{into_interval} and defined $self->_interval) {
+        # sanity checks
         if ($into eq $self->interval) {
             require Carp;
             Carp::cluck(sprintf
@@ -883,7 +907,7 @@ sub merged {
             require Carp;
             Carp::cluck(sprintf
                 (
-                 "Warning: into_interval[%s] smaller than own interval[%s] on interval[%s]. Danger ahead.",
+                 "Warning: into_interval_secs[%s] smaller than own interval_secs[%s] on interval[%s]. Danger ahead.",
                  $self->interval_secs($into),
                  $self->interval_secs,
                  $self->interval,
@@ -1871,6 +1895,10 @@ sub update {
                 $new_dm = $epoch;
             }
             $self->dirtymark($new_dm);
+            my $merged = $self->merged;
+            if (_bigfloatlt($epoch,$merged->{epoch})) {
+                die "sth like \$self->merged(+{}) needed?";
+            }
         } else {
             $recent = [ grep { $_->{path} ne $path } @$recent ];
             $splicepos = 0;

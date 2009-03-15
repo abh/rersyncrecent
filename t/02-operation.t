@@ -101,7 +101,7 @@ rmtree [$root_from, $root_to];
     BEGIN {
         $test_counter = $tests;
         @intervals = qw( 2s 4s 8s 16s 32s Z );
-        $tests += 2 + 2 * (10 + 10 * @intervals); # test_counter
+        $tests += 2 + 2 * (7 + 10 * @intervals); # test_counter
     }
     printf "#test_counter[%d]\n", $test_counter;
     ok(1, "starting smalltree block");
@@ -195,7 +195,7 @@ rmtree [$root_from, $root_to];
             close $fh2 or die "Could not close: $!";
             $rf0->update("$root_from/dirty$dirti","new","999.999");
             $recent_events = $rf0->recent_events;
-            is $recent_events->[-1]{epoch}, "999.999", "found the dirty timestamp";
+            is $recent_events->[-1]{epoch}, "999.999", "found the dirty timestamp during dirti[$dirti]";
             printf "#test_counter[%d]\n", $test_counter+=1;
             $rf0->aggregate(force => 1);
             my $recc = File::Rsync::Mirror::Recent->new
@@ -205,8 +205,9 @@ rmtree [$root_from, $root_to];
                 );
             my %seen;
             for my $rf (@{$recc->recentfiles}) {
+                my $isec = $rf->interval_secs;
                 my $re = $rf->recent_events;
-                is $re->[-1]{epoch}, "999.999", "found the dirty timestamp";
+                is $re->[-1]{epoch}, "999.999", "found the dirty timestamp in isec[$isec]";
                 my $dirtymark = $rf->dirtymark;
                 ok $dirtymark, "dirtymark[$dirtymark]";
                 $seen{ $rf->dirtymark }++;
@@ -221,7 +222,7 @@ rmtree [$root_from, $root_to];
                 my $rf = $rfs->[$i];
                 my $re = $rf->recent_events;
                 if ($i == $#$rfs) {
-                    is $re->[-1]{epoch}, "999.999", "found the dirty timestamp";
+                    is $re->[-1]{epoch}, "999.999", "found the dirty timestamp on i[$i]";
                 } else {
                     isnt $re->[-1]{epoch}, "999.999", "dirty timestamp gone on i[$i]";
                 }
@@ -233,7 +234,7 @@ rmtree [$root_from, $root_to];
             is scalar keys %seen, 1, "all recentfiles have the same dirtymark";
             printf "#test_counter[%d]\n", $test_counter+=1;
         }
-        $DB::single++;
+        # $DB::single++;
         rmtree [$root_from];
     }
 }

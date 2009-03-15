@@ -68,14 +68,23 @@ mantissa than can be handled by native perl floats.
 =cut
 sub _bigfloatcmp ($$) {
     my($l,$r) = @_;
+    unless (defined $l and defined $r) {
+        require Carp;
+        for ($l,$r) {
+            $_ = defined $_ ? $_ : "UNDEF";
+        }
+        Carp::confess("_bigfloatcmp called with l[$l]r[$r]: but both must be defined");
+    }
     if ($l =~ /\./ || $r =~ /\./) {
         # if one is a float, both must be, otherwise perl gets it wrong (see test)
         for ($l, $r){
             $_ .= ".0" unless /\./;
         }
     }
-    my $native = $l <=> $r;
-    return $native if $native;
+    #### XXXX bug in some perls, we cannot trust native comparison on floating point values:
+    #### see Todo file entry on 2009-03-15
+    #### my $native = $l <=> $r;
+    #### return $native if $native;
     $l =~ s/^/0/ while index($l,".") < index($r,".");
     $r =~ s/^/0/ while index($r,".") < index($l,".");
     $l cmp $r;

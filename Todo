@@ -1,3 +1,65 @@
+2009-03-15  Andreas J. Koenig  <andk@cpan.org>
+
+	* Todo: write a test that inserts a second dirty file with an already
+	existing timestamp
+
+	* Bug in perl 5.10 on my 64bit box:
+
+  DB<98> Devel::Peek::Dump $l
+SV = PVMG(0x19e0450) at 0x142a550
+  REFCNT = 2
+  FLAGS = (PADMY,NOK,POK,pNOK,pPOK)
+  IV = 0
+  NV = 1237123231.22458
+  PV = 0x194ce70 "1237123231.22458"\0
+  CUR = 16
+  LEN = 40
+
+  DB<99> Devel::Peek::Dump $r
+SV = PVMG(0x19e0240) at 0x142a3e8
+  REFCNT = 2
+  FLAGS = (PADMY,POK,pPOK)
+  IV = 1237123229
+  NV = 1237123229.8814
+  PV = 0x19ff900 "1237123231.22458"\0
+  CUR = 16
+  LEN = 40
+
+  DB<100> Devel::Peek::Dump $l <=> $r
+SV = IV(0x19ea6e8) at 0x19ea6f0
+  REFCNT = 1
+  FLAGS = (PADTMP,IOK,pIOK)
+  IV = -1
+
+  DB<101> Devel::Peek::Dump $l
+SV = PVMG(0x19e0450) at 0x142a550
+  REFCNT = 2
+  FLAGS = (PADMY,NOK,POK,pNOK,pPOK)
+  IV = 0
+  NV = 1237123231.22458
+  PV = 0x194ce70 "1237123231.22458"\0
+  CUR = 16
+  LEN = 40
+
+  DB<102> Devel::Peek::Dump $r
+SV = PVMG(0x19e0240) at 0x142a3e8
+  REFCNT = 2
+  FLAGS = (PADMY,NOK,POK,pIOK,pNOK,pPOK)
+  IV = 1237123231
+  NV = 1237123231.22458
+  PV = 0x19ff900 "1237123231.22458"\0
+  CUR = 16
+  LEN = 40
+
+	Retry with uselongdouble gives same effect.
+
+
+	* Todo: reset "done" or "covered" and "minmax" after a dirty operation?
+
+	* currently recent_events has the side effect of setting dirtymark
+	because it forces a read on the file. That should be transparent, so
+	that the dirtymark call always forces a cache-able(?) read.
+
 2009-03-11  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* $obj->merge ($other) needs to learn about equal epoch which may happen

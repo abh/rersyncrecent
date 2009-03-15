@@ -40,7 +40,9 @@ rmtree [$root_from, $root_to];
 
 {
     my @serializers;
+    my $test_counter;
     BEGIN {
+        $test_counter = $tests;
         @serializers = (
                         ".yaml",
                         ".json",
@@ -52,6 +54,7 @@ rmtree [$root_from, $root_to];
             $tests += @serializers;
         }
     }
+    printf "#test_counter[%d]\n", $test_counter;
     mkpath $root_from;
     my $ttt = "$root_from/ttt";
     open my $fh, ">", $ttt or die "Could not open: $!";
@@ -94,12 +97,16 @@ rmtree [$root_from, $root_to];
 {
     # very small tree, aggregate it
     my @intervals;
+    my $test_counter;
     BEGIN {
-        $tests += 30;
+        $test_counter = $tests;
         @intervals = qw( 2s 4s 8s 16s 32s Z );
+        $tests += 2 + 2 * (4 + 6 * @intervals); # test_counter
     }
+    printf "#test_counter[%d]\n", $test_counter;
     ok(1, "starting smalltree block");
     is 6, scalar @intervals, "array has 6 elements: @intervals";
+    printf "#test_counter[%d]\n", $test_counter+=2;
     for my $pass (0,1) {
         my $rf0 = File::Rsync::Mirror::Recentfile->new
             (
@@ -155,6 +162,7 @@ rmtree [$root_from, $root_to];
             ok( $filesize > $filesize_threshold, "file $iv (before merging) has good size[$filesize]");
             utime 0, 0, $rf; # so that the next aggregate isn't skipped
         }
+        printf "#test_counter[%d]\n", $test_counter+=6;
         open my $fh, ">", "$root_from/finissage" or die "Could not open: $!";
         print $fh "fin";
         close $fh or die "Could not close: $!";
@@ -167,11 +175,11 @@ rmtree [$root_from, $root_to];
             # truncate them
             ok($iv eq "Z" || $filesize<$size_before{$iv}, "file $iv (after merging) has good size[$filesize<$size_before{$iv}]");
         }
+        printf "#test_counter[%d]\n", $test_counter+=6;
         my $dagg1 = $rf0->_debug_aggregate;
         Time::HiRes::sleep 1.2;
-        $rf0->aggregate; # should not change the file
+        $rf0->aggregate;
         my $dagg2 = $rf0->_debug_aggregate;
-        is $dagg2->[0]{mtime}, $dagg1->[0]{mtime}, "no change by gratuitous aggregate";
         {
             my $recc = File::Rsync::Mirror::Recent->new
                 (
@@ -180,7 +188,51 @@ rmtree [$root_from, $root_to];
             ok $recc->overview, "overview created";
             # diag $recc->overview;
         }
-        rmtree [$root_from, $root_to];
+        printf "#test_counter[%d]\n", $test_counter+=1;
+        open my $fh2, ">", "$root_from/dirty" or die "Could not open: $!";
+        print $fh2 "dirty";
+        close $fh2 or die "Could not close: $!";
+        $rf0->update("$root_from/dirty","new","999.999");
+        $recent_events = $rf0->recent_events;
+        is $recent_events->[-1]{epoch}, "999.999", "found the dirty timestamp";
+        printf "#test_counter[%d]\n", $test_counter+=1;
+        $rf0->aggregate(force => 1);
+        my $recc = File::Rsync::Mirror::Recent->new
+            (
+             localroot => $root_from,
+             local => "$root_from/RECENT.recent",
+            );
+        my %seen;
+        for my $rf (@{$recc->recentfiles}) {
+            my $re = $rf->recent_events;
+            is $re->[-1]{epoch}, "999.999", "found the dirty timestamp";
+            my $dirtymark = $rf->dirtymark;
+            ok $dirtymark, "dirtymark[$dirtymark]";
+            $seen{ $rf->dirtymark }++;
+        }
+        printf "#test_counter[%d]\n", $test_counter+=12;
+        is scalar keys %seen, 1, "all recentfiles have the same dirtymark";
+        printf "#test_counter[%d]\n", $test_counter+=1;
+        sleep 0.2;
+        $rf0->aggregate(force => 1);
+        my $rfs = $recc->recentfiles;
+        for my $i (0..$#$rfs) {
+            my $rf = $rfs->[$i];
+            my $re = $rf->recent_events;
+            if ($i == $#$rfs) {
+                is $re->[-1]{epoch}, "999.999", "found the dirty timestamp";
+            } else {
+                isnt $re->[-1]{epoch}, "999.999", "dirty timestamp gone on i[$i]";
+            }
+            my $dirtymark = $rf->dirtymark;
+            ok $dirtymark, "dirtymark[$dirtymark]";
+            $seen{ $rf->dirtymark }++;
+        }
+        printf "#test_counter[%d]\n", $test_counter+=12;
+        is scalar keys %seen, 1, "all recentfiles have the same dirtymark";
+        printf "#test_counter[%d]\n", $test_counter+=1;
+        # $DB::single++;
+        rmtree [$root_from];
     }
 }
 
@@ -188,7 +240,12 @@ rmtree [$root_from, $root_to];
 
 {
     # replay a short history, run aggregate on it, add files, aggregate again
-    BEGIN { $tests += 208 }
+    my $test_counter;
+    BEGIN {
+        $test_counter = $tests;
+        $tests += 208;
+    }
+    printf "#test_counter[%d]\n", $test_counter;
     ok(1, "starting short history block");
     my $rf = File::Rsync::Mirror::Recentfile->new_from_file("t/RECENT-6h.yaml");
     my $recent_events = $rf->recent_events;
@@ -299,7 +356,12 @@ rmtree [$root_from, $root_to];
 
 {
     # running mirror
-    BEGIN { $tests += 4 }
+    my $test_counter;
+    BEGIN {
+        $test_counter = $tests;
+        $tests += 3;
+    }
+    printf "#test_counter[%d]\n", $test_counter;
     my $rf = File::Rsync::Mirror::Recentfile->new
         (
          filenameroot   => "RECENT",
@@ -396,19 +458,18 @@ rmtree [$root_from, $root_to];
             );
         my %seen;
         for my $rf (@{$recc->recentfiles}) {
-            unless (%seen) {
-                my $dirtymark = $rf->dirtymark;
-                ok $dirtymark, "dirtymark[$dirtymark]";
-            }
-            $seen{ $rf->dirtymark }++;
+            my $dirtymark = $rf->dirtymark or next;
+            $seen{ $dirtymark }++;
         }
-        is scalar keys %seen, 1, "all recentfiles have the same dirtymark";
+        is scalar keys %seen, 1, "all recentfiles have the same dirtymark or we don't know it";
     }
 }
 
 rmtree [$root_from, $root_to, $statusfile] unless $Opt{verbose};
 
-BEGIN { plan tests => $tests }
+BEGIN {
+    plan tests => $tests
+}
 
 # Local Variables:
 # mode: cperl

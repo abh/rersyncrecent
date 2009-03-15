@@ -347,7 +347,7 @@ use accessors @accessors;
 
 =head1 METHODS
 
-=head2 (void) $obj->aggregate
+=head2 (void) $obj->aggregate( %options )
 
 Takes all intervals that are collected in the accessor called
 aggregator. Sorts them by actual length of the interval.
@@ -357,7 +357,7 @@ as long as the next I<recentfile> is old enough to warrant a merge.
 
 If a merge is warranted is decided according to the interval of the
 previous interval so that larger files are not so often updated as
-smaller ones.
+smaller ones. If $options{force} is true, all files get updated.
 
 Here is an example to illustrate the behaviour. Given aggregators
 
@@ -378,18 +378,19 @@ rate and as such are quite useless on their own.
 =cut
 
 sub aggregate {
-    my($self) = @_;
+    my($self, %option) = @_;
     my @aggs = sort { $a->{secs} <=> $b->{secs} }
         grep { $_->{secs} >= $self->interval_secs }
             map { { interval => $_, secs => $self->interval_secs($_)} }
                 $self->interval, @{$self->aggregator || []};
+    $self->update;
     $aggs[0]{object} = $self;
   AGGREGATOR: for my $i (0..$#aggs-1) {
         my $this = $aggs[$i]{object};
         my $next = $this->_sparse_clone;
         $next->interval($aggs[$i+1]{interval});
         my $want_merge = 0;
-        if ($i == 0) {
+        if ($option{force} || $i == 0) {
             $want_merge = 1;
         } else {
             my $next_rfile = $next->rfile;
@@ -777,6 +778,7 @@ sub merge {
     $self->_merge_sanitycheck ( $other );
     $other->lock;
     my $other_recent = $other->recent_events || [];
+    # $DB::single++ if $other->interval_secs eq "2" and grep {$_->{epoch} eq "999.999"} @$other_recent;
     $self->lock;
     my $my_recent = $self->recent_events || [];
 
@@ -787,16 +789,19 @@ sub merge {
     my $something_done;
     unless ($my_recent->[0]) {
         # obstetrics
-        $something_done=1;
+        $something_done = 1;
     }
     if ($epoch) {
-        if (my $merged = $self->merged) {
+        if (_bigfloatgt($other->dirtymark, $self->dirtymark||0)) {
+            $oldest_allowed = 0;
+            $something_done = 1;
+        } elsif (my $merged = $self->merged) {
             my $secs = $self->interval_secs();
             $oldest_allowed = min($epoch - $secs, $merged->{epoch}||0);
         }
         while (@$my_recent && _bigfloatlt($my_recent->[-1]{epoch}, $oldest_allowed)) {
             pop @$my_recent;
-            $something_done=1;
+            $something_done = 1;
         }
     }
 
@@ -812,7 +817,7 @@ sub merge {
             # do nothing
         } else {
             if (!$myepoch || _bigfloatgt($oevepoch, $myepoch)) {
-                $something_done=1;
+                $something_done = 1;
             }
             push @$other_recent_filtered, { epoch => $oev->{epoch}, path => $path, type => $oev->{type} };
         }
@@ -855,7 +860,7 @@ sub _merge_something_done {
             }
         }
     }
-    if (_bigfloatgt($other->dirtymark, $self->dirtymark)) {
+    if (!$self->dirtymark || _bigfloatgt($other->dirtymark, $self->dirtymark)) {
         $self->dirtymark ( $other->dirtymark );
     }
     $self->write_recent($recent);
@@ -1742,7 +1747,6 @@ sub _sparse_clone {
                   _rfile
                   _use_tempfile
                   aggregator
-                  dirtymark
                   filenameroot
                   is_slave
                   max_files_per_connection
@@ -1804,6 +1808,8 @@ sub unseed {
 
 =head2 $ret = $obj->update ($path, "new", $dirty_epoch)
 
+=head2 $ret = $obj->update ()
+
 Enter one file into the local I<recentfile>. $path is the (usually
 absolute) path. If the path is outside I<our> tree, then it is
 ignored.
@@ -1827,6 +1833,9 @@ usually the timespan specified by the interval of this recentfile but
 as long as this recentfile has not been merged to another one, the
 timespan may grow without bounds.
 
+The third form runs an update without inserting a new file. This may
+be disired to truncate a recentfile.
+
 =cut
 sub _epoch_monotonically_increasing {
     my($self,$epoch,$recent) = @_;
@@ -1839,49 +1848,55 @@ sub _epoch_monotonically_increasing {
 }
 sub update {
     my($self,$path,$type,$dirty_epoch) = @_;
-    die "update called without path argument" unless defined $path;
-    die "update called without type argument" unless defined $type;
-    die "update called with illegal type argument: $type" unless $type =~ /(new|delete)/;
-    die "update called with \$type=$type and \$dirty_epoch=$dirty_epoch; ".
-        "dirty_epoch only allowed with type=new" if $dirty_epoch and $type ne "new";
-    my $canonmeth = $self->canonize;
-    unless ($canonmeth) {
-        $canonmeth = "naive_path_normalize";
+    if (defined $path or defined $type or defined $dirty_epoch) {
+        die "update called without path argument" unless defined $path;
+        die "update called without type argument" unless defined $type;
+        die "update called with illegal type argument: $type" unless $type =~ /(new|delete)/;
+        die "update called with \$type=$type and \$dirty_epoch=$dirty_epoch; ".
+            "dirty_epoch only allowed with type=new" if $dirty_epoch and $type ne "new";
+        my $canonmeth = $self->canonize;
+        unless ($canonmeth) {
+            $canonmeth = "naive_path_normalize";
+        }
+        $path = $self->$canonmeth($path);
     }
-    $path = $self->$canonmeth($path);
     my $lrd = $self->localroot;
-    if ($path =~ s|^\Q$lrd\E||) {
+    $self->lock;
+    # you must calculate the time after having locked, of course
+    my $now = Time::HiRes::time;
+    my $interval = $self->interval;
+    my $secs = $self->interval_secs();
+    my $recent = $self->recent_events;
+
+    my $epoch;
+    if ($dirty_epoch) {
+        $epoch = $dirty_epoch;
+    } else {
+        $epoch = $self->_epoch_monotonically_increasing($now,$recent);
+    }
+
+    $recent ||= [];
+    my $oldest_allowed = 0;
+    my $merged = $self->merged;
+    if ($merged->{epoch}) {
+        my $virtualnow = max($now,$epoch);
+        # for the lower bound could we need big math?
+        $oldest_allowed = min($virtualnow - $secs, $merged->{epoch}, $epoch);
+    } else {
+        # as long as we are not merged at all, no limits!
+    }
+    my $something_done = 0;
+ TRUNCATE: while (@$recent) {
+        $DB::single++ unless defined $oldest_allowed;
+        if (_bigfloatlt($recent->[-1]{epoch}, $oldest_allowed)) {
+            pop @$recent;
+            $something_done = 1;
+        } else {
+            last TRUNCATE;
+        }
+    }
+    if (defined $path && $path =~ s|^\Q$lrd\E||) {
         $path =~ s|^/||;
-        my $interval = $self->interval;
-        my $secs = $self->interval_secs();
-        $self->lock;
-        # you must calculate the time after having locked, of course
-        my $now = Time::HiRes::time;
-        my $recent = $self->recent_events;
-
-        my $epoch;
-        if ($dirty_epoch) {
-            $epoch = $dirty_epoch;
-        } else {
-            $epoch = $self->_epoch_monotonically_increasing($now,$recent);
-        }
-
-        $recent ||= [];
-        my $oldest_allowed = 0;
-        if (my $merged = $self->merged) {
-            my $virtualnow = max($now,$epoch);
-            # for the lower bound could we need big math?
-            $oldest_allowed = min($virtualnow - $secs, $merged->{epoch}, $epoch);
-        } else {
-            # as long as we are not merged at all, no limits!
-        }
-      TRUNCATE: while (@$recent) {
-            if (_bigfloatlt($recent->[-1]{epoch}, $oldest_allowed)) {
-                pop @$recent;
-            } else {
-                last TRUNCATE;
-            }
-        }
         my $splicepos;
         # remove the older duplicates of this $path, irrespective of $type:
         if ($dirty_epoch) {
@@ -1897,7 +1912,7 @@ sub update {
             $self->dirtymark($new_dm);
             my $merged = $self->merged;
             if (_bigfloatlt($epoch,$merged->{epoch})) {
-                die "sth like \$self->merged(+{}) needed?";
+                $self->merged(+{});
             }
         } else {
             $recent = [ grep { $_->{path} ne $path } @$recent ];
@@ -1906,11 +1921,12 @@ sub update {
         if (defined $splicepos) {
             splice @$recent, $splicepos, 0, { epoch => $epoch, path => $path, type => $type };
         }
-
-        $self->write_recent($recent);
-        $self->_assert_symlink;
-        $self->unlock;
+        $something_done = 1;
     }
+
+    $self->write_recent($recent) if $something_done;
+    $self->_assert_symlink;
+    $self->unlock;
 }
 
 sub _update_with_dirty_epoch {

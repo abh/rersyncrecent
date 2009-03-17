@@ -1,6 +1,14 @@
 2009-03-17  Andreas J. Koenig  <andk@cpan.org>
 
 	* done: verified the existence of the floating point bug in bleadperl
+	and verified that switching from YAML::Syck to YAML::XS does not resolve
+	it.
+
+	BTW, the switch was doable with
+
+	perl -i~ -pe 's/Syck/XS/g' lib/**/*.pm t/*.t
+
+	and should be considered as a separate TODO
 
 	* todo: integrate a dirty update with two aggregate calls before
 	unlocking for frictionless dirtying

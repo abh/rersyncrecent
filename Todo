@@ -1,6 +1,6 @@
 2009-03-17  Andreas J. Koenig  <andk@cpan.org>
 
-	* todo: integrate a durty update with two aggregate calls before
+	* todo: integrate a dirty update with two aggregate calls before
 	unlocking for frictionless dirtying
 
 	* todo: start the second rsync daemon on pause

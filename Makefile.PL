@@ -47,14 +47,17 @@ WriteMakefile
      PREREQ_PM =>
      {
       # 'Data::Serializer' => 0.46, # restricted to YAML without it
+      'accessors'        => 0,
       'Data::Float'      => 0,
       'File::Rsync'      => 0,
       'Test::More'       => 0,
       'File::Basename'   => 0,
       'File::Path'       => 0,
       'File::Temp'       => 0,
+      'List::MoreUtils'  => 0,
       'List::Pairwise'   => 0,
       'Scalar::Util'     => 0,
+      'Data::Serializer' => 0,
       'Time::HiRes'      => 0,
       'YAML::Syck'       => 0,
      },

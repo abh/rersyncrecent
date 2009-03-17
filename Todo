@@ -1,3 +1,23 @@
+2009-03-17  Andreas J. Koenig  <andk@cpan.org>
+
+	* todo: integrate a durty update with two aggregate calls before
+	unlocking for frictionless dirtying
+
+	* todo: start the second rsync daemon on pause
+
+	* todo: move index files to .recent
+
+2009-03-16  Andreas J. Koenig  <andk@cpan.org>
+
+	* What was the resolution of the mirror.pl delete hook bug? Do we call
+	the delete hook when pause removes a file from MUIR?
+
+	* Today on pause: Updating 2a13fba..29f284d and installing it for
+	/usr/local/perl-5.10.0{,-RC2}
+
+	TURUGINA/Set-Intersection-0.01.tar.gz was the last upload before this
+	action and G/GW/GWILLIAMS/RDF-Query-2.100_01.tar.gz the first after it
+
 2009-03-15  Andreas J. Koenig  <andk@cpan.org>
 
 	* currently recent_events has the side effect of setting dirtymark

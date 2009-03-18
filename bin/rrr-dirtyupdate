@@ -32,7 +32,11 @@ More feedback.
 
 =head1 DESCRIPTION
 
-(TBD)
+When you later discover missing files...
+
+=head1 BUGS
+
+This is slow.
 
 =cut
 
@@ -71,8 +75,11 @@ unless ($rf) {
     die "ALERT: Could not create an rf: $@";
 }
 warn "prove of concept for one file only. Last chance to hit ^C now to interrupt. sleeping 5";
-sleep 5;
-$rf->update("/home/ftp/pub/PAUSE/authors/id/S/SA/SAMUELL/Ctype-0.02.readme","new","0.123456789");
+sleep 2;
+
+$rf->update("/home/ftp/pub/PAUSE/authors/id/K/KO/KORSANI/Log-Funlog-0.7.2.3.readme","new","567990000");
+$rf->update("/home/ftp/pub/PAUSE/authors/id/K/KO/KORSANI/Log-Funlog-0.7.2.4.readme","new","567990000");
+$rf->update("/home/ftp/pub/PAUSE/authors/id/K/KO/KORSANI/Log-Funlog-0.8.0.0.readme","new","567990000");
 $rf->aggregate(force => 1);
 $rf->aggregate(force => 1);
 

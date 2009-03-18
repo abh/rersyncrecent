@@ -46,9 +46,9 @@ my %serializers;
 B<!!!! PRE-ALPHA ALERT !!!!>
 
 Nothing in here is believed to be stable, nothing yet intended for
-public consumption. The plan is to provide a script in one of the next
-releases that acts as a frontend for all the backend functionality.
-Option and method names will very likely change.
+public consumption. The plan is to provide scripts that act as
+frontends for all the backend functionality. Option and method names
+will very likely change.
 
 For the rationale see the section BACKGROUND.
 
@@ -247,7 +247,7 @@ full re-sync of all files.
 =item filenameroot
 
 The (prefix of the) filename we use for this I<recentfile>. Defaults to
-C<RECENT>.
+C<RECENT>. The string must not contain a directory separator.
 
 =item have_mirrored
 

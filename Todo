@@ -15,7 +15,9 @@
 
 	* todo: start the second rsync daemon on pause
 
-	* todo: move index files to .recent
+	* todo: move index files to .recent: this cannot simply be done by
+	setting filenameroot to .recent/RECENT. Other parts of the modules rely
+	on the fact that dirname(recentfile) is the root of the mirrored tree.
 
 2009-03-16  Andreas J. Koenig  <andk@cpan.org>
 

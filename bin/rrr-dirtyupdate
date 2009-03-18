@@ -73,8 +73,8 @@ unless ($rf) {
 warn "prove of concept for one file only. Last chance to hit ^C now to interrupt. sleeping 5";
 sleep 5;
 $rf->update("/home/ftp/pub/PAUSE/authors/id/S/SA/SAMUELL/Ctype-0.02.readme","new","0.123456789");
-$rf->aggregate;
-$rf->aggregate;
+$rf->aggregate(force => 1);
+$rf->aggregate(force => 1);
 
 __END__
 

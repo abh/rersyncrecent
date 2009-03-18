@@ -57,13 +57,15 @@ unless (@ARGV) {
     pod2usage(1);
 }
 
+# my($file,$epoch) = @ARGV; # XXX
+
 if ($Opt{'dry-run'}) {
     die "FIXME: not yet implemented";
 }
 
-my $rf = File::Rsync::Mirror::Recentfile->new
+my $rf = File::Rsync::Mirror::Recentfile->new_from_file
     (
-     localroot => "/home/ftp/pub/PAUSE/authors/",
+     "/home/ftp/pub/PAUSE/authors/RECENT-1h.yaml",
     );
 unless ($rf) {
     die "ALERT: Could not create an rf: $@";

@@ -2,11 +2,11 @@
 
 =head1 NAME
 
-rrr-dirtyupdate - add files with an old timestamp to the dataset
+rrr-dirtyupdate - add a file with an old timestamp to the dataset
 
 =head1 SYNOPSIS
 
-  rrr-dirtyupdate [options] file ...
+  rrr-dirtyupdate [options] file epoch
 
 =head1 OPTIONS
 
@@ -61,7 +61,18 @@ if ($Opt{'dry-run'}) {
     die "FIXME: not yet implemented";
 }
 
-die "Nothing implemented yet";
+my $rf = File::Rsync::Mirror::Recentfile->new
+    (
+     localroot => "/home/ftp/pub/PAUSE/authors/",
+    );
+unless ($rf) {
+    die "ALERT: Could not create an rf: $@";
+}
+warn "prove of concept for one file only. Last chance to hit ^C now to interrupt. sleeping 5";
+sleep 5;
+$rf->update("/home/ftp/pub/PAUSE/authors/id/S/SA/SAMUELL/Ctype-0.02.readme","new","0.123456789");
+$rf->aggregate;
+$rf->aggregate;
 
 __END__
 

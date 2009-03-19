@@ -798,6 +798,11 @@ sub merge {
         } elsif (my $merged = $self->merged) {
             my $secs = $self->interval_secs();
             $oldest_allowed = min($epoch - $secs, $merged->{epoch}||0);
+            if (@$other_recent and
+                _bigfloatlt($other_recent->[-1]{epoch}, $oldest_allowed)
+               ) {
+                $oldest_allowed = $other_recent->[-1]{epoch};
+            }
         }
         while (@$my_recent && _bigfloatlt($my_recent->[-1]{epoch}, $oldest_allowed)) {
             pop @$my_recent;

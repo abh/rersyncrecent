@@ -78,12 +78,17 @@ my $sleep = 2;
 warn "prove of concept for one file only. Last chance to hit ^C now to interrupt. sleeping $sleep";
 sleep $sleep;
 
-# /id/M/MU/MUIR/modules/IO-Event-0.701.meta
-# /id/M/MU/MUIR/modules/IO-Event-0.603.meta
-$rf->update("/home/ftp/pub/PAUSE/authors/id/M/MU/MUIR/modules/IO-Event-0.701.meta","delete");
-$rf->update("/home/ftp/pub/PAUSE/authors/id/M/MU/MUIR/modules/IO-Event-0.603.meta","delete");
-for my $file ("/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/boxit.gz",
-              "/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/sortbylen.gz") {
+my @files = qw(
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/cptimes.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/words.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/slowcat.gz
+/home/ftp/pub/PAUSE/authors/id/M/MU/MUIR/perl4/simplify.pl.gz
+/home/ftp/pub/PAUSE/authors/id/M/MU/MUIR/perl4/dirname.pl.gz
+/home/ftp/pub/PAUSE/authors/id/M/MU/MUIR/perl4/check_lock.pl.gz
+/home/ftp/pub/PAUSE/authors/id/M/MU/MUIR/perl4/locks.pl.gz
+);
+
+for my $file (@files) {
     my @stat = stat $file or die "Couldn't stat '$file': $!";
     my $mtime = $stat[9];
     $rf->update($file,"new",$mtime);

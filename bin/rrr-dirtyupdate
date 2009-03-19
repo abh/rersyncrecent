@@ -79,22 +79,79 @@ warn "prove of concept for one file only. Last chance to hit ^C now to interrupt
 sleep $sleep;
 
 my @files = qw(
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/cptimes.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/words.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/slowcat.gz
-/home/ftp/pub/PAUSE/authors/id/M/MU/MUIR/perl4/simplify.pl.gz
-/home/ftp/pub/PAUSE/authors/id/M/MU/MUIR/perl4/dirname.pl.gz
-/home/ftp/pub/PAUSE/authors/id/M/MU/MUIR/perl4/check_lock.pl.gz
-/home/ftp/pub/PAUSE/authors/id/M/MU/MUIR/perl4/locks.pl.gz
+/home/ftp/pub/PAUSE/authors/id/M/MI/MICB/Des-perl-a1.readme
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/splain.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/net/qotd.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/clip.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/dfgripe.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/dupwords.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/dutree.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/flinx.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/hwo.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/igrep.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/manpath.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/pgrep.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/pt.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/rename.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/rmmq.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/rweb.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/seced.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/sigrand.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/sox.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ssl.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/straycats.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/suidscript.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/tfiles.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/tgent.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/zap.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/man.shar.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/sortsig.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/net/TCP/sigrand.gz
+/home/ftp/pub/PAUSE/authors/id/E/EH/EHOOD/makehomeidx1.1.1.readme
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/clip.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/cptimes.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/dfgripe.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/dupwords.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/dutree.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/expn.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/flinx.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/hwo.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/igrep.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/lst.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/manpath.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/now.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/pgrep.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/pt.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/rename.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/rmmq.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/rweb.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/seced.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/sigrand.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/sortbylen.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/sox.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/ssl.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/straycats.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/suidscript.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/tcgrep.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/tct.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/tfiles.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/tgent.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/zap.gz
+/home/ftp/pub/PAUSE/authors/id/E/EH/EHOOD/perlMIF.beta2.readme
+/home/ftp/pub/PAUSE/authors/id/M/MU/MUIR/perl4/parseargs.pl.gz
 );
 
+warn "starting at ".localtime;
 for my $file (@files) {
     my @stat = stat $file or die "Couldn't stat '$file': $!";
     my $mtime = $stat[9];
     $rf->update($file,"new",$mtime);
 }
+warn "starting first aggregate at ".localtime;
 $rf->aggregate(force => 1);
+warn "starting second aggregate at ".localtime;
 $rf->aggregate(force => 1);
+warn "finished at ".localtime;
 
 __END__
 

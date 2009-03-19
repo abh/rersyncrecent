@@ -74,13 +74,20 @@ my $rf = File::Rsync::Mirror::Recentfile->new_from_file
 unless ($rf) {
     die "ALERT: Could not create an rf: $@";
 }
-warn "prove of concept for one file only. Last chance to hit ^C now to interrupt. sleeping 5";
-sleep 2;
+my $sleep = 2;
+warn "prove of concept for one file only. Last chance to hit ^C now to interrupt. sleeping $sleep";
+sleep $sleep;
 
-$rf->update("/home/ftp/pub/PAUSE/authors/id/M/MU/MUIR/modules/Text-Tabs+Wrap-2009.0305.meta","delete");
-$rf->update("/home/ftp/pub/PAUSE/authors/id/K/KO/KORSANI/Log-Funlog-0.7.2.3.readme","new","567990000");
-$rf->update("/home/ftp/pub/PAUSE/authors/id/K/KO/KORSANI/Log-Funlog-0.7.2.4.readme","new","567990000");
-$rf->update("/home/ftp/pub/PAUSE/authors/id/K/KO/KORSANI/Log-Funlog-0.8.0.0.readme","new","567990000");
+# /id/M/MU/MUIR/modules/IO-Event-0.701.meta
+# /id/M/MU/MUIR/modules/IO-Event-0.603.meta
+$rf->update("/home/ftp/pub/PAUSE/authors/id/M/MU/MUIR/modules/IO-Event-0.701.meta","delete");
+$rf->update("/home/ftp/pub/PAUSE/authors/id/M/MU/MUIR/modules/IO-Event-0.603.meta","delete");
+for my $file ("/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/boxit.gz",
+              "/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/sortbylen.gz") {
+    my @stat = stat $file or die "Couldn't stat '$file': $!";
+    my $mtime = $stat[9];
+    $rf->update($file,"new",$mtime);
+}
 $rf->aggregate(force => 1);
 $rf->aggregate(force => 1);
 

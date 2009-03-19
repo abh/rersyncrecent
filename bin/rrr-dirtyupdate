@@ -36,7 +36,7 @@ When you later discover missing files...
 
 =head1 BUGS
 
-This is slow.
+This is slow: it calls aggregate twice with force which took 2 x 10-15 seconds on PAUSE.
 
 =cut
 
@@ -79,69 +79,81 @@ warn "prove of concept for one file only. Last chance to hit ^C now to interrupt
 sleep $sleep;
 
 my @files = qw(
-/home/ftp/pub/PAUSE/authors/id/M/MI/MICB/Des-perl-a1.readme
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/splain.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/net/qotd.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/clip.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/dfgripe.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/dupwords.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/dutree.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/flinx.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/hwo.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/igrep.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/manpath.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/pgrep.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/pt.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/rename.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/rmmq.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/rweb.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/seced.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/sigrand.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/sox.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ssl.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/straycats.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/suidscript.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/tfiles.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/tgent.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/zap.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/man.shar.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/sortsig.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/net/TCP/sigrand.gz
-/home/ftp/pub/PAUSE/authors/id/E/EH/EHOOD/makehomeidx1.1.1.readme
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/clip.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/cptimes.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/dfgripe.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/dupwords.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/dutree.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/expn.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/flinx.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/hwo.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/igrep.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/lst.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/manpath.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/now.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/pgrep.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/pt.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/rename.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/rmmq.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/rweb.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/seced.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/sigrand.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/sortbylen.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/sox.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/ssl.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/straycats.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/suidscript.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/tcgrep.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/tct.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/tfiles.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/tgent.gz
-/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/doc/zap.gz
-/home/ftp/pub/PAUSE/authors/id/E/EH/EHOOD/perlMIF.beta2.readme
-/home/ftp/pub/PAUSE/authors/id/M/MU/MUIR/perl4/parseargs.pl.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/angelgrep.gz
+/home/ftp/pub/PAUSE/authors/id/G/GA/GAND/HTML-0.6.readme
+/home/ftp/pub/PAUSE/authors/id/M/MI/MICB/TclTk-b1.readme
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/rprint/t1.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/rprint/testD.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/rprint/testpref.gz
+/home/ftp/pub/PAUSE/authors/id/M/MI/MICB/Tcl-b1.readme
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/findbig.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/manpath.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/manpath-verbose.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/sortbylen.gz
+/home/ftp/pub/PAUSE/authors/id/I/IL/ILYAZ/modules/FreezeThaw-0.3.readme
+/home/ftp/pub/PAUSE/authors/id/I/IL/ILYAZ/modules/FreezeThaw-0.41.readme
+/home/ftp/pub/PAUSE/authors/id/I/IL/ILYAZ/modules/FreezeThaw-0.43.readme
+/home/ftp/pub/PAUSE/authors/id/I/IL/ILYAZ/modules/FreezeThaw-0.44.readme
+/home/ftp/pub/PAUSE/authors/id/I/IL/ILYAZ/modules/FreezeThaw-0.45.readme
+/home/ftp/pub/PAUSE/authors/id/I/IL/ILYAZ/modules/FreezeThaw-0.4.readme
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/cgi/picknewsgroups.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/net/getng.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/net/TCP/Client.pm.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/tk/netcomplain.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/tk/servomatic.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/cgi/picknewsgroups.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/net/fing.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/net/pquote.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/nice/Nice-old.pm.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/nice/Nice.pm.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/nice/testnice.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/net/daytime.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/bad.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/rprint/Bug-Report.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/rprint/getdots.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/rprint/getdots-strict.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/rprint/pref.pm.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/bad.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/binstuff/cpfiles.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/binstuff/cut.pl.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/binstuff/lastlog-better.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/binstuff/lastlog.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/binstuff/SYS/lastlog.pm.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/msort/sortm-addrdate.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/msort/sortm-bysub.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/msort/sortm-datesub.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/tee/tctee-v4.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/tee/tctee-v5.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/lst/lst.fancy.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/lst/lst.fancy.SYS.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/lst/lst.simple.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/matchem/match_any.pl.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/timeouts/testmod.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/timeouts/TimeOut.pm.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/timeouts/timeout-v4.pl.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/timeouts/timeout-v5.pl.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ndf.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/net/statmon.gz
+/home/ftp/pub/PAUSE/authors/id/J/JK/JKAST/StatisticsDescriptive-1.1.readme
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/pt.shar.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/sortbylast.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/cgi/pickcards.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/cgi/pickcards.gz
+/home/ftp/pub/PAUSE/authors/id/W/WP/WPS/Curses-a8.readme
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/cgi/Card-Form.html
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/cgi/Card-Form.html
+/home/ftp/pub/PAUSE/authors/id/K/KJ/KJALB/Ioctl-0.5.readme
+/home/ftp/pub/PAUSE/authors/id/K/KJ/KJALB/Ioctl-0_7.readme
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/cgi/Card-Index.html
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/cgi/Card-Index.html
+/home/ftp/pub/PAUSE/authors/id/A/AM/AMOSS/SGI-GL-0.2.readme
+/home/ftp/pub/PAUSE/authors/id/A/AM/AMOSS/SGI-FM-0.1.readme
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/ADVLABS/cgi/gencards.gz
+/home/ftp/pub/PAUSE/authors/id/T/TO/TOMC/scripts/cgi/gencards.gz
 );
 
-warn "starting at ".localtime;
+my $files = @files;
+warn "($files files)starting at ".localtime;
 for my $file (@files) {
     my @stat = stat $file or die "Couldn't stat '$file': $!";
     my $mtime = $stat[9];

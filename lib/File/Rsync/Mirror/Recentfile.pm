@@ -1911,7 +1911,7 @@ sub update {
             }
             $self->dirtymark($new_dm);
             my $merged = $self->merged;
-            if (_bigfloatlt($epoch,$merged->{epoch})) {
+            if (not defined $merged->{epoch} or _bigfloatlt($epoch,$merged->{epoch})) {
                 $self->merged(+{});
             }
         } else {

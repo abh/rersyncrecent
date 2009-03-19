@@ -586,7 +586,7 @@ sub _rmirror_cleanup {
         my $next = $rfs->[$i+1];
         my $nextminmax = $next->minmax;
         # warn "DEBUG: i[$i] nextminmaxmax[$nextminmax->{max}] thismergedepoch[$thismerged->{epoch}]";
-        if (_bigfloatlt($nextminmax->{max},$thismerged->{epoch})){
+        if (not defined $thismerged->{epoch} or _bigfloatlt($nextminmax->{max},$thismerged->{epoch})){
             $next->seed;
             warn sprintf "DEBUG: %s seeded\n", $next->interval;
         }

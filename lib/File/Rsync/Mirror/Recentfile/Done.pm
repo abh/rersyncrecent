@@ -219,6 +219,7 @@ sub _register_one {
     die sprintf "Panic: illegal i[%d] larger than number of events[%d]", $i, $#$re
         if $i > $#$re;
     my $epoch = $re->[$i]{epoch};
+    $DB::single = "900644040" eq $epoch;
     return if $self->covered ( $epoch );
     if (@$intervals) {
         my $registered = 0;
@@ -297,6 +298,7 @@ sub _register_one_fold2 {
     if (defined $splicepos) {
         splice @$intervals, $splicepos, 1;
     } else {
+        $DB::single++;
         die "Panic: Could not find an interval position to insert '$epoch'";
     }
 }

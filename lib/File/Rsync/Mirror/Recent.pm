@@ -162,8 +162,6 @@ use accessors @accessors;
 
 =head2 $arrayref = $obj->news ( %options )
 
-XXX WORK IN PROGRESS XXX
-
 Testing this ATM with:
 
   perl -Ilib bin/rrr-news \

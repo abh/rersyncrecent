@@ -100,7 +100,7 @@ sub covered {
     my $intervals = $self->_intervals;
     return unless @$intervals;
     if (defined $epoch_low) {
-        ($epoch_high,$epoch_low) = ($epoch_low,$epoch_high) if $epoch_low > $epoch_high;
+        ($epoch_high,$epoch_low) = ($epoch_low,$epoch_high) if _bigfloatgt($epoch_low,$epoch_high);
     }
     for my $iv (@$intervals) {
         my($upper,$lower) = @$iv; # may be the same
@@ -108,11 +108,11 @@ sub covered {
             my $goodbound = 0;
             for my $e ($epoch_high,$epoch_low) {
                 $goodbound++ if
-                    $e eq $upper || $e eq $lower || ($e < $upper && $e > $lower);
+                    $e eq $upper || $e eq $lower || (_bigfloatlt($e,$upper) && _bigfloatgt($e,$lower));
             }
             return 1 if $goodbound > 1;
         } else {
-            return 1 if $epoch_high eq $upper || $epoch_high eq $lower || ($epoch_high < $upper && $epoch_high > $lower);
+            return 1 if $epoch_high eq $upper || $epoch_high eq $lower || (_bigfloatlt($epoch_high,$upper) && _bigfloatgt($epoch_high, $lower));
         }
     }
     return 0;

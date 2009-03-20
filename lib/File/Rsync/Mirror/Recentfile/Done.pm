@@ -219,7 +219,7 @@ sub _register_one {
     die sprintf "Panic: illegal i[%d] larger than number of events[%d]", $i, $#$re
         if $i > $#$re;
     my $epoch = $re->[$i]{epoch};
-    $DB::single = "900644040" eq $epoch;
+    $DB::single = "900644040" eq $epoch || "1233701831.34486" eq $epoch; # XXX
     return if $self->covered ( $epoch );
     if (@$intervals) {
         my $registered = 0;

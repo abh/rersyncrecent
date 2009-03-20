@@ -1,5 +1,30 @@
 2009-03-20  Andreas J. Koenig  <andk@cpan.org>
 
+	* 1233701831.34486 what's so special about this number/string? It
+	belongs to
+	id/G/GR/GRODITI/MooseX-Emulate-Class-Accessor-Fast-0.00800.tar.gz and
+	atm lives in Y,Q, and Z.
+
+	It is the first entry after id/--skip-locking which has timestamp
+	1234164228.11325 which represents a file that doesn't exist anymore.
+
+	* another bug:
+
+Sync 1237531537 (31547/33111/Z) id/J/JH/JHI/String-Approx-2.7.tar.gz ... 
+_bigfloatcmp called with l[1237505213.21133]r[UNDEF]: but both must be defined at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/FakeBigFloat.pm line 76
+        File::Rsync::Mirror::Recentfile::FakeBigFloat::_bigfloatcmp(1237505213.21133, undef) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/FakeBigFloat.pm line 131
+        File::Rsync::Mirror::Recentfile::FakeBigFloat::_bigfloatlt(1237505213.21133, undef) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/Done.pm line 110
+        File::Rsync::Mirror::Recentfile::Done::covered('File::Rsync::Mirror::Recentfile::Done=HASH(0x8857fb4)', 1237505213.21133, 0.123456789) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile.pm line 2041
+        File::Rsync::Mirror::Recentfile::uptodate('File::Rsync::Mirror::Recentfile=HASH(0x8533a2c)') called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recent.pm line 536
+        File::Rsync::Mirror::Recent::rmirror('File::Rsync::Mirror::Recent=HASH(0x82ef3d0)', 'skip-deletes', 1) called at /home/k/sources/CPAN/GIT/trunk/bin/testing-rmirror.pl line 27
+ at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/FakeBigFloat.pm line 76
+        File::Rsync::Mirror::Recentfile::FakeBigFloat::_bigfloatcmp(1237505213.21133, undef) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/FakeBigFloat.pm line 131
+        File::Rsync::Mirror::Recentfile::FakeBigFloat::_bigfloatlt(1237505213.21133, undef) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/Done.pm line 110
+        File::Rsync::Mirror::Recentfile::Done::covered('File::Rsync::Mirror::Recentfile::Done=HASH(0x8857fb4)', 1237505213.21133, 0.123456789) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile.pm line 2041
+        File::Rsync::Mirror::Recentfile::uptodate('File::Rsync::Mirror::Recentfile=HASH(0x8533a2c)') called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recent.pm line 536
+        File::Rsync::Mirror::Recent::rmirror('File::Rsync::Mirror::Recent=HASH(0x82ef3d0)', 'skip-deletes', 1) called at /home/k/sources/CPAN/GIT/trunk/bin/testing-rmirror.pl line 27
+
+
 	* bug on the mirroring slave: when the dirtymark gets increased we
 	probably do not reset the done intervals. The mirrorer stays within
 	tight bounds where it tries to sync with upstream and never seems to

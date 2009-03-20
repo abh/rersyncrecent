@@ -104,6 +104,7 @@ sub covered {
     }
     for my $iv (@$intervals) {
         my($upper,$lower) = @$iv; # may be the same
+        $DB::single = $DB::single = not(defined $upper and defined $lower);
         if (defined $epoch_low) {
             my $goodbound = 0;
             for my $e ($epoch_high,$epoch_low) {
@@ -112,7 +113,6 @@ sub covered {
             }
             return 1 if $goodbound > 1;
         } else {
-            $DB::single = $DB::single = not(defined $upper and defined $lower);
             return 1 if $epoch_high eq $upper || $epoch_high eq $lower || (_bigfloatlt($epoch_high,$upper) && _bigfloatgt($epoch_high, $lower));
         }
     }

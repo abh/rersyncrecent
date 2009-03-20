@@ -1,3 +1,50 @@
+2009-03-20  Andreas J. Koenig  <andk@cpan.org>
+
+	* bug on the mirroring slave: when the dirtymark gets increased we
+	probably do not reset the done intervals. The mirrorer stays within
+	tight bounds where it tries to sync with upstream and never seems to
+	finish. In the debugging state file I see lots of identical intervals
+	that do not get collapsed. When I restart the mirrorer it dies with:
+
+Sync 1237507989 (227/33111/Z) id/X/XI/XINMING/Catalyst-Plugin-Compress.tar.gz ...
+_bigfloatcmp called with l[1237400817.94363]r[UNDEF]: but both must be defined at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/FakeBigFloat.pm line 76
+        File::Rsync::Mirror::Recentfile::FakeBigFloat::_bigfloatcmp(1237400817.94363, undef) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/FakeBigFloat.pm line 101
+        File::Rsync::Mirror::Recentfile::FakeBigFloat::_bigfloatge(1237400817.94363, undef) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/Done.pm line 226
+        File::Rsync::Mirror::Recentfile::Done::_register_one('File::Rsync::Mirror::Recentfile::Done=HASH(0x84c6af8)', 'HASH(0xb693f2dc)') called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/Done.pm line 200
+        File::Rsync::Mirror::Recentfile::Done::register('File::Rsync::Mirror::Recentfile::Done=HASH(0x84c6af8)', 'ARRAY(0x8c54bfc)', 'ARRAY(0xb67e618c)') called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile.pm line 1044
+        File::Rsync::Mirror::Recentfile::_mirror_item('File::Rsync::Mirror::Recentfile=HASH(0x84abcb0)', 227, 'ARRAY(0x8c54bfc)', 33110, 'File::Rsync::Mirror::Recentfile::Done=HASH(0x84c6af8)', 'HASH(0x84abd8c)', 'ARRAY(0x839cb64)', 'HASH(0x839c95c)', 'HASH(0xb6a30f0c)', ...) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile.pm line 992
+        File::Rsync::Mirror::Recentfile::mirror('File::Rsync::Mirror::Recentfile=HASH(0x84abcb0)', 'piecemeal', 1, 'skip-deletes', 1) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recent.pm line 564
+        File::Rsync::Mirror::Recent::_rmirror_mirror('File::Rsync::Mirror::Recent=HASH(0x84ab6d4)', 7, 'HASH(0x8499488)') called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recent.pm line 532
+        File::Rsync::Mirror::Recent::rmirror('File::Rsync::Mirror::Recent=HASH(0x84ab6d4)', 'skip-deletes', 1) called at /home/k/sources/CPAN/GIT/trunk/bin/testing-rmirror.pl line 27
+
+	and debugging stands at
+
+At: before
+Brfinterval: Z
+Ci: 227
+Dre+1: 
+  epoch: 1237400802.5789
+  path: id/J/JO/JOHND/CHECKSUMS
+  type: new
+Dre-0: 
+  epoch: 1237400807.97514
+  path: id/M/MI/MIYAGAWA/CHECKSUMS
+  type: new
+Dre-1: 
+  epoch: 1237400817.94363
+  path: id/X/XI/XINMING/Catalyst-Plugin-Compress.tar.gz
+  type: new
+Eintervals: 
+  - 
+    - 900644040
+    - 900644040
+  - []
+
+	and it is reproducable.
+
+	Why does the mirrorer not fetch a newer Z file? It is 18 hours old while
+	pause has a fresh one.
+	
 2009-03-17  Andreas J. Koenig  <andk@cpan.org>
 
 	* done: verified the existence of the floating point bug in bleadperl

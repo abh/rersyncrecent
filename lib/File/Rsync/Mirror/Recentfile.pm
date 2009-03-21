@@ -2079,6 +2079,7 @@ sub write_recent {
  SANITYCHECK: for my $i (0..$#$recent) {
         if (defined $Last_epoch && _bigfloatge($recent->[$i]{epoch},$Last_epoch)) {
             warn sprintf "Warning: not-monotonic sequence '$recent->[$i]{epoch}'>='$Last_epoch', resorting %s\n", $self->interval;
+            $DB::single++;
             $self->_resort($recent);
             last SANITYCHECK;
         }
@@ -2357,6 +2358,11 @@ at
 L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=File-Rsync-Mirror-Recentfile>.
 I will be notified, and then you'll automatically be notified of
 progress on your bug as I make changes.
+
+=head1 KNOWN BUGS
+
+Memory hungry: it seems all memory is allocated during the initial
+rsync where a list of all files is maintained in memory.
 
 =head1 SUPPORT
 

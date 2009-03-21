@@ -226,17 +226,19 @@ sub _register_one {
             if ($i > 0
                 && _bigfloatge($re->[$i-1]{epoch}, $ivlo)
                 && _bigfloatle($re->[$i-1]{epoch}, $ivhi)
+                && _bigfloatge($iv->[1],$epoch)
                ) {
                 # if left neighbor in re belongs to this interval,
-                # then I belong to it too
+                # then I belong to it too; let us lower the ivlo
                 $iv->[1] = $epoch;
                 $registered++;
             }
             if ($i < $#$re
                 && _bigfloatle($re->[$i+1]{epoch}, $ivhi)
                 && _bigfloatge($re->[$i+1]{epoch}, $ivlo)
+                && _bigfloatle($iv->[0],$epoch)
                ) {
-                # ditto for right neighbor
+                # ditto for right neighbor; increase the ivhi
                 $iv->[0] = $epoch;
                 $registered++;
             }

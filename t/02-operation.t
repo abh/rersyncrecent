@@ -101,7 +101,7 @@ rmtree [$root_from, $root_to];
     BEGIN {
         $test_counter = $tests;
         @intervals = qw( 2s 4s 8s 16s 32s Z );
-        $tests += 2 + 2 * (7 + 10 * @intervals); # test_counter
+        $tests += 2 + 2 * (10 + 14 * @intervals); # test_counter
     }
     printf "#test_counter[%d]\n", $test_counter;
     ok(1, "starting smalltree block");
@@ -189,13 +189,15 @@ rmtree [$root_from, $root_to];
             # diag $recc->overview;
         }
         printf "#test_counter[%d]\n", $test_counter+=1;
-        for my $dirti (0,1) {
+        for my $dirti (0,1,2) {
             open my $fh2, ">", "$root_from/dirty$dirti" or die "Could not open: $!";
             print $fh2 "dirty$dirti";
             close $fh2 or die "Could not close: $!";
-            $rf0->update("$root_from/dirty$dirti","new","999.999");
+            my $timestamp = $dirti <= 1 ? "999.999" : "1999.999";
+            my $becomes_i = $dirti <= 1 ? -1 : -3;
+            $rf0->update("$root_from/dirty$dirti","new",$timestamp);
             $recent_events = $rf0->recent_events;
-            is $recent_events->[-1]{epoch}, "999.999", "found the dirty timestamp during dirti[$dirti]";
+            is $recent_events->[-1]{epoch}, $timestamp, "found the dirty timestamp during dirti[$dirti]";
             printf "#test_counter[%d]\n", $test_counter+=1;
             $rf0->aggregate(force => 1);
             my $recc = File::Rsync::Mirror::Recent->new
@@ -207,7 +209,7 @@ rmtree [$root_from, $root_to];
             for my $rf (@{$recc->recentfiles}) {
                 my $isec = $rf->interval_secs;
                 my $re = $rf->recent_events;
-                is $re->[-1]{epoch}, "999.999", "found the dirty timestamp in isec[$isec]";
+                like $re->[-1]{epoch}, qr/999\.999/, "found some dirty timestamp[$re->[-1]{epoch}] in isec[$isec]";
                 my $dirtymark = $rf->dirtymark;
                 ok $dirtymark, "dirtymark[$dirtymark]";
                 $seen{ $rf->dirtymark }++;
@@ -221,10 +223,12 @@ rmtree [$root_from, $root_to];
             for my $i (0..$#$rfs) {
                 my $rf = $rfs->[$i];
                 my $re = $rf->recent_events;
-                if ($i == $#$rfs) {
-                    is $re->[-1]{epoch}, "999.999", "found the dirty timestamp on i[$i]";
+                if ($i == 0) {
+                    unlike $re->[-1]{epoch}, qr/999\.999/, "dirty file events already moved up i[$i]";
+                } elsif ($i == $#$rfs) {
+                    is $re->[$becomes_i]{epoch}, $timestamp, "found the dirty timestamp on i[$i]";
                 } else {
-                    isnt $re->[-1]{epoch}, "999.999", "dirty timestamp gone on i[$i]";
+                    isnt $re->[-1]{epoch}, $timestamp, "dirty timestamp gone on i[$i]";
                 }
                 my $dirtymark = $rf->dirtymark;
                 ok $dirtymark, "dirtymark[$dirtymark]";

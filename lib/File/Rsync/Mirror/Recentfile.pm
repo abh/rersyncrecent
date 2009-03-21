@@ -2078,7 +2078,7 @@ sub write_recent {
     my $Last_epoch;
  SANITYCHECK: for my $i (0..$#$recent) {
         if (defined $Last_epoch && _bigfloatge($recent->[$i]{epoch},$Last_epoch)) {
-            warn sprintf "Warning: not-monotonic sequence, resorting %s\n", $self->interval;
+            warn sprintf "Warning: not-monotonic sequence '$recent->[$i]{epoch}'>='$Last_epoch', resorting %s\n", $self->interval;
             $self->_resort($recent);
             last SANITYCHECK;
         }

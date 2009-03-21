@@ -82,7 +82,7 @@ sub _bigfloatcmp ($$) {
             $_ .= ".0" unless /\./;
         }
     }
-    #### XXXX bug in some perls, we cannot trust native comparison on floating point values:
+    #### XXX bug in some perls, we cannot trust native comparison on floating point values:
     #### see Todo file entry on 2009-03-15
     #### my $native = $l <=> $r;
     #### return $native if $native;

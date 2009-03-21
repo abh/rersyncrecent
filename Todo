@@ -1,3 +1,8 @@
+2009-03-21  Andreas J. Koenig  <andk@cpan.org>
+
+	* possible test case: can a delete change the timestamp? This would
+	probably break the order of events.
+
 2009-03-20  Andreas J. Koenig  <andk@cpan.org>
 
 	* 1233701831.34486 what's so special about this number/string? It
@@ -24,6 +29,7 @@ _bigfloatcmp called with l[1237505213.21133]r[UNDEF]: but both must be defined a
         File::Rsync::Mirror::Recentfile::uptodate('File::Rsync::Mirror::Recentfile=HASH(0x8533a2c)') called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recent.pm line 536
         File::Rsync::Mirror::Recent::rmirror('File::Rsync::Mirror::Recent=HASH(0x82ef3d0)', 'skip-deletes', 1) called at /home/k/sources/CPAN/GIT/trunk/bin/testing-rmirror.pl line 27
 
+	FIXED, it was the "--skip-locking" file where manual intervention was participating
 
 	* bug on the mirroring slave: when the dirtymark gets increased we
 	probably do not reset the done intervals. The mirrorer stays within
@@ -69,6 +75,8 @@ Eintervals:
 
 	Why does the mirrorer not fetch a newer Z file? It is 18 hours old while
 	pause has a fresh one.
+
+	FIXED, it probably was the missing conflation of "done" intervals.
 	
 2009-03-17  Andreas J. Koenig  <andk@cpan.org>
 

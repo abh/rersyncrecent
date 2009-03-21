@@ -104,7 +104,6 @@ sub covered {
     }
     for my $iv (@$intervals) {
         my($upper,$lower) = @$iv; # may be the same
-        $DB::single = $DB::single = not(defined $upper and defined $lower);
         if (defined $epoch_low) {
             my $goodbound = 0;
             for my $e ($epoch_high,$epoch_low) {
@@ -219,7 +218,6 @@ sub _register_one {
     die sprintf "Panic: illegal i[%d] larger than number of events[%d]", $i, $#$re
         if $i > $#$re;
     my $epoch = $re->[$i]{epoch};
-    $DB::single = grep {$epoch eq $_} "900644040", "1233701831.34486"; # XXX
     return if $self->covered ( $epoch );
     if (@$intervals) {
         my $registered = 0;
@@ -324,7 +322,6 @@ sub _register_one_fold2 {
     if (defined $splicepos) {
         splice @$intervals, $splicepos, 1;
     } else {
-        $DB::single++;
         die "Panic: Could not find an interval position to insert '$epoch'";
     }
 }

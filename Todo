@@ -114,7 +114,9 @@ Eintervals:
 	Why does the mirrorer not fetch a newer Z file? It is 18 hours old while
 	pause has a fresh one.
 
-	FIXED, it probably was the missing conflation of "done" intervals.
+	FIXED, it was the third anded term in each of the ifs in the IV block in
+	_register_one: with that we make sure that we do not stamp on valuable
+	interval data.
 	
 2009-03-17  Andreas J. Koenig  <andk@cpan.org>
 

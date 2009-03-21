@@ -223,12 +223,14 @@ sub _register_one {
     return if $self->covered ( $epoch );
     if (@$intervals) {
         my $registered = 0;
-        for my $iv (@$intervals) {
+    IV: for my $iv (@$intervals) {
             my($ivupper,$ivlower) = @$iv; # may be the same
             if ($i > 0
                 && _bigfloatge($re->[$i-1]{epoch}, $ivlower)
                 && _bigfloatle($re->[$i-1]{epoch}, $ivupper)
                ) {
+                # if left neighbor in re belongs to this interval,
+                # then I belong to it too
                 $iv->[1] = $epoch;
                 $registered++;
             }
@@ -236,9 +238,11 @@ sub _register_one {
                 && _bigfloatle($re->[$i+1]{epoch}, $ivupper)
                 && _bigfloatge($re->[$i+1]{epoch}, $ivlower)
                ) {
+                # ditto for right neighbor
                 $iv->[0] = $epoch;
                 $registered++;
             }
+            last IV if $registered>=2;
         }
         if ($registered == 2) {
             $self->_register_one_fold2
@@ -247,6 +251,7 @@ sub _register_one {
                  $epoch,
                 );
         } elsif ($registered == 1) {
+            $self->_register_one_fold1 ($intervals);
         } else {
             $self->_register_one_fold0
                 (
@@ -279,6 +284,27 @@ sub _register_one_fold0 {
         }
     }
     splice @$intervals, $splicepos, 0, [($epoch)x2];
+}
+
+# conflate: eliminate overlapping intervals
+sub _register_one_fold1 {
+    my($self,$intervals) = @_;
+ LOOP: while () {
+        my $splicepos;
+        for my $i (0..$#$intervals-1) {
+            if (_bigfloatle ($intervals->[$i][1],
+                             $intervals->[$i+1][0])) {
+                $intervals->[$i+1][0] = $intervals->[$i][0];
+                $splicepos = $i;
+                last;
+            }
+        }
+        if (defined $splicepos) {
+            splice @$intervals, $splicepos, 1;
+        } else {
+            last LOOP;
+        }
+    }
 }
 
 sub _register_one_fold2 {

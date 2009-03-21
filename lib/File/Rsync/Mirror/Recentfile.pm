@@ -1015,7 +1015,7 @@ sub mirror {
     if ($self->verbose) {
         print STDERR "DONE\n";
     }
-    # once we've gone to the end we consider ourselve free of obligations
+    # once we've gone to the end we consider ourselves free of obligations
     $self->unseed;
     $self->_mirror_unhide_tempfile ($trecentfile);
     $self->_mirror_perform_delayed_ops;

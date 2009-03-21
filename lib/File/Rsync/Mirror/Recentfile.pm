@@ -1955,7 +1955,7 @@ sub _update_with_dirty_epoch {
     }
     if (!exists $recent->[0] or _bigfloatgt($epoch,$recent->[0]{epoch})) {
         $splicepos = 0;
-    } elsif (_bigfloatlt($epoch,$recent->[0]{epoch})) {
+    } elsif (_bigfloatlt($epoch,$recent->[-1]{epoch})) {
         $splicepos = @$recent;
     } else {
     RECENT: for my $i (0..$#$recent) {

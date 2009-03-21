@@ -2077,7 +2077,7 @@ sub write_recent {
     die "write_recent called without argument" unless defined $recent;
     my $Last_epoch;
  SANITYCHECK: for my $i (0..$#$recent) {
-        if (defined $Last_epoch && _bigfloatge($recent->[$i]{epoch},$Last_epoch)) {
+        if (defined($Last_epoch) and _bigfloatge($recent->[$i]{epoch},$Last_epoch)) {
             warn sprintf "Warning: disorder '%s'>='%s', re-sorting %s\n",
                 $recent->[$i]{epoch}, $Last_epoch, $self->interval;
             $DB::single++;

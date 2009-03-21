@@ -108,7 +108,7 @@ ENDLESS: while () {
  CENTOPED: for my $k (sort {$diskfiles{$a} <=> $diskfiles{$b}} keys %diskfiles) {
         push @files, $k;
         delete $diskfiles{$k};
-        last CENTOPED if @files >= 263;
+        last CENTOPED if @files >= 863;
     }
     last ENDLESS unless @files;
     my $totalfiles = keys %diskfiles;
@@ -128,7 +128,7 @@ ENDLESS: while () {
     warn localtime()." starting second aggregate\n";
     $rf->aggregate(force => 1);
     warn localtime()." finished\n";
-    sleep 45;
+    sleep 23;
 }
 
 __END__

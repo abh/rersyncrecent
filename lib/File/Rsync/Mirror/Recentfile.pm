@@ -2078,11 +2078,12 @@ sub write_recent {
     my $Last_epoch;
  SANITYCHECK: for my $i (0..$#$recent) {
         if (defined($Last_epoch) and _bigfloatge($recent->[$i]{epoch},$Last_epoch)) {
-            warn sprintf "Warning: disorder '%s'>='%s', re-sorting %s\n",
-                $recent->[$i]{epoch}, $Last_epoch, $self->interval;
-            $DB::single++;
-            $self->_resort($recent);
-            last SANITYCHECK;
+            require Carp;
+            Carp::confess(sprintf "Warning: disorder '%s'>='%s', re-sorting %s\n",
+                          $recent->[$i]{epoch}, $Last_epoch, $self->interval);
+            # you may want to:
+            # $self->_resort($recent);
+            # last SANITYCHECK;
         }
         $Last_epoch = $recent->[$i]{epoch};
     }

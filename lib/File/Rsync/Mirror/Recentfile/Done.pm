@@ -219,15 +219,15 @@ sub _register_one {
     die sprintf "Panic: illegal i[%d] larger than number of events[%d]", $i, $#$re
         if $i > $#$re;
     my $epoch = $re->[$i]{epoch};
-    $DB::single = grep {$epoch eq $_} "900644040", "1233701831.34486", "1234159994.49481"; # XXX
+    $DB::single = grep {$epoch eq $_} "900644040", "1233701831.34486"; # XXX
     return if $self->covered ( $epoch );
     if (@$intervals) {
         my $registered = 0;
     IV: for my $iv (@$intervals) {
-            my($ivupper,$ivlower) = @$iv; # may be the same
+            my($ivhi,$ivlo) = @$iv; # may be the same
             if ($i > 0
-                && _bigfloatge($re->[$i-1]{epoch}, $ivlower)
-                && _bigfloatle($re->[$i-1]{epoch}, $ivupper)
+                && _bigfloatge($re->[$i-1]{epoch}, $ivlo)
+                && _bigfloatle($re->[$i-1]{epoch}, $ivhi)
                ) {
                 # if left neighbor in re belongs to this interval,
                 # then I belong to it too
@@ -235,8 +235,8 @@ sub _register_one {
                 $registered++;
             }
             if ($i < $#$re
-                && _bigfloatle($re->[$i+1]{epoch}, $ivupper)
-                && _bigfloatge($re->[$i+1]{epoch}, $ivlower)
+                && _bigfloatle($re->[$i+1]{epoch}, $ivhi)
+                && _bigfloatge($re->[$i+1]{epoch}, $ivlo)
                ) {
                 # ditto for right neighbor
                 $iv->[0] = $epoch;

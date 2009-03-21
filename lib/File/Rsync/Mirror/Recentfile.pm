@@ -2067,10 +2067,23 @@ Writes a I<recentfile> based on the current reflection of the current
 state of the tree limited by the current interval.
 
 =cut
-
+sub _resort {
+    my($self,$recent) = @_;
+    @$recent = sort { _bigfloatcmp($a->{epoch},$b->{epoch}) } @$recent;
+    return;
+}
 sub write_recent {
     my ($self,$recent) = @_;
     die "write_recent called without argument" unless defined $recent;
+    my $Last_epoch;
+ SANITYCHECK: for my $i (0..$#$recent) {
+        if (defined $Last_epoch && _bigfloatge($recent->[$i]{epoch},$Last_epoch)) {
+            warn sprintf "Warning: not-monotonic sequence, resorting %s\n", $self->interval;
+            $self->_resort($recent);
+            last SANITYCHECK;
+        }
+        $Last_epoch = $recent->[$i]{epoch};
+    }
     my $meth = sprintf "write_%d", $self->protocol;
     $self->$meth($recent);
 }

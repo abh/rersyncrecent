@@ -108,7 +108,7 @@ ENDLESS: while () {
  CENTOPED: for my $k (sort {$diskfiles{$a} <=> $diskfiles{$b}} keys %diskfiles) {
         push @files, $k;
         delete $diskfiles{$k};
-        last CENTOPED if @files >= 863;
+        last CENTOPED if @files >= 163;
     }
     last ENDLESS unless @files;
     my $totalfiles = keys %diskfiles;

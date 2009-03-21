@@ -2068,8 +2068,8 @@ state of the tree limited by the current interval.
 
 =cut
 sub _resort {
-    my($self,$recent) = @_;
-    @$recent = sort { _bigfloatcmp($b->{epoch},$a->{epoch}) } @$recent;
+    my($self) = @_;
+    @{$_[1]} = sort { _bigfloatcmp($b->{epoch},$a->{epoch}) } @{$_[1]};
     return;
 }
 sub write_recent {
@@ -2078,7 +2078,8 @@ sub write_recent {
     my $Last_epoch;
  SANITYCHECK: for my $i (0..$#$recent) {
         if (defined $Last_epoch && _bigfloatge($recent->[$i]{epoch},$Last_epoch)) {
-            warn sprintf "Warning: not-monotonic sequence '$recent->[$i]{epoch}'>='$Last_epoch', resorting %s\n", $self->interval;
+            warn sprintf "Warning: disorder '%s'>='%s', re-sorting %s\n",
+                $recent->[$i]{epoch}, $Last_epoch, $self->interval;
             $DB::single++;
             $self->_resort($recent);
             last SANITYCHECK;

@@ -2069,7 +2069,7 @@ state of the tree limited by the current interval.
 =cut
 sub _resort {
     my($self,$recent) = @_;
-    @$recent = sort { _bigfloatcmp($a->{epoch},$b->{epoch}) } @$recent;
+    @$recent = sort { _bigfloatcmp($b->{epoch},$a->{epoch}) } @$recent;
     return;
 }
 sub write_recent {

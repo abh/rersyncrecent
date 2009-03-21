@@ -108,27 +108,27 @@ ENDLESS: while () {
  CENTOPED: for my $k (sort {$diskfiles{$a} <=> $diskfiles{$b}} keys %diskfiles) {
         push @files, $k;
         delete $diskfiles{$k};
-        last CENTOPED if @files >= 222;
+        last CENTOPED if @files >= 263;
     }
     last ENDLESS unless @files;
     my $totalfiles = keys %diskfiles;
     my $files = @files;
-    warn "($files / $totalfiles) starting at ".localtime;
+    warn localtime." ($files / $totalfiles) starting\n";
     for my $file (@files) {
         my @stat = stat $file or die "Couldn't stat '$file': $!";
         my $mtime = $stat[9];
         $rf->update($file,"new",$mtime);
         if ($file eq $files[-1]) {
             my $slt = scalar localtime $mtime;
-            print "DEBUG: injected scalar localtime '$slt' file '$file'\n";
+            print localtime." inj ts=$slt file=$file\n";
         }
     }
-    warn "starting first aggregate at ".localtime;
+    warn localtime." starting first aggregate\n";
     $rf->aggregate(force => 1);
-    warn "starting second aggregate at ".localtime;
+    warn localtime." starting second aggregate\n";
     $rf->aggregate(force => 1);
-    warn "finished at ".localtime;
-    sleep 60;
+    warn localtime." finished\n";
+    sleep 45;
 }
 
 __END__

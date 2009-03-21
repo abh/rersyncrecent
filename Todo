@@ -1,5 +1,30 @@
 2009-03-21  Andreas J. Koenig  <andk@cpan.org>
 
+	* Bug: something between id/P/PH/PHISH/CGI-XMLApplication-1.1.2.readme
+	and id/C/CH/CHOGAN/HTML-WWWTheme-1.06.readme. Mirroring the Z file loops
+	in this area.
+
+	Yes, records out of order:
+
+ 447003   -                
+ 447004     epoch: 995885533    
+ 447005     path: id/P/PH/PHISH/CGI-XMLApplication_0.9.3.readme
+ 447006     type: new
+ 447007   -
+ 447008     epoch: 995890358
+ 447009     path: id/H/HD/HDIAS/Mail-Cclient-1.3.readme
+ 447010     type: new
+ 447011   -
+ 447012     epoch: 995892221
+ 447013     path: id/H/HD/HDIAS/Mail-Cclient-1.3.tar.gz
+ 447014     type: new
+
+	
+
+	* Bug: want the index files in a .recent directory
+
+	* Bug: lots of dot files are not deleted in time
+
 	* possible test case: can a delete change the timestamp? This would
 	probably break the order of events.
 

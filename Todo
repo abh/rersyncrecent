@@ -1,5 +1,18 @@
 2009-03-21  Andreas J. Koenig  <andk@cpan.org>
 
+	* bug with native integers:
+  
+	- 
+    epoch: 997872011
+    path: id/D/DE/DELTA/Crypt-Rijndael_PP-0.03.readme
+    type: new
+  - 
+    epoch: 1195248431
+    path: id/L/LG/LGODDARD/Tk-Wizard-2.124.readme
+    type: new
+
+	Native integer broke when native math was turned off. FIXED
+
 	* Bug: something between id/P/PH/PHISH/CGI-XMLApplication-1.1.2.readme
 	and id/C/CH/CHOGAN/HTML-WWWTheme-1.06.readme. Mirroring the Z file loops
 	in this area.

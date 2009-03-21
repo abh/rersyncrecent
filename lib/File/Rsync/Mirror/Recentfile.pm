@@ -2132,11 +2132,11 @@ reflected in the shortest file, it can complement the list of recent
 file events with the next one. And if this is not long enough we want
 another one, again a bit longer. And we want one that completes the
 history back to the oldest file. The index files do contain the
-complete list of current files. The larger an index file is the less
-often it is updated. For practical reasons adjacent files will often
-overlap a bit but this is neither necessary nor enforced. That's the
-basic idea. The following example represents a tree that has a few
-updates every day:
+complete list of current files. The longer a period covered by an
+index file is gone the less often the index file is updated. For
+practical reasons adjacent files will often overlap a bit but this is
+neither necessary nor enforced. That's the basic idea. The following
+example represents a tree that has a few updates every day:
 
  RECENT.recent -> RECENT-1h.yaml
  RECENT-6h.yaml
@@ -2160,7 +2160,7 @@ When things go wrong, it's a valuable controlling instance to hold the
 differences between the collection of limited interval files and the
 actual filesystem.
 
-=head2 A SINGLE RECENTFILE
+=head2 THE INDIVIDUAL RECENTFILE
 
 A I<recentfile> consists of a hash that has two keys: C<meta> and
 C<recent>. The C<meta> part has metadata and the C<recent> part has a
@@ -2183,46 +2183,32 @@ the entry has a direct relation to something like modification time or
 change time on the filesystem level. The timestamp (I<epoch> element)
 is a floating point number and does practically never correspond
 exactly to the data recorded in the filesystem but rather to the time
-when some process succeeded to report to the I<recentfile> mechanism
-that something has changed. This is why many parts of the code refer
-to I<events>, because we merely try to record the I<event> of the
+when some process succeeded to report some filesystem change to the
+I<recentfile> mechanism. This is why many parts of the code refer to
+I<events>, because we merely try to record the I<event> of the
 discovery of a change, not the time of the change itself.
 
 All these entries can be devided into two types (denoted by the
 C<type> attribute): C<new>s and C<delete>s. Changes and creations are
 C<new>s. Deletes are C<delete>s.
 
-Another distinction is for objects with an epoch timestamp and others
-without. All files that were already existing on the filesystem before
-the I<recentfile> mechanism was installed, get recorded with a
-timestamp of zero.
-
 Besides an C<epoch> and a C<type> attribute we find a third one:
 C<path>. This path is relative to the directory we find the
 I<recentfile> in.
 
 The order of the entries in the I<recentfile> is by decreasing epoch
-attribute. These are either 0 or a unique floating point number. They
-are zero for events that were happening either before the time that
-the I<recentfile> mechanism was set up or were left undiscovered for a
-while and never handed over to update(). They are floating point
-numbers for all events being regularly handed to update(). And when
-the server has ntp running correctly, then the timestamps are
-actually decreasing and unique.
+attribute. These are unique floating point numbers. When the server
+has ntp running correctly, then the timestamps are usually reflecting
+a real epoch. If time is running backwards, we trump the system epoch
+with strictly monotonically increasing floating point timestamps and
+guarantee they are unique.
 
 =head1 CORRUPTION AND RECOVERY
 
 If the origin host breaks the promise to deliver consistent and
 complete I<recentfiles> then the way back to sanity shall be achieved
-through either the C<zloop> (still TBD) or traditional rsyncing
-between the hosts. For example, if the origin server forgets to deploy
-ntp and the clock on it jumps backwards some day, then this would
-probably go unnoticed for a while and many software components that
-rely on the time never running backwards will make wrong decisions.
-After some time this accident would probably still be found in one of
-the I<recentfiles> but would become meaningless as soon as a mirror
-has run through the sanitizing procedures. Same goes for origin hosts
-that forget to include or deliberately omit some files.
+through traditional rsyncing between the hosts. But don't forget to
+report it as a bug:)
 
 =head1 SERIALIZERS
 
@@ -2281,8 +2267,8 @@ The following letters express the specified number of seconds:
 
 =head1 BACKGROUND
 
-This is about speeding up rsync operation on large trees to many
-places. Uses a small metadata cocktail and pull technology.
+This is about speeding up rsync operation on large trees. Uses a small
+metadata cocktail and pull technology.
 
 =head2 NON-COMPETITORS
 
@@ -2307,13 +2293,15 @@ Normally it takes a long time to determine the diff itself before it
 can be transferred. Known solutions at the time of this writing are
 csync2, and rsync 3 batch mode.
 
-For many years the best solution was csync2 which solves the
-problem by maintining a sqlite database on both ends and talking a
-highly sophisticated protocol to quickly determine which files to send
-and which to delete at any given point in time. Csync2 is often
-inconvenient because the act of syncing demands quite an intimate
-relationship between the sender and the receiver and suffers when the
-number of syncing sites is large or connections are unreliable.
+For many years the best solution was csync2 which solves the problem
+by maintaining a sqlite database on both ends and talking a highly
+sophisticated protocol to quickly determine which files to send and
+which to delete at any given point in time. Csync2 is often
+inconvenient because it is push technology and the act of syncing
+demands quite an intimate relationship between the sender and the
+receiver. This is hard to achieve in an environment of loosely coupled
+sites where the number of sites is large or connections are
+unreliable or network topology is changing.
 
 Rsync 3 batch mode works around these problems by providing rsync-able
 batch files which allow receiving nodes to replay the history of the
@@ -2324,16 +2312,21 @@ have a means of communicating over rsync.
 
 rersyncrecent solves this problem with a couple of (usually 2-10)
 index files which cover different overlapping time intervals. The
-master writes these files and the clients can construct the full tree
-from the information contained in them. The most recent index file
-usually covers the last seconds or minutes or hours of the tree and
-depending on the needs, slaves can rsync every few seconds and then
-bring their trees in full sync.
+master writes these files and the clients/slaves can construct the
+full tree from the information contained in them. The most recent
+index file usually covers the last seconds or minutes or hours of the
+tree and depending on the needs, slaves can rsync every few seconds or
+minutes and then bring their trees in full sync.
 
 The rersyncrecent mode was developed for CPAN but I hope it is a
 convenient and economic general purpose solution. I'm looking forward
 to see a CPAN backbone that is only a few seconds behind PAUSE. And
 then ... the first FUSE based CPAN filesystem anyone?
+
+=head1 FUTURE DIRECTIONS
+
+Currently the origin server must keep track of injected and removed
+files. Should be supported by an inotify-based assistant.
 
 =head1 SEE ALSO
 
@@ -2387,7 +2380,7 @@ Thanks to RJBS for module-starter.
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright 2008 Andreas König.
+Copyright 2008,2009 Andreas König.
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.

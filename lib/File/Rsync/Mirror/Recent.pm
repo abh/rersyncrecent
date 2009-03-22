@@ -93,15 +93,19 @@ sub new {
 my @accessors;
 
 BEGIN {
-    @accessors = (
-                  "__pathdb",
-                  "_max_one_state",
-                  "_principal_recentfile",
-                  "_recentfiles",
-                  "_rsync",
-                  "_runstatusfile",  # frequenty dumps all rfs
-                  "_logfilefordone", # turns on _logfile on all DONE systems (disk intensive)
-                 );
+    @accessors =
+        (
+         "__pathdb",
+         "_max_one_state",        # when we have no time left but want
+                                  # at least get one file per
+                                  # iteration to avoid procrastination
+         "_principal_recentfile",
+         "_recentfiles",
+         "_rsync",
+         "_runstatusfile",        # frequenty dumps all rfs
+         "_logfilefordone",       # turns on _logfile on all DONE
+                                  # systems (disk intensive)
+        );
 
     my @pod_lines =
         split /\n/, <<'=cut'; push @accessors, grep {s/^=item\s+//} @pod_lines; }

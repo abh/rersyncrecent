@@ -265,7 +265,7 @@ recommended to set this value to true.
 
 If set to true, this object will fetch a new recentfile from remote
 when the timespan between the last mirror (see have_mirrored) and now
-is too large (currently hardcoded arbitrary 420 seconds).
+is too large (currently hardcoded).
 
 =item locktimeout
 
@@ -983,7 +983,7 @@ sub mirror {
     $self->_use_tempfile (1);
     my %passthrough = map { ($_ => $options{$_}) } qw(before after max skip-deletes);
     my ($recent_events) = $self->recent_events(%passthrough);
-    my(@error, @xcollector);
+    my(@error, @dlcollector); # download-collector: array containing paths we need
     my $first_item = 0;
     my $last_item = $#$recent_events;
     my $done = $self->done;
@@ -997,7 +997,7 @@ sub mirror {
              $last_item,
              $done,
              $pathdb,
-             \@xcollector,
+             \@dlcollector,
              \%options,
              $status,
              \@error,
@@ -1005,8 +1005,8 @@ sub mirror {
         last if $i == $last_item;
         return if $status->{mustreturn};
     }
-    if (@xcollector) {
-        my $success = eval { $self->_mirror_empty_xcollector (\@xcollector,$pathdb,$recent_events);};
+    if (@dlcollector) {
+        my $success = eval { $self->_mirror_dlcollector (\@dlcollector,$pathdb,$recent_events);};
         if (!$success || $@) {
             warn "Warning: Unknown error while mirroring: $@";
             push @error, $@;
@@ -1030,7 +1030,7 @@ sub _mirror_item {
        $last_item,
        $done,
        $pathdb,
-       $xcollector,
+       $dlcollector,
        $options,
        $status,
        $error,
@@ -1056,7 +1056,7 @@ sub _mirror_item {
              $last_item,
              $recent_events,
              $recent_event,
-             $xcollector,
+             $dlcollector,
              $pathdb,
              $status,
              $error,
@@ -1093,7 +1093,7 @@ sub _mirror_item_new {
        $last_item,
        $recent_events,
        $recent_event,
-       $xcollector,
+       $dlcollector,
        $pathdb,
        $status,
        $error,
@@ -1117,9 +1117,9 @@ sub _mirror_item_new {
     if ($self->verbose) {
         print STDERR "\n";
     }
-    push @$xcollector, { rev => $recent_event, i => $i };
-    if (@$xcollector >= $max_files_per_connection) {
-        $success = eval {$self->_mirror_empty_xcollector ($xcollector,$pathdb,$recent_events);};
+    push @$dlcollector, { rev => $recent_event, i => $i };
+    if (@$dlcollector >= $max_files_per_connection) {
+        $success = eval {$self->_mirror_dlcollector ($dlcollector,$pathdb,$recent_events);};
         my $sleep = $self->sleep_per_connection;
         $sleep = 0.42 unless defined $sleep;
         Time::HiRes::sleep $sleep;
@@ -1140,7 +1140,7 @@ sub _mirror_item_new {
     }
 }
 
-sub _mirror_empty_xcollector {
+sub _mirror_dlcollector {
     my($self,$xcoll,$pathdb,$recent_events) = @_;
     my $success = $self->mirror_path([map {$_->{rev}{path}} @$xcoll]);
     if ($pathdb) {
@@ -1392,6 +1392,7 @@ sub recent_events {
     my ($self, %options) = @_;
     my $info = $options{info};
     if ($self->is_slave) {
+        # XXX seems dubious, might produce tempfiles without removing them?
         $self->get_remote_recentfile_as_tempfile;
     }
     my $rfile_or_tempfile = $self->_my_current_rfile or return [];

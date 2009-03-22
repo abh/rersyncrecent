@@ -1829,7 +1829,9 @@ not-so-current file into the dataset, then the caller sets
 $dirty_epoch. This causes the epoch of the registered event to become
 $dirty_epoch or -- if the exact value given is already taken -- a tiny
 bit more. As compensation the dirtymark of the whole dataset is set to
-the current epoch.
+the current epoch. Note: setting the dirty_epoch to the future is
+prohibited as it's very unlikely to be intended: it definitely might
+wreak havoc with the index files.
 
 The new file event is unshifted (or, if dirty_epoch is set, inserted
 at the place it belongs to, according to the rule to have a sequence
@@ -1859,7 +1861,7 @@ sub update {
         die "update called without type argument" unless defined $type;
         die "update called with illegal type argument: $type" unless $type =~ /(new|delete)/;
         die "update called with \$type=$type and \$dirty_epoch=$dirty_epoch; ".
-            "dirty_epoch only allowed with type=new" if $dirty_epoch and $type ne "new";
+            "dirty_epoch only allowed with type=new" if defined $dirty_epoch and $type ne "new";
         my $canonmeth = $self->canonize;
         unless ($canonmeth) {
             $canonmeth = "naive_path_normalize";
@@ -1875,7 +1877,7 @@ sub update {
     my $recent = $self->recent_events;
 
     my $epoch;
-    if ($dirty_epoch) {
+    if (defined $dirty_epoch && _bigfloatgt($now,$dirty_epoch)) {
         $epoch = $dirty_epoch;
     } else {
         $epoch = $self->_epoch_monotonically_increasing($now,$recent);
@@ -1905,7 +1907,7 @@ sub update {
         $path =~ s|^/||;
         my $splicepos;
         # remove the older duplicates of this $path, irrespective of $type:
-        if ($dirty_epoch) {
+        if (defined $dirty_epoch) {
             my $ctx = $self->_update_with_dirty_epoch($path,$recent,$epoch);
             $recent    = $ctx->{recent};
             $splicepos = $ctx->{splicepos};

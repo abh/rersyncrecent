@@ -943,8 +943,9 @@ sub meta_data {
                "comment",
                "dirtymark",
                "filenameroot",
-               "merged",
                "interval",
+               "merged",
+               "minmax",
                "protocol",
                "serializer_suffix",
               ) {
@@ -2036,12 +2037,12 @@ sub uptodate {
             my $rfile = $self->_my_current_rfile;
             my @stat = stat $rfile;
             my $mtime = $stat[9];
-            if ($mtime > $minmax->{mtime}) {
+            if (defined $mtime && defined $minmax->{mtime} && $mtime > $minmax->{mtime}) {
                 $why = "mtime[$mtime] of rfile[$rfile] > minmax/mtime[$minmax->{mtime}], so we are not uptodate";
                 $uptodate = 0;
             } else {
                 my $covered = $self->done->covered(@$minmax{qw(max min)});
-                $why = "minmax covered[$covered], so we return that";
+                $why = sprintf "minmax covered[%s], so we return that", defined $covered ? $covered : "UNDEF";
                 $uptodate = $covered;
             }
         }
@@ -2089,6 +2090,14 @@ sub write_recent {
         }
         $Last_epoch = $recent->[$i]{epoch};
     }
+    my $minmax = $self->minmax;
+    if (!defined $minmax->{max} || _bigfloatlt($minmax->{max},$recent->[0]{epoch})) {
+        $minmax->{max} = $recent->[0]{epoch};
+    }
+    if (!defined $minmax->{min} || _bigfloatlt($minmax->{min},$recent->[-1]{epoch})) {
+        $minmax->{min} = $recent->[-1]{epoch};
+    }
+    $self->minmax($minmax);
     my $meth = sprintf "write_%d", $self->protocol;
     $self->$meth($recent);
 }

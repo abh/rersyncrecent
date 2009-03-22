@@ -587,6 +587,7 @@ sub get_remote_recentfile_as_tempfile {
         $self->have_mirrored (Time::HiRes::time);
         $self->un_register_rsync_error ();
     }
+    $self->unseed;
     if ($self->verbose) {
         print STDERR "DONE\n";
     }
@@ -2056,7 +2057,6 @@ sub uptodate {
     }
     if ($uptodate) {
         $self->_uptodateness_ever_reached(1);
-        $self->unseed;
     }
     my $remember =
         {

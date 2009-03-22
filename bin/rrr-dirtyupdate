@@ -82,7 +82,7 @@ if (@ARGV == 1) {
 my($principal,$file,$epoch) = @ARGV;
 my $recc = File::Rsync::Mirror::Recent->new
     (local => $principal);
-my($rf) = $recc->recentfiles;
+my($rf) = $recc->principal_recentfile;
 
 unless ($aggregate_only) {
     unless (defined $epoch) {

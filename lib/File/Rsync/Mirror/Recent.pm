@@ -494,10 +494,10 @@ sub rmirror {
     # my $rf0 = $self->_recentfile_object_for_remote;
     my $rfs = $self->recentfiles;
 
-    my $_once_per_20s = sub {
+    my $_every_20_seconds = sub {
         $self->principal_recentfile->seed;
     };
-    $_once_per_20s->();
+    $_every_20_seconds->();
     my $_sigint = sub {
         # XXX exit gracefully (reminder)
     };
@@ -524,9 +524,7 @@ sub rmirror {
                 if ($i < $#$rfs){
                     $rfs->[$i+1]->done->merge($rf->done);
                 }
-                if ($i == 0) {
-                    $rf->seed; # 0 must always be seeded
-                }
+                # no further seed necessary because "every_20_seconds" does it
                 next RECENTFILE;
             } else {
               WORKUNIT: while (time < $ttleave) {
@@ -553,7 +551,7 @@ sub rmirror {
         } else {
             # negative time not invented yet:)
         }
-        $_once_per_20s->();
+        $_every_20_seconds->();
     }
 }
 

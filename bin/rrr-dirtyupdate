@@ -36,7 +36,7 @@ When you later discover missing files...
 
 =head1 BUGS
 
-This is slow: it calls aggregate twice with force which took 2 x 10-15 seconds on PAUSE.
+Not yet written.
 
 =cut
 
@@ -68,26 +68,14 @@ if ($Opt{'dry-run'}) {
     die "FIXME: not yet implemented";
 }
 
-my $rf = File::Rsync::Mirror::Recentfile->new_from_file
-    (
-     "/home/ftp/pub/PAUSE/authors/RECENT-1h.yaml",
-    );
-unless ($rf) {
-    die "ALERT: Could not create an rf: $@";
-}
-my $sleep = 2;
-warn "prove of concept for one file only. Last chance to hit ^C now to interrupt. sleeping $sleep";
-sleep $sleep;
+die "FIXME";
+
 my $recent = File::Rsync::Mirror::Recent->new
     (
      local => "/home/ftp/pub/PAUSE/authors/RECENT-1h.yaml",
     );
-my $recentev = $recent->news();
-for my $re (@$recentev) {
-    my $recfile = "/home/ftp/pub/PAUSE/authors/".$re->{path};
-    next if -f $recfile;
-    print "Not found: $recfile\n";
-}
+
+
 
 __END__
 

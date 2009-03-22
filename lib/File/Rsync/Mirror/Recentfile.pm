@@ -2021,7 +2021,9 @@ sub uptodate {
         $why = "saturated";
         $uptodate = 1;
     }
-    unless (defined $uptodate) {
+    # it's too easy to misconfigure ttl and related timings and then
+    # never reach uptodateness, so disabled 2009-03-22
+    if (0 and not defined $uptodate) {
         if ($self->ttl_reached){
             $why = "ttl_reached returned true, so we are not uptodate";
             $uptodate = 0 ;

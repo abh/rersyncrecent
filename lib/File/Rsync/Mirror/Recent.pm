@@ -524,7 +524,9 @@ sub rmirror {
                 if ($i < $#$rfs){
                     $rfs->[$i+1]->done->merge($rf->done);
                 }
-                $rf->get_remote_recentfile_as_tempfile;
+                if ($i == 0) {
+                    $rf->get_remote_recentfile_as_tempfile;
+                }
                 next RECENTFILE;
             } else {
               WORKUNIT: while (time < $ttleave) {

@@ -1,3 +1,13 @@
+2009-03-22  Andreas J. Koenig  <andk@cpan.org>
+
+	* broken now: (1) seeding and unseeding: rmirror is seeding and talking
+	about it all the time and nobody reacts accordingly; (2) lots of temp
+	files get created and not removed; culprit the new call to
+	get_remote_recentfile_as_tempfile within Recent.pm; the manpage says the
+	callere has to remove the tempfile after use.
+
+	Need the drawing board.
+
 2009-03-21  Andreas J. Koenig  <andk@cpan.org>
 
 	* Bug?: should it be harder than it is atm to set the timestamp to the

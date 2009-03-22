@@ -525,7 +525,7 @@ sub rmirror {
                     $rfs->[$i+1]->done->merge($rf->done);
                 }
                 if ($i == 0) {
-                    $rf->get_remote_recentfile_as_tempfile;
+                    $rf->seed; # 0 must always be seeded
                 }
                 next RECENTFILE;
             } else {
@@ -593,7 +593,7 @@ sub _rmirror_cleanup {
         # warn "DEBUG: i[$i] nextminmaxmax[$nextminmax->{max}] thismergedepoch[$thismerged->{epoch}]";
         if (not defined $thismerged->{epoch} or _bigfloatlt($nextminmax->{max},$thismerged->{epoch})){
             $next->seed;
-            warn sprintf "DEBUG: %s seeded\n", $next->interval;
+            warn sprintf "DEBUG: next iv %s seeded since next-minmax-max[$nextminmax->{max}]lt this-merged-epoch[$thismerged->{epoch}]\n", $next->interval;
         }
     }
 }

@@ -78,57 +78,15 @@ unless ($rf) {
 my $sleep = 2;
 warn "prove of concept for one file only. Last chance to hit ^C now to interrupt. sleeping $sleep";
 sleep $sleep;
-my %recfiles;
 my $recent = File::Rsync::Mirror::Recent->new
     (
      local => "/home/ftp/pub/PAUSE/authors/RECENT-1h.yaml",
     );
 my $recentev = $recent->news();
 for my $re (@$recentev) {
-    $recfiles{"/home/ftp/pub/PAUSE/authors/".$re->{path}} = 1;
-}
-
-my %diskfiles;
-find({
-      wanted => sub {
-          my @stat = lstat $_;
-          return if -l _;
-          return unless -f _;
-          return if delete $recfiles{$File::Find::name};
-          $diskfiles{$File::Find::name} = $stat[9];
-      },
-      no_chdir => 1,
-     },
-     "/home/ftp/pub/PAUSE/authors/id"
-    );
-
-ENDLESS: while () {
-    last ENDLESS unless %diskfiles;
-    my @files;
- CENTOPED: for my $k (sort {$diskfiles{$a} <=> $diskfiles{$b}} keys %diskfiles) {
-        push @files, $k;
-        delete $diskfiles{$k};
-        last CENTOPED if @files >= 61;
-    }
-    last ENDLESS unless @files;
-    my $totalfiles = keys %diskfiles;
-    my $files = @files;
-    warn localtime()." ($files / $totalfiles) starting\n";
-    for my $file (@files) {
-        my @stat = stat $file or die "Couldn't stat '$file': $!";
-        my $mtime = $stat[9];
-        $rf->update($file,"new",$mtime);
-        if ($file eq $files[-1]) {
-            my $slt = scalar localtime $mtime;
-            print localtime()." inj ts=$slt file=$file\n";
-        }
-    }
-    warn localtime()." starting first aggregate\n";
-    $rf->aggregate(force => 1);
-    warn localtime()." starting second aggregate\n";
-    $rf->aggregate(force => 1);
-    warn localtime()." finished\n";
-    sleep 23;
+    my $recfile = "/home/ftp/pub/PAUSE/authors/".$re->{path};
+    next if -f $recfile;
+    print "Not found: $recfile\n";
 }
 
 __END__

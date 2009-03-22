@@ -520,7 +520,9 @@ sub rmirror {
                 # Must make sure that one file can get fetched in any case
                 $self->_max_one_state(1);
             }
-            if ($rf->uptodate){
+            if ($rf->seeded) {
+                $self->_rmirror_mirror ($i, \%options);
+            } elsif ($rf->uptodate){
                 if ($i < $#$rfs){
                     $rfs->[$i+1]->done->merge($rf->done);
                 }

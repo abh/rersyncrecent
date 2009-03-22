@@ -6,7 +6,9 @@ rrr-dirtyupdate - add a file with an old timestamp to the dataset
 
 =head1 SYNOPSIS
 
-  rrr-dirtyupdate [options] file epoch
+  rrr-dirtyupdate [options] principalfile file [epoch]
+
+  rrr-dirtyupdate --force principalfile
 
 =head1 OPTIONS
 
@@ -16,9 +18,10 @@ rrr-dirtyupdate - add a file with an old timestamp to the dataset
 
 my @opt = <<'=back' =~ /B<--(\S+)>/g;
 
-=item B<--dry-run!>
+=item B<--force|f>
 
-(TBD) Do not really run the command, ...
+Force this run even without any arguments. E.g. just for the side
+effect of running an aggregate call.
 
 =item B<--help|h>
 
@@ -34,9 +37,16 @@ More feedback.
 
 When you later discover missing files...
 
+The principalfile argument is the path to local principal recentfile.
+
+The file argument must be an existing file.
+
+If the epoch argument is missing it is calculated from the
+modification time of the file.
+
 =head1 BUGS
 
-Not yet written.
+This is slow: it calls aggregate twice with force which took 2 x 10-20 seconds on PAUSE.
 
 =cut
 
@@ -58,23 +68,30 @@ if ($Opt{help}) {
     pod2usage(0);
 }
 
-unless (@ARGV) {
+my $aggregate_only = 0;
+if (@ARGV == 1 && $Opt{force}) {
+    $aggregate_only=1;
+} elsif (@ARGV >= 3) {
     pod2usage(1);
 }
 
-# my($file,$epoch) = @ARGV; # XXX
+my($principal,$file,$epoch) = @ARGV;
+my $recc = File::Rsync::Mirror::Recent->new
+    (local => $principal);
+my($rf) = $recc->recentfiles;
 
-if ($Opt{'dry-run'}) {
-    die "FIXME: not yet implemented";
+unless ($aggregate_only) {
+    unless (defined $epoch) {
+        my(@stat) = stat $file or die "Could not stat '$file': $!";
+        $epoch = $stat[9];
+    }
+    $rf->update($file,"new",$epoch);
 }
-
-die "FIXME";
-
-my $recent = File::Rsync::Mirror::Recent->new
-    (
-     local => "/home/ftp/pub/PAUSE/authors/RECENT-1h.yaml",
-    );
-
+warn localtime()." starting first aggregate\n";
+$rf->aggregate(force => 1);
+warn localtime()." starting second aggregate\n";
+$rf->aggregate(force => 1);
+warn localtime()." finished\n";
 
 
 __END__

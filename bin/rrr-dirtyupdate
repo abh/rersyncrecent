@@ -69,8 +69,12 @@ if ($Opt{help}) {
 }
 
 my $aggregate_only = 0;
-if (@ARGV == 1 && $Opt{force}) {
-    $aggregate_only=1;
+if (@ARGV == 1) {
+    if ($Opt{force}) {
+        $aggregate_only=1;
+    } else {
+        pod2usage(1);
+    }
 } elsif (@ARGV >= 3) {
     pod2usage(1);
 }

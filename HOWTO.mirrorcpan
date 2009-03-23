@@ -1,9 +1,9 @@
-As of this writing there is a single purpose for this module: provide
-a backbone for the CPAN.
+As of this writing the single purpose for this distribution is to
+provide a backbone for the CPAN.
 
 The idea is to get a handful backbone nodes that mirror directly from
-PAUSE and a second layer that mirrors from them. Target mirroring
-interval I envision feasible is 20 seconds.
+PAUSE and a second layer that mirrors from them. Targetting at a
+mirroring interval of 20 seconds.
 
 The rsync daemon on PAUSE runs on port 8732 and you need a password to
 access it. There is a second rsync daemon running on the standard port
@@ -11,9 +11,65 @@ access it. There is a second rsync daemon running on the standard port
 the backbone.
 
 If you have username and password, the first thing you should prepare
-is the CPAN tree itself on your disk. The source does not matter that
-much. Take it from where you always took it. The setup I suggest is to
-mirror once per day or per week or so from that old school mirroring
-host and then again from pause in the fast loop.
+is the CPAN tree itself on your disk. The source where you take it
+from does not matter that much. Take it from where you always took it.
+The setup I suggest is to mirror once per day or per week or so from
+that old school mirroring host and then again from pause in the fast
+loop.
 
-TBC...
+The loop is something like this:
+
+    $ENV{USER}="sandy"; # fill in your name
+    $ENV{RSYNC_PASSWORD} = "secret"; # fill in you passwd
+
+    use File::Rsync::Mirror::Recent;
+    my @rrr = map {
+        File::Rsync::Mirror::Recent->new
+                (
+                 ignore_link_stat_errors => 1,
+                 localroot => "/home/ftp/pub/PAUSE/$_",
+                 remote => "pause.perl.org::PAUSE/$_/RECENT.recent",
+                 max_files_per_connection => 863,
+                 rsync_options =>
+                 {
+                  port => 8732,
+                  compress => 1,
+                  links => 1,
+                  times => 1,
+                  checksum => 0,
+                 },
+                 ttl => 10,
+                 verbose => 1,
+                )} "authors", "modules";
+    while (){
+        my $ttgo = time + 20;
+        for my $rrr (@rrr){
+            $rrr->rmirror ( "skip-deletes" => 1 );
+        }
+        my $sleep = $ttgo - time;
+        if ($sleep >= 1) {
+            print STDERR "sleeping $sleep ... ";
+            sleep $sleep;
+        }
+    }
+
+Don't forget to fill in your user name and password.
+
+You see the 'skip-deletes' and guess, this is mirroring without doing
+deletes. You can do it with deletes or you can leave the deletion to
+the other, the traditional rsync loop. Worry about that later.
+
+You see the option 'max_files_per_connection' which I filled with 863
+and you need to find your favorite number. The larger the number the
+faster the whole download goes. As you already have a mirror, you
+probably want to take 10 or 20 times times that much. CPAN is at the
+moment (2009-03) consisting of 142000 files. This option chunks the
+downloads into piecemeal units and between these units the process
+takes a peek at the most recent files to download them with higher
+preference.
+
+You can leave everything else as it stands. Start experimenting and
+let me know how it works out.
+
+-- 
+andreas koenig

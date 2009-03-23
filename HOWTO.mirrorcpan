@@ -1,0 +1,19 @@
+As of this writing there is a single purpose for this module: provide
+a backbone for the CPAN.
+
+The idea is to get a handful backbone nodes that mirror directly from
+PAUSE and a second layer that mirrors from them. Target mirroring
+interval I envision feasible is 20 seconds.
+
+The rsync daemon on PAUSE runs on port 8732 and you need a password to
+access it. There is a second rsync daemon running on the standard port
+873 but it has very limited access policies to leave the bandwidth for
+the backbone.
+
+If you have username and password, the first thing you should prepare
+is the CPAN tree itself on your disk. The source does not matter that
+much. Take it from where you always took it. The setup I suggest is to
+mirror once per day or per week or so from that old school mirroring
+host and then again from pause in the fast loop.
+
+TBC...

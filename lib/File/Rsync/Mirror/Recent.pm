@@ -34,34 +34,20 @@ use version; our $VERSION = qv('0.0.1');
 B<!!!! PRE-ALPHA ALERT !!!!>
 
 Nothing in here is believed to be stable, nothing yet intended for
-public consumption. The plan is to provide a script in one of the next
-releases that acts as a frontend for all the backend functionality.
-Option and method names will very likely change.
+public consumption. The plan is to provide scripts that act as
+frontends for all the backend functionality. Option and method names
+may still change.
 
-File::Rsync::Mirror::Recent is acting at a higher level than
-File::Rsync::Mirror::Recentfile. File::Rsync::Mirror::Recent
-establishes a view on a collection of recentfile objects and provides
-abstractions spanning multiple intervals associated with those.
+For the rationale see the section BACKGROUND.
 
-B<Mostly unimplemented as of yet>. Will need to shift some accessors
-from recentfile to recent.
+The documentation in here is normally not needed because the code is
+meant to be run from several standalone programs. For a quick
+overview, see the file README.mirrorcpan and the bin/ directory of the
+distribution.
 
-Reader/mirrorer:
-
-    my $rr = File::Rsync::Mirror::Recent->new
-      (
-       ignore_link_stat_errors => 1,
-       localroot => "/home/ftp/pub/PAUSE/authors",
-       remote => "pause.perl.org::authors/RECENT.recent",
-       rsync_options => {
-                         compress => 1,
-                         links => 1,
-                         times => 1,
-                         checksum => 1,
-                        },
-       verbose => 1,
-      );
-    $rr->rmirror;
+File::Rsync::Mirror::Recent establishes a view on a collection of
+File::Rsync::Mirror::Recentfile objects and provides abstractions
+spanning multiple intervals associated with those.
 
 =head1 EXPORT
 
@@ -166,7 +152,7 @@ use accessors @accessors;
 
 =head2 $arrayref = $obj->news ( %options )
 
-Testing this ATM with:
+Test this with:
 
   perl -Ilib bin/rrr-news \
        -after 1217200539 \
@@ -350,9 +336,8 @@ sub overview {
 
 =head2 _pathdb
 
-(Private method, not for public use) Keeping track of already handled
-files. Currently it is a hash, will probably become a database with
-its own accessors.
+Keeping track of already handled files. Currently it is a hash, will
+probably become a database with its own accessors.
 
 =cut
 
@@ -429,12 +414,10 @@ sub recentfiles {
 
 =head2 $success = $obj->rmirror ( %options )
 
-XXX WORK IN PROGRESS XXX
-
 Mirrors all recentfiles of the I<remote> address working through all
 of them, mirroring their contents.
 
-Testing this ATM with:
+Test this with:
 
   use File::Rsync::Mirror::Recent;
   my $rrr = File::Rsync::Mirror::Recent->new(
@@ -454,8 +437,7 @@ Testing this ATM with:
   );
   $rrr->rmirror ( "skip-deletes" => 1, loop => 1 );
 
-And since the above seems to work, I try now without the llop
-parameter:
+Or try without the loop parameter and write the loop yourself:
 
   use File::Rsync::Mirror::Recent;
   my @rrr;
@@ -487,7 +469,6 @@ parameter:
 
 
 =cut
-
 sub rmirror {
     my($self, %options) = @_;
 
@@ -717,29 +698,75 @@ sub _fetch_as_tempfile {
     return $fh->filename;
 }
 
-=head2 (void) $obj->rmirror_loop
 
-(TBD) Run rmirror in an endless loop.
+=head1 BACKGROUND
 
-=cut
+This is about speeding up rsync operation on large trees. Uses a small
+metadata cocktail and pull technology.
 
-sub rmirror_loop {
-    my($self) = @_;
-    die "FIXME";
-}
+=head2 NON-COMPETITORS
 
-=head2 $hash = $obj->verify
+ File::Mirror        JWU/File-Mirror/File-Mirror-0.10.tar.gz only local trees
+ Mirror::YAML        ADAMK/Mirror-YAML-0.03.tar.gz           some sort of inner circle
+ Net::DownloadMirror KNORR/Net-DownloadMirror-0.04.tar.gz    FTP sites and stuff
+ Net::MirrorDir      KNORR/Net-MirrorDir-0.05.tar.gz         dito
+ Net::UploadMirror   KNORR/Net-UploadMirror-0.06.tar.gz      dito
+ Pushmi::Mirror      CLKAO/Pushmi-v1.0.0.tar.gz              something SVK
 
-(TBD) Runs find on the local tree, collects all existing files from
-recentfiles, compares their names. The returned hash contains the keys
-C<todelete> and C<toadd>.
+ rsnapshot           www.rsnapshot.org                       focus on backup
+ csync               www.csync.org                           more like unison
+ multi-rsync         sourceforge 167893                      lan push to many
 
-=cut
+=head2 COMPETITORS
 
-sub verify {
-    my($self) = @_;
-    die "FIXME";
-}
+The problem to solve which clusters and ftp mirrors and otherwise
+replicated datasets like CPAN share: how to transfer only a minimum
+amount of data to determine the diff between two hosts.
+
+Normally it takes a long time to determine the diff itself before it
+can be transferred. Known solutions at the time of this writing are
+csync2, and rsync 3 batch mode.
+
+For many years the best solution was csync2 which solves the problem
+by maintaining a sqlite database on both ends and talking a highly
+sophisticated protocol to quickly determine which files to send and
+which to delete at any given point in time. Csync2 is often
+inconvenient because it is push technology and the act of syncing
+demands quite an intimate relationship between the sender and the
+receiver. This is hard to achieve in an environment of loosely coupled
+sites where the number of sites is large or connections are
+unreliable or network topology is changing.
+
+Rsync 3 batch mode works around these problems by providing rsync-able
+batch files which allow receiving nodes to replay the history of the
+other nodes. This reduces the need to have an incestuous relation but
+it has the disadvantage that these batch files replicate the contents
+of the involved files. This seems inappropriate when the nodes already
+have a means of communicating over rsync.
+
+rersyncrecent solves this problem with a couple of (usually 2-10)
+index files which cover different overlapping time intervals. The
+master writes these files and the clients/slaves can construct the
+full tree from the information contained in them. The most recent
+index file usually covers the last seconds or minutes or hours of the
+tree and depending on the needs, slaves can rsync every few seconds or
+minutes and then bring their trees in full sync.
+
+The rersyncrecent mode was developed for CPAN but I hope it is a
+convenient and economic general purpose solution. I'm looking forward
+to see a CPAN backbone that is only a few seconds behind PAUSE. And
+then ... the first FUSE based CPAN filesystem anyone?
+
+=head1 FUTURE DIRECTIONS
+
+Currently the origin server must keep track of injected and removed
+files. Should be supported by an inotify-based assistant.
+
+=head1 SEE ALSO
+
+Do not take the epoch values as exact data. They are not reflecting
+release dates. If you want exact release dates: Barbie is providing a
+database of them. See http://use.perl.org/~barbie/journal/37907
 
 =head1 AUTHOR
 
@@ -788,7 +815,7 @@ Thanks to RJBS for module-starter.
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright 2008 Andreas König.
+Copyright 2008, 2009 Andreas König.
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.

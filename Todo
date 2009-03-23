@@ -1,12 +1,22 @@
 2009-03-22  Andreas J. Koenig  <andk@cpan.org>
 
+	* k81 is again client of k75 with different parameters.
+
 	* broken now: (1) seeding and unseeding: rmirror is seeding and talking
 	about it all the time and nobody reacts accordingly; (2) lots of temp
 	files get created and not removed; culprit the new call to
 	get_remote_recentfile_as_tempfile within Recent.pm; the manpage says the
-	callere has to remove the tempfile after use.
+	caller has to remove the tempfile after use.
 
 	Need the drawing board.
+
+	PARTLY FIXED: retracting the idea to call
+	get_remote_recentfile_as_tempfile from Recent.pm and moving around seed
+	and unseed such that uptodate now means "we have mirrored this
+	recentfile's bunch of files" and seeded means "somebody believes the
+	index file for this rf needs be refreshed". This seems to work now.
+
+	Still collecting temp files that nobody cares to depollute.
 
 2009-03-21  Andreas J. Koenig  <andk@cpan.org>
 

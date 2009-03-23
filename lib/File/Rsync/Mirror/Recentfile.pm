@@ -43,18 +43,6 @@ my %serializers;
 
 =head1 SYNOPSIS
 
-B<!!!! PRE-ALPHA ALERT !!!!>
-
-Nothing in here is believed to be stable, nothing yet intended for
-public consumption. The plan is to provide scripts that act as
-frontends for all the backend functionality. Option and method names
-will very likely change.
-
-For the rationale see the section BACKGROUND.
-
-This is published only for developers of the (yet to be named)
-script(s).
-
 Writer (of a single file):
 
     use File::Rsync::Mirror::Recentfile;
@@ -95,6 +83,12 @@ Aggregator (usually the writer):
 
     my $rf = File::Rsync::Mirror::Recentfile->new_from_file ( $file );
     $rf->aggregate;
+
+=head1 DESCRIPTION
+
+Lower level than F:R:M:Recent. Handles only one recentfile whereas a
+tree always is composed of several recentfiles. The single recentfile
+has to do the bookkeeping for a timeslice.
 
 =head1 EXPORT
 
@@ -2294,74 +2288,6 @@ The following letters express the specified number of seconds:
 =back
 
 =cut
-
-=head1 BACKGROUND
-
-This is about speeding up rsync operation on large trees. Uses a small
-metadata cocktail and pull technology.
-
-=head2 NON-COMPETITORS
-
- File::Mirror        JWU/File-Mirror/File-Mirror-0.10.tar.gz only local trees
- Mirror::YAML        ADAMK/Mirror-YAML-0.03.tar.gz           some sort of inner circle
- Net::DownloadMirror KNORR/Net-DownloadMirror-0.04.tar.gz    FTP sites and stuff
- Net::MirrorDir      KNORR/Net-MirrorDir-0.05.tar.gz         dito
- Net::UploadMirror   KNORR/Net-UploadMirror-0.06.tar.gz      dito
- Pushmi::Mirror      CLKAO/Pushmi-v1.0.0.tar.gz              something SVK
-
- rsnapshot           www.rsnapshot.org                       focus on backup
- csync               www.csync.org                           more like unison
- multi-rsync         sourceforge 167893                      lan push to many
-
-=head2 COMPETITORS
-
-The problem to solve which clusters and ftp mirrors and otherwise
-replicated datasets like CPAN share: how to transfer only a minimum
-amount of data to determine the diff between two hosts.
-
-Normally it takes a long time to determine the diff itself before it
-can be transferred. Known solutions at the time of this writing are
-csync2, and rsync 3 batch mode.
-
-For many years the best solution was csync2 which solves the problem
-by maintaining a sqlite database on both ends and talking a highly
-sophisticated protocol to quickly determine which files to send and
-which to delete at any given point in time. Csync2 is often
-inconvenient because it is push technology and the act of syncing
-demands quite an intimate relationship between the sender and the
-receiver. This is hard to achieve in an environment of loosely coupled
-sites where the number of sites is large or connections are
-unreliable or network topology is changing.
-
-Rsync 3 batch mode works around these problems by providing rsync-able
-batch files which allow receiving nodes to replay the history of the
-other nodes. This reduces the need to have an incestuous relation but
-it has the disadvantage that these batch files replicate the contents
-of the involved files. This seems inappropriate when the nodes already
-have a means of communicating over rsync.
-
-rersyncrecent solves this problem with a couple of (usually 2-10)
-index files which cover different overlapping time intervals. The
-master writes these files and the clients/slaves can construct the
-full tree from the information contained in them. The most recent
-index file usually covers the last seconds or minutes or hours of the
-tree and depending on the needs, slaves can rsync every few seconds or
-minutes and then bring their trees in full sync.
-
-The rersyncrecent mode was developed for CPAN but I hope it is a
-convenient and economic general purpose solution. I'm looking forward
-to see a CPAN backbone that is only a few seconds behind PAUSE. And
-then ... the first FUSE based CPAN filesystem anyone?
-
-=head1 FUTURE DIRECTIONS
-
-Currently the origin server must keep track of injected and removed
-files. Should be supported by an inotify-based assistant.
-
-=head1 SEE ALSO
-
-Barbie is providing a database of release dates. See
-http://use.perl.org/~barbie/journal/37907
 
 =head1 AUTHOR
 

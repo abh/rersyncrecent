@@ -1,5 +1,13 @@
-Revision history for File-Rsync-Mirror-Recentfile
+2009-03-24  Andreas J. Koenig  <andk@cpan.org>
 
-0.0.1   Date/time
-        First version, released on an unsuspecting world.
+	* release 0.0.1
+	
+	First version, released on an unsuspecting world.
 
+	
+	Local Variables:
+	mode: change-log
+	change-log-default-name: "Changes"
+	tab-width: 2
+	left-margin: 2
+	End:

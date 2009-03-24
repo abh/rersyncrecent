@@ -1,3 +1,11 @@
+2009-03-24  Andreas J. Koenig  <andk@cpan.org>
+
+	* Some equivalent for
+
+	for ( @{$rrr->recentfiles} ) { $_->verbose(0) }
+
+	?
+
 2009-03-22  Andreas J. Koenig  <andk@cpan.org>
 
 	* k81 is again client of k75 with different parameters.

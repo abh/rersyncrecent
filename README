@@ -1,7 +1,8 @@
 rersyncrecent / File-Rsync-Mirror-Recent
 
 This is about speeding up rsync operation on large trees to many
-places. Uses a small metadata cocktail and pull technology.
+places. Uses a small metadata cocktail and pull technology. See
+README.mirrorcpan for a plan for a better CPAN backbone.
 
 INSTALLATION
 

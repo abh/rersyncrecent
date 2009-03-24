@@ -10,12 +10,15 @@ access it. There is a second rsync daemon running on the standard port
 873 but it has very limited access policies to leave the bandwidth for
 the backbone.
 
-If you have username and password, the first thing you should prepare
-is the CPAN tree itself on your disk. The source where you take it
-from does not matter that much. Take it from where you always took it.
-The setup I suggest is to mirror once per day or per week or so from
-that old school mirroring host and then again from pause in the fast
-loop.
+If you have username and password you can mirror directly from PAUSE,
+otherwise pick your best CPAN mirror with an rsync server and try the
+same script below for getting the quickest update cycle possible.
+
+The first thing you should prepare is the CPAN tree itself on your
+disk. The source where you take it from does not matter that much.
+Take it from where you always took it. The setup I suggest is to
+mirror once per day or per week or so from that old school mirroring
+host and then again from pause in the fast loop.
 
 The loop is something like this:
 
@@ -32,7 +35,7 @@ The loop is something like this:
                  max_files_per_connection => 863,
                  rsync_options =>
                  {
-                  port => 8732,
+                  port => 8732, # only for PAUSE
                   compress => 1,
                   links => 1,
                   times => 1,
@@ -42,7 +45,7 @@ The loop is something like this:
                  verbose => 1,
                 )} "authors", "modules";
     while (){
-        my $ttgo = time + 20;
+        my $ttgo = time + 1200; # pick less if you have a password or a mission
         for my $rrr (@rrr){
             $rrr->rmirror ( "skip-deletes" => 1 );
         }
@@ -67,6 +70,22 @@ moment (2009-03) consisting of 142000 files. This option chunks the
 downloads into piecemeal units and between these units the process
 takes a peek at the most recent files to download them with higher
 preference.
+
+The 'port' is only needed for users who have a password for PAUSE,
+other rsync servers listen on the rsync server port and the option can
+be omitted.
+
+The timeslice in the while loop above needs to be large enough to let
+the rsync server survive. If you choose a random rsync server and are
+not an rsync server yourself please be modest and choose 1200. Choose
+less if you're offering rsync yourself and have a fat pipe, and
+especially if you know your upstream can manage it. If you have a
+PAUSE password choose 20 seconds. We will watch how well this works
+and will adjust this recommendation according to our findings.
+
+Set the key 'verbose' to 0 if you have no debugging demands. In this
+case you want to omit the 'sleeping $sleep ...' noise further down the
+script as well.
 
 You can leave everything else as it stands. Start experimenting and
 let me know how it works out.

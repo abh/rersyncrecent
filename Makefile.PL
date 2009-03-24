@@ -17,6 +17,7 @@ if ($ARGV[0] && $ARGV[0] eq "--setversion") {
     die "Your perl is a bit dated[$]].\nDo not make a release with it\n" if $] < 5.008;
     warn "Your MakeMaker is a bit dated[$ExtUtils::MakeMaker::VERSION].\nYou should get a new one\n"
         if $ExtUtils::MakeMaker::VERSION < 6.4502;
+    use lib "lib";
     eval {  require $version_from; }; die $@ if $@;
     my $makefile = "Makefile";
     unless (-f $makefile) {
@@ -70,7 +71,8 @@ WriteMakefile
                                    "all",
                                    "tardist",
                                   ),
-              COMPRESS => 'gzip -9',
+              COMPRESS => 'bzip2 -9f',
+              SUFFIX => ".bz2",
              },
      ($ExtUtils::MakeMaker::VERSION >= 6.4502 ?
       (META_ADD => {
@@ -112,9 +114,8 @@ the-release-name :
 	$(NOECHO) $(ECHO) 'version ' $(VERSION)
 	$(NOECHO) $(ECHO) 'release-name ' $(DISTVNAME).tar$(SUFFIX)
 
-release ::
-	/usr/bin/perl -I../CPAN/GIT/trunk/release-lib -S release $(DISTVNAME).tar$(SUFFIX)
-	rm -rf $(DISTVNAME)
+tag ::
+	git tag -m 'This is $(VERSION)' "$(VERSION)"
 
 sign:
 	cpansign -s

@@ -575,7 +575,7 @@ sub _rmirror_cleanup {
         # warn "DEBUG: i[$i] nextminmaxmax[$nextminmax->{max}] thismergedepoch[$thismerged->{epoch}]";
         if (not defined $thismerged->{epoch} or _bigfloatlt($nextminmax->{max},$thismerged->{epoch})){
             $next->seed;
-            warn sprintf "DEBUG: next iv %s seeded since next-minmax-max[$nextminmax->{max}]lt this-merged-epoch[$thismerged->{epoch}]\n", $next->interval;
+            # warn sprintf "DEBUG: next iv %s seeded since next-minmax-max[$nextminmax->{max}]lt this-merged-epoch[$thismerged->{epoch}]\n", $next->interval;
         }
     }
 }

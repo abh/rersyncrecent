@@ -5,14 +5,7 @@ $ExtUtils::MakeMaker::VERSION =~ s/_//g;
 my @sign = (MM->can("signature_target") ? (SIGN => 1) : ());
 my $version_diff = 0; # we'll have to die if this becomes true
 my $version_from = 'lib/File/Rsync/Mirror/Recent.pm';
-my $version;
-{
-    open my $fh, "<", $version_from or die "Could not open $version_from: $!";
-    my @version = grep /VERSION\s*=\s*qv/, <$fh>;
-    our $VERSION;
-    eval $version[0];
-    $version = $VERSION;
-}
+my $version = MM->parse_version($version_from);
 if ($ARGV[0] && $ARGV[0] eq "--setversion") {
     die "Your perl is a bit dated[$]].\nDo not make a release with it\n" if $] < 5.008;
     warn "Your MakeMaker is a bit dated[$ExtUtils::MakeMaker::VERSION].\nYou should get a new one\n"
@@ -26,15 +19,15 @@ if ($ARGV[0] && $ARGV[0] eq "--setversion") {
     unless (-f $makefile) {
         die "no Makefile and no Makefile.old found";
     }
-    open my $fh, "make the-release-name|" or die "Could not fork: $!";
+    open my $fh, "make -f $makefile the-release-name|" or die "Could not fork: $!";
     local $/;
     my ($have_version) = <$fh> =~ /^version\s+([\d\._]+)/m;
     close $fh or die "Could not close: $!";
     my ($namespace) = $version_from;
     $namespace =~ s|^lib/(.+)\.pm$|$1|;
     $namespace =~ s|/|::|g;
-    eval qq{ if (\$$namespace\::VERSION != \$have_version) {
-        warn "Not equal: CPAN::Testers::ParseReport::VERSION[\$$namespace\::VERSION] Makefile version[\$have_version]";
+    eval qq{ if (\$$namespace\::VERSION != \$version) {
+        warn "Not equal: $namespace\\::VERSION[\$$namespace\::VERSION] MM generated version[\$version]";
         \$version_diff = 1;
     }};
 }
@@ -65,6 +58,7 @@ WriteMakefile
      EXE_FILES    => [qw(bin/rrr-aggregate bin/rrr-news)],
      dist => {
               DIST_DEFAULT => join(" ", # note: order matters!
+                                   "verify-changes-date",
                                    "Makefile",
                                    "META.yml",
                                    "setversion",
@@ -102,13 +96,21 @@ package MY;
 sub postamble {
   my @m;
   push @m, q{
-Makefile: MANIFEST
+Makefile: }.$version_from.q{
 
 META.yml: metafile
 	$(CP) $(DISTVNAME)/META.yml  ./META.yml
 
 setversion:
 	$(PERL) Makefile.PL --setversion
+
+verify-changes-date:
+	@$(PERL) -ne 'BEGIN{my@t=(localtime)[5,4,3];$$t[0]+=1900;$$t[1]++;$$t=sprintf"%04d-%02d-%02d",@t}' \
+		-e '$$ok++,exit if /^$$t\s/; END{die "Alert: did not find <$$t> in Changes file" unless $$ok}' Changes
+
+verify-no-subdir:
+	@$(PERL) -e 'my$$s=join",",grep{!/^($(OKDIRS))\z/x&&-d($$_)}glob"*";' \
+		-e 'die"unexpected dir:$$s"if$$s'
 
 the-release-name :
 	$(NOECHO) $(ECHO) 'version ' $(VERSION)
@@ -129,7 +131,7 @@ sub dist_test {
 # Makefile breaks our intent to NOT remake dist
 disttest :
 	rm -rf $(DISTVNAME)
-	tar xvzf $(DISTVNAME).tar$(SUFFIX)
+	tar xvjf $(DISTVNAME).tar$(SUFFIX)
 	cd $(DISTVNAME) && $(ABSPERLRUN) Makefile.PL
 	cd $(DISTVNAME) && $(MAKE) $(PASTHRU)
 	cd $(DISTVNAME) && $(MAKE) test $(PASTHRU)

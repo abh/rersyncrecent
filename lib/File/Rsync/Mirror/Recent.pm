@@ -43,7 +43,8 @@ For the rationale see the section BACKGROUND.
 The documentation in here is normally not needed because the code is
 meant to be run from several standalone programs. For a quick
 overview, see the file README.mirrorcpan and the bin/ directory of the
-distribution.
+distribution. For the architectural ideas see the section THE
+ARCHITECTURE OF A COLLECTION OF RECENTFILES below.
 
 File::Rsync::Mirror::Recent establishes a view on a collection of
 File::Rsync::Mirror::Recentfile objects and provides abstractions
@@ -699,6 +700,93 @@ sub _fetch_as_tempfile {
 }
 
 
+=head1 THE ARCHITECTURE OF A COLLECTION OF RECENTFILES
+
+The idea is that we want to have a short file that records really
+recent changes. So that a fresh mirror can be kept fresh as long as
+the connectivity is given. Then we want longer files that record the
+history before. So when the mirror falls behind the update period
+reflected in the shortest file, it can complement the list of recent
+file events with the next one. And if this is not long enough we want
+another one, again a bit longer. And we want one that completes the
+history back to the oldest file. The index files do contain the
+complete list of current files. The longer a period covered by an
+index file is gone the less often the index file is updated. For
+practical reasons adjacent files will often overlap a bit but this is
+neither necessary nor enforced. That's the basic idea. The following
+example represents a tree that has a few updates every day:
+
+ RECENT.recent -> RECENT-1h.yaml
+ RECENT-6h.yaml
+ RECENT-1d.yaml
+ RECENT-1M.yaml
+ RECENT-1W.yaml
+ RECENT-1Q.yaml
+ RECENT-1Y.yaml
+ RECENT-Z.yaml
+
+The first file is the principal file, in so far it is the one that is
+written first after a filesystem change. Usually a symlink links to it
+with a filename that has the same filenameroot and the suffix
+C<.recent>. On systems that do not support symlinks there is a plain
+copy maintained instead.
+
+The last file, the Z file, contains the complementary files that are
+in none of the other files. It does never contain C<deletes>. Besides
+this it serves the role of a recovery mechanism or spill over pond.
+When things go wrong, it's a valuable controlling instance to hold the
+differences between the collection of limited interval files and the
+actual filesystem.
+
+=head2 THE INDIVIDUAL RECENTFILE
+
+A I<recentfile> consists of a hash that has two keys: C<meta> and
+C<recent>. The C<meta> part has metadata and the C<recent> part has a
+list of fileobjects.
+
+=head2 THE META PART
+
+Here we find things that are pretty much self explaining: all
+lowercase attributes are accessors and as such explained somewhere
+above in this manpage. The uppercase attribute C<Producers> contains
+version information about involved software components. Nothing to
+worry about as I believe.
+
+=head2 THE RECENT PART
+
+This is the interesting part. Every entry refers to some filesystem
+change (with path, epoch, type).
+
+The I<epoch> value is the point in time when some change was
+I<registered> but can be set to arbitrary values. Do not be tempted to
+believe that the entry has a direct relation to something like
+modification time or change time on the filesystem level. They are not
+reflecting release dates. (If you want exact release dates: Barbie is
+providing a database of them. See
+http://use.perl.org/~barbie/journal/37907).
+
+All these entries can be devided into two types (denoted by the
+I<type> attribute): C<new>s and C<delete>s. Changes and creations are
+C<new>s. Deletes are C<delete>s.
+
+Besides an I<epoch> and a I<type> attribute we find a third one:
+I<path>. This path is relative to the directory we find the
+I<recentfile> in.
+
+The order of the entries in the I<recentfile> is by decreasing epoch
+attribute. These are unique floating point numbers. When the server
+has ntp running correctly, then the timestamps are usually reflecting
+a real epoch. If time is running backwards, we trump the system epoch
+with strictly monotonically increasing floating point timestamps and
+guarantee they are unique.
+
+=head1 CORRUPTION AND RECOVERY
+
+If the origin host breaks the promise to deliver consistent and
+complete I<recentfiles> then the way back to sanity shall be achieved
+through traditional rsyncing between the hosts. But don't forget to
+report it as a bug:)
+
 =head1 BACKGROUND
 
 This is about speeding up rsync operation on large trees. Uses a small
@@ -764,13 +852,9 @@ files. Should be supported by an inotify-based assistant.
 
 =head1 SEE ALSO
 
-Do not take the epoch values as exact data. They are not reflecting
-release dates. If you want exact release dates: Barbie is providing a
-database of them. See http://use.perl.org/~barbie/journal/37907
-
-=head1 AUTHOR
-
-Andreas König
+L<File::Rsync::Mirror::Recentfile>,
+L<File::Rsync::Mirror::Recentfile::Done>,
+L<File::Rsync::Mirror::Recentfile::FakeBigFloat>
 
 =head1 BUGS
 
@@ -812,6 +896,10 @@ L<http://search.cpan.org/dist/File-Rsync-Mirror-Recent>
 =head1 ACKNOWLEDGEMENTS
 
 Thanks to RJBS for module-starter.
+
+=head1 AUTHOR
+
+Andreas König
 
 =head1 COPYRIGHT & LICENSE
 

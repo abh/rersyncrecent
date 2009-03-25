@@ -11,10 +11,6 @@ use File::Rsync::Mirror::Recentfile::FakeBigFloat qw(:all);
 
 File::Rsync::Mirror::Recentfile::Done - intervals of already rsynced timespans
 
-=head1 VERSION
-
-Version 0.0.1
-
 =cut
 
 use version; our $VERSION = qv('0.0.1');
@@ -360,7 +356,7 @@ sub _intervals {
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright 2008 Andreas König.
+Copyright 2008, 2009 Andreas König.
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.

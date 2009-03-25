@@ -71,6 +71,12 @@ downloads into piecemeal units and between these units the process
 takes a peek at the most recent files to download them with higher
 preference.
 
+The localroot parameter contains your target directory. Because only
+the authors/ and the modules/ directory are hosted by the PAUSE, you
+need the loop over two directories. The other directories of CPAN are
+currently not available for downloading with
+File::Rsync::Mirror::Recent.
+
 The 'port' is only needed for users who have a password for PAUSE,
 other rsync servers listen on the rsync server port and the option can
 be omitted.

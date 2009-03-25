@@ -2,7 +2,7 @@ package File::Rsync::Mirror::Recentfile::FakeBigFloat;
 
 # use warnings;
 use strict;
-use Data::Float qw(nextup nextdown);
+use Data::Float qw(nextup);
 
 # _bigfloat
 sub _bigfloatcmp ($$);
@@ -45,7 +45,7 @@ $EXPORT_TAGS{all} = \@EXPORT_OK;
 
   use File::Rsync::Mirror::Recentfile::FakeBigFloat qw(:all);
 
-=head1 (ONLY) INTERNAL FUNCTIONS
+=head1 ONLY INTERNAL FUNCTIONS
 
 These functions are not part of a public interface and can be
 changed and go away any time without prior notice.
@@ -54,7 +54,8 @@ changed and go away any time without prior notice.
 
 We treat strings that look like floating point numbers. If the native
 floating point support is good enough we use it. If it isn't we make
-sure no two unequal numbers are treated the same.
+sure no two unequal numbers are treated the same and vice versa. Only
+comparison operators are supported, no other math.
 
 =head1 EXPORT
 
@@ -62,8 +63,8 @@ All functions are exported in the C<:all> tag.
 
 =head2 _bigfloatcmp ( $l, $r )
 
-Cmp function for floating point numbers that have a longer
-mantissa than can be handled by native perl floats.
+Cmp function for floating point numbers that have a larger significand
+than can be handled by native perl floats.
 
 =cut
 sub _bigfloatcmp ($$) {
@@ -160,8 +161,8 @@ sub _bigfloatmin ($$) {
 
 The first form calculates a string that is between the two numbers,
 closer to $l to prevent rounding effects towards $r. The second form
-calculates the second number itself based on the current architecture
-and L<Data::Float::nextup()>.
+calculates the second number itself based on nextup() in
+L<Data::Float>.
 
 =cut
 sub _my_sprintf_float ($) {
@@ -254,7 +255,7 @@ sub _increase_a_bit_tail ($$) {
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright 2008,2009 Andreas König.
+Copyright 2008, 2009 Andreas König.
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.

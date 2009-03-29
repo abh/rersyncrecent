@@ -1,3 +1,13 @@
+2009-03-29  Andreas J. Koenig  <andk@cpan.org>
+
+	* release 0.0.2
+
+	* Bugfix: reflecting in the test that when JSON is not installed
+	Data::Serializer::JSON won't work
+
+	* convenience: verbose(X) on a Recent object now calls verbose(X) on all
+	associated Recentfile objects.
+
 2009-03-25  Andreas J. Koenig  <andk@cpan.org>
 
 	* release 0.0.1

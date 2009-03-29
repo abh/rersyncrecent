@@ -138,10 +138,10 @@ File::Rsync object used to run the mirror.
 
 Minimum time before fetching the principal recentfile again.
 
-=item verbose
+=item _verbose
 
-Boolean to turn on a bit verbosity. This is in experimental stage, we
-will have to decide which output we want when the dust has settled.
+Boolean to turn on a bit verbosity. Use the method C<verbose> to also
+set the verbosity of associated Recentfile objects.
 
 =back
 
@@ -699,6 +699,26 @@ sub _fetch_as_tempfile {
     return $fh->filename;
 }
 
+=head1 $verbose = $obj->verbose ( $set )
+
+Getter/setter method to set verbosity for this object and all
+associated Recentfile objects.
+
+=cut
+sub verbose {
+    my($self,$set) = @_;
+    if (defined $set) {
+        for ( @{$self->recentfiles} ) { $_->verbose($set) }
+        $self->_verbose ($set);
+    }
+    my $x = $self->_verbose;
+    unless (defined $x) {
+        $x = 0;
+        $self->_verbose ($x);
+    }
+    return $x;
+    
+}
 
 =head1 THE ARCHITECTURE OF A COLLECTION OF RECENTFILES
 

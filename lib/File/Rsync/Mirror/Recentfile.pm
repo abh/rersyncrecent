@@ -261,6 +261,16 @@ If set to true, this object will fetch a new recentfile from remote
 when the timespan between the last mirror (see have_mirrored) and now
 is too large (see C<ttl>).
 
+=item keep_delete_objects_forever
+
+The default for delete events is that they are passed through the
+collection of recentfile objects until they reach the Z file. There
+they get dropped so that the associated file object ceases to exist at
+all. By setting C<keep_delete_objects_forever> the delete objects are
+kept forever. This makes the Z file larger but has the advantage that
+slaves that have interrupted mirroring for a long time still can clean
+up their copy.
+
 =item locktimeout
 
 After how many seconds shall we die if we cannot lock a I<recentfile>?
@@ -760,9 +770,10 @@ sub lock {
 
 Bulk update of this object with another one. It's used to merge a
 smaller and younger $other object into the current one. If this file
-is a C<Z> file, then we do not merge in objects of type C<delete>. But
-if we encounter an object of type delete we delete the corresponding
-C<new> object if we have it.
+is a C<Z> file, then we normally do not merge in objects of type
+C<delete>; this can be overridden by setting
+keep_delete_objects_forever. But if we encounter an object of type
+delete we delete the corresponding C<new> object if we have it.
 
 If there is nothing to be merged, nothing is done.
 
@@ -813,7 +824,9 @@ sub merge {
         my $path = $oev->{path};
         next if $have_path{$path}++;
         if (    $self->interval eq "Z"
-            and $oev->{type}     eq "delete") {
+            and $oev->{type}    eq "delete"
+            and ! $self->keep_delete_objects_forever
+           ) {
             # do nothing
         } else {
             if (!$myepoch || _bigfloatgt($oevepoch, $myepoch)) {
@@ -1838,7 +1851,7 @@ as long as this recentfile has not been merged to another one, the
 timespan may grow without bounds.
 
 The third form runs an update without inserting a new file. This may
-be disired to truncate a recentfile.
+be desired to truncate a recentfile.
 
 =cut
 sub _epoch_monotonically_increasing {
@@ -1856,8 +1869,9 @@ sub update {
         die "update called without path argument" unless defined $path;
         die "update called without type argument" unless defined $type;
         die "update called with illegal type argument: $type" unless $type =~ /(new|delete)/;
-        die "update called with \$type=$type and \$dirty_epoch=$dirty_epoch; ".
-            "dirty_epoch only allowed with type=new" if defined $dirty_epoch and $type ne "new";
+        # since we have keep_delete_objects_forever we must let them inject delete objects too:
+        #die "update called with \$type=$type and \$dirty_epoch=$dirty_epoch; ".
+        #    "dirty_epoch only allowed with type=new" if defined $dirty_epoch and $type ne "new";
         my $canonmeth = $self->canonize;
         unless ($canonmeth) {
             $canonmeth = "naive_path_normalize";

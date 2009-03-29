@@ -1,3 +1,12 @@
+2009-03-29  Andreas J. Koenig  <andk@cpan.org>
+
+	* known bug: cannot configure the Recentfile objects to keep delete
+	events. How to call the accessor for that? keep_delete_objects_forever?
+
+	Sounds acceptable. FIXED (but untested).
+
+	* known bug: keeps temporary index files lying around.
+
 2009-03-24  Andreas J. Koenig  <andk@cpan.org>
 
 	* Some equivalent for

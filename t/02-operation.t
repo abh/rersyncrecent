@@ -44,10 +44,10 @@ rmtree [$root_from, $root_to];
     BEGIN {
         $test_counter = $tests;
         @serializers = (
-                        ".yaml",
-                        ".json",
-                        ".sto",
-                        ".dd",
+                        [".yaml","YAML::Syck"],
+                        [".json","JSON"],
+                        [".sto","Storable"],
+                        [".dd","Data::Dumper"],
                        );
         $tests += @serializers;
         if ($HAVE->{"File::LibMagic"}||$HAVE->{"File::MMagic"}) {
@@ -66,7 +66,15 @@ rmtree [$root_from, $root_to];
     } elsif ($HAVE->{"File::MMagic"}) {
         $fm = File::MMagic->new();
     }
-    for my $s (@serializers) {
+    for my $serializer (@serializers) {
+        my($s,$module) = @$serializer;
+        unless (eval "require $module; 1") {
+            ok(1, "Skipping because $module not installed");
+            if ($fm) {
+                ok(1, "Skipping the magic test for same reason");
+            }
+            next;
+        }
         my $rf = File::Rsync::Mirror::Recentfile->new
             (
              filenameroot   => "RECENT",

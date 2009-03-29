@@ -44,6 +44,7 @@ The loop is something like this:
                  ttl => 10,
                  verbose => 1,
                 )} "authors", "modules";
+    die "directory $_ doesn't exist, giving up" for grep { ! -d $_->localroot } @rrr;
     while (){
         my $ttgo = time + 1200; # pick less if you have a password or a mission
         for my $rrr (@rrr){

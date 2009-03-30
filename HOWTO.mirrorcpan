@@ -1,3 +1,5 @@
+=head1 HOW TO MIRROR CPAN
+
 As of this writing the single purpose for this distribution is to
 provide a backbone for the CPAN.
 
@@ -10,15 +12,20 @@ access it. There is a second rsync daemon running on the standard port
 873 but it has very limited access policies to leave the bandwidth for
 the backbone.
 
-If you have username and password you can mirror directly from PAUSE,
-otherwise pick your best CPAN mirror with an rsync server and try the
+If you have username and password you can mirror directly from PAUSE.
+If you haven't and maintain a public CPAN mirror, ask me for one.
+Otherwise pick your best CPAN mirror with an rsync server and try the
 same script below for getting the quickest update cycle possible.
+
+You find a list of potential rsync servers at
+http://cpan.perl.org/SITES.html#RSYNC
 
 The first thing you should prepare is the CPAN tree itself on your
 disk. The source where you take it from does not matter that much.
 Take it from where you always took it. The setup I suggest is to
-mirror once per day or per week or so from that old school mirroring
-host and then again from pause in the fast loop.
+mirror authors/ and modules/ with this program. And once per day or
+per week or so do a traditional rsync from that old school mirroring
+host, maybe excluding authors/ and modules/.
 
 The loop is something like this:
 
@@ -30,8 +37,8 @@ The loop is something like this:
         File::Rsync::Mirror::Recent->new
                 (
                  ignore_link_stat_errors => 1,
-                 localroot => "/home/ftp/pub/PAUSE/$_",
-                 remote => "pause.perl.org::PAUSE/$_/RECENT.recent",
+                 localroot => "/home/ftp/pub/PAUSE/$_", # your local path
+                 remote => "pause.perl.org::PAUSE/$_/RECENT.recent", # your upstream
                  max_files_per_connection => 863,
                  rsync_options =>
                  {
@@ -46,7 +53,7 @@ The loop is something like this:
                 )} "authors", "modules";
     die "directory $_ doesn't exist, giving up" for grep { ! -d $_->localroot } @rrr;
     while (){
-        my $ttgo = time + 1200; # pick less if you have a password or a mission
+        my $ttgo = time + 1200; # pick less if you have a password and/or consent from the upstream
         for my $rrr (@rrr){
             $rrr->rmirror ( "skip-deletes" => 1 );
         }
@@ -56,6 +63,8 @@ The loop is something like this:
             sleep $sleep;
         }
     }
+
+=pod
 
 Don't forget to fill in your user name and password.
 
@@ -99,3 +108,5 @@ let me know how it works out.
 
 -- 
 andreas koenig
+
+=cut

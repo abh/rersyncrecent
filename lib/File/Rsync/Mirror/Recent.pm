@@ -699,7 +699,7 @@ sub _fetch_as_tempfile {
     return $fh->filename;
 }
 
-=head1 $verbose = $obj->verbose ( $set )
+=head2 $verbose = $obj->verbose ( $set )
 
 Getter/setter method to set verbosity for this object and all
 associated Recentfile objects.

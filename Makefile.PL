@@ -54,6 +54,7 @@ WriteMakefile
       'Data::Serializer' => 0,
       'Time::HiRes'      => 0,
       'YAML::Syck'       => 0,
+      'version'          => 0,
      },
      EXE_FILES    => [qw(bin/rrr-aggregate bin/rrr-news)],
      dist => {

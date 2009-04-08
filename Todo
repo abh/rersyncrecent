@@ -1,5 +1,7 @@
 2009-04-08  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
+	* install the bin/* files and talk about rrr-overview somewhere.
+
 	* Ask B. Hansen asks for tempdir accessor such that tempfiles get
 	created outside the target tree.
 

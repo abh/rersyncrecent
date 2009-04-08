@@ -153,6 +153,30 @@ my @snapshots;
     ok $done->covered ($re2->[0]{epoch},$re2->[-1]{epoch}), "covered II";
 }
 
+{
+    my @lines;
+    BEGIN {
+        @lines = split /\n/, <<EOL;
+40:[45,40],        [40,35]
+40:[45,40],[42,37],[40,35]
+45:[45,40],        [45,35]
+45:[45,40],[42,37],[45,35]
+35:[45,35],        [40,35]
+35:[45,35],[42,37],[40,35]
+EOL
+        $tests += 3*@lines;
+    }
+    for my $line (@lines) {
+        my($epoch,$perl) = $line =~ /^(\d+):(.+)/;
+        my @intervals = eval $perl;
+        my $done = File::Rsync::Mirror::Recentfile::Done->new;
+        $done->_register_one_fold2(\@intervals,$epoch);
+        ok 1==@intervals, "line $line";
+        ok 45==$intervals[0][0], "line $line => $intervals[0][0]";
+        ok 35==$intervals[0][1], "line $line => $intervals[0][1]";
+    }
+}
+
 rmtree ( "t/ta" );
 
 BEGIN { plan tests => $tests }

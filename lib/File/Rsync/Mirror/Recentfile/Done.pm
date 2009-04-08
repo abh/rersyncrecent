@@ -308,18 +308,45 @@ sub _register_one_fold2 {
        $intervals,
        $epoch,
       ) = @_;
-    my $splicepos;
+    # we know we have hit twice, like in
+    # 40:[45,40],        [40,35]
+    # 40:[45,40],[42,37],[40,35]
+    # 45:[45,40],        [45,35]
+    # 45:[45,40],[42,37],[45,35]
+    # 35:[45,35],        [40,35]
+    # 35:[45,35],[42,37],[40,35]
+    my($splicepos, $splicelen, %assert_between);
     for my $i (0..$#$intervals) {
-        if (   $epoch eq $intervals->[$i][1]
-               && $intervals->[$i][1] eq $intervals->[$i+1][0]) {
-            $intervals->[$i+1][0] = $intervals->[$i][0];
-            $splicepos = $i;
-            last;
+        if (   $epoch eq $intervals->[$i][0]
+            or $epoch eq $intervals->[$i][1]
+           ) {
+            for (my $j = 1; $i+$j <= $#$intervals; $j++) {
+                if (   $epoch eq $intervals->[$i+$j][0]
+                    or $epoch eq $intervals->[$i+$j][1]) {
+                    $intervals->[$i+$j][0] = _bigfloatmax($intervals->[$i][0],$intervals->[$i+$j][0]);
+                    $intervals->[$i+$j][1] = _bigfloatmin($intervals->[$i][1],$intervals->[$i+$j][1]);
+                    $splicepos = $i;
+                    $splicelen = $j;
+                    last;
+                } else {
+                    for my $k (0,1) {
+                        $assert_between{$intervals->[$i+$j][$k]}++;
+                    }
+                }
+            }
         }
     }
     if (defined $splicepos) {
-        splice @$intervals, $splicepos, 1;
+        for my $k (keys %assert_between) {
+            require Data::Dumper;
+            $DB::single=1;
+            die "Panic: broken intervals:".Data::Dumper::Dumper($intervals)
+                if _bigfloatgt($k,$intervals->[$splicepos+$splicelen][0])
+                    or _bigfloatlt($k,$intervals->[$splicepos+$splicelen][1]);
+        }
+        splice @$intervals, $splicepos, $splicelen;
     } else {
+        $DB::single=1;
         die "Panic: Could not find an interval position to insert '$epoch'";
     }
 }

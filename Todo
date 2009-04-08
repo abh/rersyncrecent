@@ -1,3 +1,10 @@
+2009-04-08  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* Ask B. Hansen asks for tempdir accessor such that tempfiles get
+	created outside the target tree.
+
+	* Barbie asks for better logging capabilities
+
 2009-03-29  Andreas J. Koenig  <andk@cpan.org>
 
 	* known bug: cannot configure the Recentfile objects to keep delete
@@ -13,7 +20,7 @@
 
 	for ( @{$rrr->recentfiles} ) { $_->verbose(0) }
 
-	?
+	? DONE
 
 2009-03-22  Andreas J. Koenig  <andk@cpan.org>
 
@@ -38,7 +45,7 @@
 2009-03-21  Andreas J. Koenig  <andk@cpan.org>
 
 	* Bug?: should it be harder than it is atm to set the timestamp to the
-	future?
+	future? YES, FIXED
 
 	* bug with native integers:
   

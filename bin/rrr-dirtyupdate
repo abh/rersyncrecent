@@ -18,6 +18,11 @@ rrr-dirtyupdate - add a file with an old timestamp to the dataset
 
 my @opt = <<'=back' =~ /B<--(\S+)>/g;
 
+=item B<--delete>
+
+Inject a delete event. If the epoch argument is missing, find the
+according file event and set epoch to that epoch plus 1.
+
 =item B<--force|f>
 
 Force this run even without any arguments. E.g. just for the side
@@ -55,6 +60,7 @@ use strict;
 use warnings;
 
 use File::Find qw(find);
+use lib "/home/k/sources/rersyncrecent/lib";
 use File::Rsync::Mirror::Recent;
 use Getopt::Long;
 use Pod::Usage qw(pod2usage);
@@ -86,10 +92,20 @@ my($rf) = $recc->principal_recentfile;
 
 unless ($aggregate_only) {
     unless (defined $epoch) {
-        my(@stat) = stat $file or die "Could not stat '$file': $!";
-        $epoch = $stat[9];
+        if ($Opt{delete}) {
+            warn "not yet implemented???";
+            my $news = $recc->news(contains_path => $file);
+            if ($news) {
+                print YAML::Syck::Dump $news;
+            }
+            die "FIXME";
+        } else {
+            my(@stat) = stat $file or die "Could not stat '$file': $!";
+            $epoch = $stat[9];
+        }
     }
-    $rf->update($file,"new",$epoch);
+    my $type = $Opt{delete} ? "delete" : "add";
+    $rf->update($file,$type,$epoch);
 }
 warn localtime()." starting first aggregate\n";
 $rf->aggregate(force => 1);

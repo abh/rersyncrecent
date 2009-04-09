@@ -338,11 +338,12 @@ sub _register_one_fold2 {
     }
     if (defined $splicepos) {
         for my $k (keys %assert_between) {
-            require Data::Dumper;
-            $DB::single=1;
-            die "Panic: broken intervals:".Data::Dumper::Dumper($intervals)
-                if _bigfloatgt($k,$intervals->[$splicepos+$splicelen][0])
-                    or _bigfloatlt($k,$intervals->[$splicepos+$splicelen][1]);
+            if (_bigfloatgt($k,$intervals->[$splicepos+$splicelen][0])
+                or _bigfloatlt($k,$intervals->[$splicepos+$splicelen][1])){
+                $DB::single=1;
+                require Data::Dumper;
+                die "Panic: broken intervals:".Data::Dumper::Dumper($intervals);
+            }
         }
         splice @$intervals, $splicepos, $splicelen;
     } else {

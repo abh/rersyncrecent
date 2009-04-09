@@ -1427,10 +1427,11 @@ sub recent_events {
              $rfile_or_tempfile,
             );
     }
-    return $re unless grep {defined $options{$_}} qw(after before max);
+    return $re unless grep {defined $options{$_}} qw(after before contains max);
     $self->_recent_events_handle_options ($re, \%options);
 }
 
+# File::Rsync::Mirror::Recentfile::_recent_events_handle_options
 sub _recent_events_handle_options {
     my($self, $re, $options) = @_;
     my $last_item = $#$re;

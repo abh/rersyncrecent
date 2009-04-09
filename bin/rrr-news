@@ -28,9 +28,20 @@ List all new files before this point in time. The format of the
 timestamp is the unix epoch in floating point notation as used by
 recentfiles in general.
 
-=item B<--contains=s>
+=item B<--contains_epoch=s>
 
-List this file if it is in the collection. Implies --max=1.
+List this file if the epoch is in the collection. Implies --max=1. Can
+be combined with the other contains_* options to form a logical AND.
+
+=item B<--contains_path=s>
+
+List this file if the path is in the collection. Implies --max=1. Can
+be combined with the other contains_* options to form a logical AND.
+
+=item B<--contains_type=s>
+
+List this file if the type is in the collection. Implies --max=1. Can
+be combined with the other contains_* options to form a logical AND.
 
 =item B<--dry-run!>
 
@@ -175,8 +186,14 @@ for my $opt (qw(after before max skip-deletes)) {
         push @nopt, $opt => $Opt{$opt}
     }
 }
-if (defined $Opt{contains}) {
-    push @nopt, max => 1, contains => $Opt{contains};
+my $contains;
+for my $opt (qw(path epoch type)) {
+    if (defined $Opt{"contains_$opt"}) {
+        $contains->{$opt} = $Opt{"contains_$opt"};
+    }
+}
+if ($contains) {
+    push @nopt, max => 1, contains => $contains;
 }
 print map {
     sprintf

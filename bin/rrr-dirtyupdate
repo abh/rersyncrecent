@@ -94,7 +94,7 @@ unless ($aggregate_only) {
     unless (defined $epoch) {
         if ($Opt{delete}) {
             warn "not yet implemented???";
-            my $news = $recc->news(contains => $file);
+            my $news = $recc->news(contains => { path => $file });
             if ($news) {
                 print YAML::Syck::Dump $news;
             }

@@ -28,9 +28,9 @@ List all new files before this point in time. The format of the
 timestamp is the unix epoch in floating point notation as used by
 recentfiles in general.
 
-=item B<--contains_path=s>
+=item B<--contains=s>
 
-List this file if it is in the collection
+List this file if it is in the collection. Implies --max=1.
 
 =item B<--dry-run!>
 
@@ -101,6 +101,7 @@ taken instead.
 use strict;
 use warnings;
 
+use lib "/home/k/sources/rersyncrecent/lib";
 use File::Rsync::Mirror::Recent;
 use Getopt::Long;
 use Pod::Usage qw(pod2usage);
@@ -174,17 +175,16 @@ for my $opt (qw(after before max skip-deletes)) {
         push @nopt, $opt => $Opt{$opt}
     }
 }
-my $contains;
-for my $opt (qw(contains_path)) {
-    if (defined $Opt{$opt}) {
-        my($short) = $opt =~ /^contains_(.+)/;
-        $contains->{$short} = $Opt{$opt};
-    }
+if (defined $Opt{contains}) {
+    push @nopt, max => 1, contains => $Opt{contains};
 }
-if ($contains) {
-    push @nopt, max => 1, contains => $contains;
-}
-print map { sprintf "%-20s %s\n", scalar localtime($_->{epoch}), substr($_->{path},8) } @{ $rf->news(@nopt) };
+print map {
+    sprintf
+        (
+         "%-20s %s\n",
+         scalar localtime($_->{epoch}),
+         substr($_->{path},8)
+        )} @{ $rf->news(@nopt) };
 
 __END__
 

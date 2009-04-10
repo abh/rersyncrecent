@@ -787,6 +787,13 @@ sub merge {
     my $other_recent = $other->recent_events || [];
     # $DB::single++ if $other->interval_secs eq "2" and grep {$_->{epoch} eq "999.999"} @$other_recent;
     $self->lock;
+    $self->_merge_locked ( $other, $other_recent );
+    $self->unlock;
+    $other->unlock;
+}
+
+sub _merge_locked {
+    my($self, $other, $other_recent) = @_;
     my $my_recent = $self->recent_events || [];
 
     # calculate the target time span
@@ -839,8 +846,6 @@ sub merge {
     if ($something_done) {
         $self->_merge_something_done ($other_recent_filtered, $my_recent, $other_recent, $other, \%have_path, $epoch);
     }
-    $self->unlock;
-    $other->unlock;
 }
 
 sub _merge_something_done {

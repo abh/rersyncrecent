@@ -1558,7 +1558,7 @@ sub _refresh_internals {
     }
     my $old_dirtymark = $self->dirtymark;
     my $new_dirtymark = $rfpeek->dirtymark;
-    if ($old_dirtymark && $new_dirtymark && _bigfloatgt($new_dirtymark,$old_dirtymark)) {
+    if ($old_dirtymark && $new_dirtymark && $new_dirtymark ne $old_dirtymark) {
         $self->done->reset;
         $self->dirtymark ( $new_dirtymark );
         $self->seed;

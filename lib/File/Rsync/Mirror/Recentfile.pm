@@ -236,7 +236,8 @@ A timestamp. The dirtymark is updated whenever an out of band change
 on the origin server is performed that violates the protocol. Say,
 they add or remove files in the middle somewhere. Slaves must react
 with a devaluation of their C<done> structure which then leads to a
-full re-sync of all files.
+full re-sync of all files. Implementation note: dirtymark may increase
+or decrease.
 
 =item filenameroot
 
@@ -798,7 +799,7 @@ sub merge {
         $something_done = 1;
     }
     if ($epoch) {
-        if (_bigfloatgt($other->dirtymark, $self->dirtymark||0)) {
+        if (($other->dirtymark||0) ne ($self->dirtymark||0)) {
             $oldest_allowed = 0;
             $something_done = 1;
         } elsif (my $merged = $self->merged) {
@@ -873,7 +874,7 @@ sub _merge_something_done {
             }
         }
     }
-    if (!$self->dirtymark || _bigfloatgt($other->dirtymark, $self->dirtymark)) {
+    if (!$self->dirtymark || $other->dirtymark ne $self->dirtymark) {
         $self->dirtymark ( $other->dirtymark );
     }
     $self->write_recent($recent);
@@ -1839,9 +1840,9 @@ not-so-current file into the dataset, then the caller sets
 $dirty_epoch. This causes the epoch of the registered event to become
 $dirty_epoch or -- if the exact value given is already taken -- a tiny
 bit more. As compensation the dirtymark of the whole dataset is set to
-the current epoch. Note: setting the dirty_epoch to the future is
-prohibited as it's very unlikely to be intended: it definitely might
-wreak havoc with the index files.
+now or the current epoch, whichever is higher. Note: setting the
+dirty_epoch to the future is prohibited as it's very unlikely to be
+intended: it definitely might wreak havoc with the index files.
 
 The new file event is unshifted (or, if dirty_epoch is set, inserted
 at the place it belongs to, according to the rule to have a sequence
@@ -1898,8 +1899,8 @@ sub update {
     my $oldest_allowed = 0;
     my $merged = $self->merged;
     if ($merged->{epoch}) {
-        my $virtualnow = max($now,$epoch);
-        # for the lower bound could we need big math?
+        my $virtualnow = _bigfloatmax($now,$epoch);
+        # for the lower bound I think we need no big math, we calc already
         $oldest_allowed = min($virtualnow - $secs, $merged->{epoch}, $epoch);
     } else {
         # as long as we are not merged at all, no limits!
@@ -1925,7 +1926,7 @@ sub update {
             $epoch     = $ctx->{epoch};
             my $dirtymark = $self->dirtymark;
             my $new_dm = $now;
-            if (_bigfloatgt($epoch, $now)) {
+            if (_bigfloatgt($epoch, $now)) { # just in case we had to increase it
                 $new_dm = $epoch;
             }
             $self->dirtymark($new_dm);

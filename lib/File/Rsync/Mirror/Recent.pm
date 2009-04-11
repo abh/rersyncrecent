@@ -27,7 +27,7 @@ use Storable;
 use Time::HiRes qw();
 use YAML::Syck;
 
-use version; our $VERSION = qv('0.0.3');
+use version; our $VERSION = qv('0.0.4');
 
 =head1 SYNOPSIS
 
@@ -48,7 +48,7 @@ ARCHITECTURE OF A COLLECTION OF RECENTFILES below.
 
 File::Rsync::Mirror::Recent establishes a view on a collection of
 File::Rsync::Mirror::Recentfile objects and provides abstractions
-spanning multiple intervals associated with those.
+spanning multiple time intervals associated with those.
 
 =head1 EXPORT
 
@@ -118,11 +118,13 @@ as in F:R:M:Recentfile
 
 =item remote
 
-TBD
+The remote principal recentfile in rsync notation. E.g.
+
+  pause.perl.org::authors/RECENT.recent
 
 =item remoteroot
 
-XXX: this is (ATM) different from Recentfile!!!
+as in F:R:M:Recentfile
 
 =item remote_recentfile
 
@@ -133,6 +135,10 @@ the principal remote recentfile has.
 
 Things like compress, links, times or checksums. Passed in to the
 File::Rsync object used to run the mirror.
+
+=item tempdir
+
+as in F:R:M:Recentfile
 
 =item ttl
 
@@ -473,7 +479,6 @@ Or try without the loop parameter and write the loop yourself:
 sub rmirror {
     my($self, %options) = @_;
 
-    # my $rf0 = $self->_recentfile_object_for_remote;
     my $rfs = $self->recentfiles;
 
     my $_every_20_seconds = sub {
@@ -629,8 +634,9 @@ sub _recentfile_object_for_remote {
          "max_files_per_connection",
          "remoteroot",
          "rsync_options",
-         "verbose",
+         "tempdir",
          "ttl",
+         "verbose",
         );
     my $rf0;
     unless ($abslfile) {
@@ -642,6 +648,7 @@ sub _recentfile_object_for_remote {
     for my $override (@need_args) {
         $rf0->$override ( $self->$override );
     }
+    unlink $abslfile; # may fail when the recentfile has already unlinked it
     $rf0->is_slave (1);
     return $rf0;
 }
@@ -686,7 +693,7 @@ sub _fetch_as_tempfile {
         (TEMPLATE => sprintf(".FRMRecent-%s-XXXX",
                              $rfile,
                             ),
-         DIR => $self->localroot,
+         DIR => $self->tempdir || $self->localroot,
          SUFFIX => $suffix,
          UNLINK => 0,
         );
@@ -853,22 +860,25 @@ of the involved files. This seems inappropriate when the nodes already
 have a means of communicating over rsync.
 
 rersyncrecent solves this problem with a couple of (usually 2-10)
-index files which cover different overlapping time intervals. The
-master writes these files and the clients/slaves can construct the
-full tree from the information contained in them. The most recent
-index file usually covers the last seconds or minutes or hours of the
-tree and depending on the needs, slaves can rsync every few seconds or
-minutes and then bring their trees in full sync.
+lightweight index files which cover different overlapping time
+intervals. The master writes these files and the clients/slaves can
+construct the full tree from the information contained in them. The
+most recent index file usually covers the last seconds or minutes or
+hours of the tree and depending on the needs, slaves can rsync every
+few seconds or minutes and then bring their trees in full sync.
 
-The rersyncrecent mode was developed for CPAN but I hope it is a
-convenient and economic general purpose solution. I'm looking forward
-to see a CPAN backbone that is only a few seconds behind PAUSE. And
-then ... the first FUSE based CPAN filesystem anyone?
+The rersyncrecent mode was developed for CPAN but as it is convenient
+and economic it is also a general purpose solution. I'm looking
+forward to see a CPAN backbone that is only a few seconds behind
+PAUSE. And then ... the first FUSE based CPAN filesystem anyone?
 
 =head1 FUTURE DIRECTIONS
 
 Currently the origin server must keep track of injected and removed
 files. Should be supported by an inotify-based assistant.
+
+Convince other users outside the CPAN like
+http://fedoraproject.org/wiki/Infrastructure/Mirroring
 
 =head1 SEE ALSO
 

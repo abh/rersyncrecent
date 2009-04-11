@@ -86,9 +86,10 @@ Aggregator (usually the writer):
 
 =head1 DESCRIPTION
 
-Lower level than F:R:M:Recent. Handles only one recentfile whereas a
-tree always is composed of several recentfiles. The single recentfile
-has to do the bookkeeping for a timeslice.
+Lower level than F:R:M:Recent, handles one recentfile. Whereas a tree
+is always composed of several recentfiles, controlled by the
+F:R:M:Recent object. The Recentfile object has to do the bookkeeping
+for a single timeslice.
 
 =head1 EXPORT
 
@@ -182,7 +183,17 @@ sub new_from_file {
 A simple unlock.
 
 =cut
-sub DESTROY { shift->unlock }
+sub DESTROY {
+    my $self = shift;
+    $self->unlock;
+    unless ($self->_current_tempfile_fh) {
+        if (my $tempfile = $self->_current_tempfile) {
+            if (-e $tempfile) {
+                unlink $tempfile; # may fail in global destruction
+            }
+        }
+    }
+}
 
 =head1 ACCESSORS
 
@@ -206,6 +217,7 @@ BEGIN {
                   "_remoteroot",
                   "_rfile",
                   "_rsync",
+                  "__verified_tempdir",
                   "_seeded",
                   "_uptodateness_ever_reached",
                   "_use_tempfile",
@@ -333,6 +345,12 @@ well. See section SERIALIZERS below.
 
 Sleep that many seconds (floating point OK) after every chunk of rsyncing
 has finished. Defaults to arbitrary 0.42.
+
+=item tempdir
+
+Directory to write temporary files to. Must allow rename operations
+into the tree which usually means it must live on the same partition
+as the target directory. Defaults to C<< $self->localroot >>.
 
 =item ttl
 
@@ -604,16 +622,34 @@ sub get_remote_recentfile_as_tempfile {
     return $dst;
 }
 
+sub _verified_tempdir {
+    my($self) = @_;
+    my $tempdir = $self->__verified_tempdir();
+    return $tempdir if defined $tempdir;
+    unless ($tempdir = $self->tempdir) {
+        $tempdir = $self->localroot;
+    }
+    unless (-d $tempdir) {
+        mkpath $tempdir;
+    }
+    $self->__verified_tempdir($tempdir);
+    return $tempdir;
+}
+
 sub _get_remote_rat_provide_tempfile_object {
     my($self, $trfilename) = @_;
+    my $_verified_tempdir = $self->_verified_tempdir;
     my $fh = File::Temp->new
         (TEMPLATE => sprintf(".FRMRecent-%s-XXXX",
                              $trfilename,
                             ),
-         DIR => $self->localroot,
+         DIR => $_verified_tempdir,
          SUFFIX => $self->serializer_suffix,
          UNLINK => $self->_use_tempfile,
         );
+    my $mode = 0644;
+    my $dst = $fh->filename;
+    chmod $mode, $dst or die "Could not chmod $mode '$dst': $!";
     if ($self->_use_tempfile) {
         $self->_current_tempfile_fh ($fh); # delay self destruction
     }
@@ -1787,6 +1823,7 @@ sub _sparse_clone {
                   rsync_options
                   serializer_suffix
                   sleep_per_connection
+                  tempdir
                   verbose
                  )) {
         my $o = $self->$m;

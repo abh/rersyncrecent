@@ -1017,7 +1017,15 @@ sub mirror {
              \@error,
             );
         last if $i == $last_item;
-        return if $status->{mustreturn};
+        if ($status->{mustreturn}){
+            if ($self->_current_tempfile && ! $self->_current_tempfile_fh) {
+                # looks like a bug somewhere else
+                my $t = $self->_current_tempfile;
+                unlink $t or die "Could not unlink '$t': $!";
+                $self->_current_tempfile(undef);
+            }
+            return;
+        }
     }
     if (@dlcollector) {
         my $success = eval { $self->_mirror_dlcollector (\@dlcollector,$pathdb,$recent_events);};

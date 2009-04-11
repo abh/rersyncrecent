@@ -2206,7 +2206,7 @@ An interval spec is a primitive way to express time spans. Normally it
 is composed from an integer and a letter.
 
 As a special case, a string that consists only of the single letter
-C<Z>, stands for unlimited time.
+C<Z>, stands for MAX_INT seconds.
 
 The following letters express the specified number of seconds:
 

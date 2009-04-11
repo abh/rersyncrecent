@@ -535,9 +535,12 @@ sub get_remote_recentfile_as_tempfile {
     my $fh;
     my $trfilename;
     if ( $self->_use_tempfile() ) {
-        return $self->_current_tempfile if ! $self->ttl_reached;
-        $fh = $self->_current_tempfile_fh;
-        $trfilename = $self->rfilename;
+        if ($self->ttl_reached) {
+            $fh = $self->_current_tempfile_fh;
+            $trfilename = $self->rfilename;
+        } else {
+            return $self->_current_tempfile;
+        }
     } else {
         $trfilename = $self->rfilename;
     }

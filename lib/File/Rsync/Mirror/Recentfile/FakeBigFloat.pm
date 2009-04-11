@@ -68,19 +68,22 @@ than can be handled by native perl floats.
 
 =cut
 sub _bigfloatcmp ($$) {
-    my($l,$r) = @_;
-    unless (defined $l and defined $r) {
+    # my($l,$r) = @_;
+    unless (defined $_[0] and defined $_[1]) {
         require Carp;
-        for ($l,$r) {
+        for ($_[0],$_[1]) {
             $_ = defined $_ ? $_ : "UNDEF";
         }
-        Carp::confess("_bigfloatcmp called with l[$l]r[$r]: but both must be defined");
+        Carp::confess("_bigfloatcmp called with l[$_[0]]r[$_[1]]: but both must be defined");
     }
-    return 0 if $l eq $r;
+    # unequal is much more frequent than equal
+    return  1 if $_[0] -  $_[1] >  0.001;
+    return -1 if $_[0] -  $_[1] < -0.001;
+    return  0 if $_[0] eq $_[1];
     my $can_rely_on_native = 0;
-    if ($l =~ /\./ || $r =~ /\./) {
+    if ($_[0] =~ /\./ || $_[1] =~ /\./) {
         # if one is a float, both must be, otherwise perl gets it wrong (see test)
-        for ($l, $r){
+        for ($_[0], $_[1]){
             $_ .= ".0" unless /\./;
         }
     } else {
@@ -88,11 +91,11 @@ sub _bigfloatcmp ($$) {
     }
     #### XXX bug in some perls, we cannot trust native comparison on floating point values:
     #### see Todo file entry on 2009-03-15
-    my $native = $l <=> $r;
+    my $native = $_[0] <=> $_[1];
     return $native if $can_rely_on_native && $native != 0;
-    $l =~ s/^/0/ while index($l,".") < index($r,".");
-    $r =~ s/^/0/ while index($r,".") < index($l,".");
-    $l cmp $r;
+    $_[0] =~ s/^/0/ while index($_[0],".") < index($_[1],".");
+    $_[1] =~ s/^/0/ while index($_[1],".") < index($_[0],".");
+    $_[0] cmp $_[1];
 }
 
 =head2 _bigfloatge ( $l, $r )
@@ -101,8 +104,7 @@ Same for ge
 
 =cut
 sub _bigfloatge ($$) {
-    my($l,$r) = @_;
-    _bigfloatcmp($l,$r) >= 0;
+    _bigfloatcmp($_[0],$_[1]) >= 0;
 }
 
 =head2 _bigfloatgt ( $l, $r )
@@ -111,8 +113,7 @@ Same for gt
 
 =cut
 sub _bigfloatgt ($$) {
-    my($l,$r) = @_;
-    _bigfloatcmp($l,$r) > 0;
+    _bigfloatcmp($_[0],$_[1]) > 0;
 }
 
 =head2 _bigfloatle ( $l, $r )
@@ -121,8 +122,7 @@ Same for lt
 
 =cut
 sub _bigfloatle ($$) {
-    my($l,$r) = @_;
-    _bigfloatcmp($l,$r) <= 0;
+    _bigfloatcmp($_[0],$_[1]) <= 0;
 }
 
 =head2 _bigfloatlt ( $l, $r )
@@ -131,8 +131,7 @@ Same for lt
 
 =cut
 sub _bigfloatlt ($$) {
-    my($l,$r) = @_;
-    _bigfloatcmp($l,$r) < 0;
+    _bigfloatcmp($_[0],$_[1]) < 0;
 }
 
 =head2 _bigfloatmax ( $l, $r )

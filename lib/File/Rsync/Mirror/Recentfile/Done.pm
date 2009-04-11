@@ -89,7 +89,22 @@ otherwise false.
 The second form returns true if this timestamp has been registered.
 
 =cut
-
+sub _is_sorted {
+    my($self,$ivs) = @_;
+    my $Lup;
+    my $is_sorted = 1;
+    for my $i (0..$#$ivs) {
+        if (defined $Lup) {
+            if (_bigfloatge ($ivs->[$i][0],$Lup)) {
+                warn "Warning (may be harmless): F:R:M:R:Done object contains unsorted internal data";
+                $DB::single++;
+                return 0;
+            }
+        }
+        $Lup = $ivs->[$i][0];
+    }
+    return $is_sorted;
+}
 sub covered {
     my($self, $epoch_high, $epoch_low) = @_;
     die "Alert: covered() called without or with undefined first argument" unless defined $epoch_high;
@@ -98,6 +113,7 @@ sub covered {
     if (defined $epoch_low) {
         ($epoch_high,$epoch_low) = ($epoch_low,$epoch_high) if _bigfloatgt($epoch_low,$epoch_high);
     }
+    my $is_sorted = $self->_is_sorted($intervals);
     for my $iv (@$intervals) {
         my($upper,$lower) = @$iv; # may be the same
         if (defined $epoch_low) {
@@ -108,7 +124,13 @@ sub covered {
             }
             return 1 if $goodbound > 1;
         } else {
-            return 1 if _bigfloatle($epoch_high,$upper) && _bigfloatge($epoch_high, $lower); # "between"
+            if ( _bigfloatle ( $epoch_high, $upper ) ) {
+                if ( _bigfloatge ( $epoch_high, $lower )) {
+                    return 1; # "between"
+                }
+            } elsif ($is_sorted) {
+                return 0; # no chance anymore
+            }
         }
     }
     return 0;

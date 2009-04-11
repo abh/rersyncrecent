@@ -1,3 +1,24 @@
+2009-04-11  Andreas J. Koenig  <andk@cpan.org>
+
+	* Bug: when the dirtymark changes upstream, then the downstream server
+	notices it immediately and mirrors the "1h" file but then leaves the
+	rmirror loop and continues with "6h" on the next round through. This
+	behaviour goes on until it reaches the Z file. Because we eat the Z file
+	piecemeal we leave the loop after a while but after that everybody seems
+	to have forgotten that there is some work left to be done. Bad, bad,
+	bad.
+
+	ETOOCONFUSING                                         better name?
+
+	Recentfile::get_remote_recentfile_as_tempfile
+	Recentfile::resolve_recentfilename                    split_rfilename  DONE
+
+	Recent::_principal_recentfile_object	                _principal_recentfile_fromremote
+	Recent::principal_recentfile
+	Recent::_resolve_rfilename
+
+	some void, some not, some not void but called in void context.
+
 2009-04-10  Andreas J. Koenig  <andk@cpan.org>
 
 	* Todo: rename rrr-dirtyupdate to rrr-update and add an option --dirty

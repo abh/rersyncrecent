@@ -1674,7 +1674,7 @@ sub remoteroot {
     return $remoteroot;
 }
 
-=head2 (void) $obj->resolve_recentfilename ( $recentfilename )
+=head2 (void) $obj->split_rfilename ( $recentfilename )
 
 Inverse method to C<rfilename>. C<$recentfilename> is a plain filename
 of the pattern
@@ -1690,7 +1690,7 @@ object itself.
 
 =cut
 
-sub resolve_recentfilename {
+sub split_rfilename {
     my($self, $rfname) = @_;
     my($splitter) = qr(^(.+)-([^-\.]+)(\.[^\.]+));
     if (my($f,$i,$s) = $rfname =~ $splitter) {

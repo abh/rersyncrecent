@@ -362,17 +362,57 @@ sub _pathdb {
 
 =head2 $recentfile = $obj->principal_recentfile ()
 
-returns the principal recentfile of this tree.
+returns the principal recentfile object of this tree.
 
 =cut
-
+# mirrors the recentfile and instantiates the recentfile object
+sub _principal_recentfile_fromremote {
+    my($self) = @_;
+    # get the remote recentfile
+    my $rrfile = $self->remote or die "Alert: cannot construct a recentfile object without the 'remote' attribute";
+    my $splitter = qr{(.+)/([^/]*)};
+    my($remoteroot,$rfilename) = $rrfile =~ $splitter;
+    $self->remoteroot($remoteroot);
+    my($abslfile, $fh);
+    if (!defined $rfilename) {
+        die "Alert: Cannot resolve '$rrfile', does not match $splitter";
+    } elsif (not length $rfilename or $rfilename eq "RECENT.recent") {
+        ($abslfile,$rfilename,$fh) = $self->_principal_recentfile_fromremote_resosymlink($rfilename);
+    }
+    my @need_args =
+        (
+         "ignore_link_stat_errors",
+         "localroot",
+         "max_files_per_connection",
+         "remoteroot",
+         "rsync_options",
+         "tempdir",
+         "ttl",
+         "verbose",
+        );
+    my $rf0;
+    unless ($abslfile) {
+        $rf0 = File::Rsync::Mirror::Recentfile->new (map {($_ => $self->$_)} @need_args);
+        $rf0->split_rfilename($rfilename);
+        $abslfile = $rf0->get_remote_recentfile_as_tempfile ();
+    }
+    $rf0 = File::Rsync::Mirror::Recentfile->new_from_file ( $abslfile );
+    $rf0->_current_tempfile ( $abslfile );
+    $rf0->_current_tempfile_fh ( $fh );
+    $rf0->_use_tempfile (1);
+    for my $override (@need_args) {
+        $rf0->$override ( $self->$override );
+    }
+    $rf0->is_slave (1);
+    return $rf0;
+}
 sub principal_recentfile {
     my($self) = @_;
-    my $prince = $self->_principal_recentfile;
-    return $prince if defined $prince;
+    my $rf0 = $self->_principal_recentfile;
+    return $rf0 if defined $rf0;
     my $local = $self->local;
     if ($local) {
-        $prince = File::Rsync::Mirror::Recentfile->new_from_file ($local);
+        $rf0 = File::Rsync::Mirror::Recentfile->new_from_file ($local);
     } else {
         if (my $remote = $self->remote) {
             my $localroot;
@@ -381,14 +421,13 @@ sub principal_recentfile {
             } else {
                 die "FIXME: remote called without localroot should trigger File::Temp.... TBD, sorry";
             }
-            my $rf0 = $self->_recentfile_object_for_remote;
-            $prince = $rf0;
+            $rf0 = $self->_principal_recentfile_fromremote;
         } else {
             die "Alert: neither local nor remote specified, cannot continue";
         }
     }
-    $self->_principal_recentfile($prince);
-    return $prince;
+    $self->_principal_recentfile($rf0);
+    return $rf0;
 }
 
 =head2 $recentfiles_arrayref = $obj->recentfiles ()
@@ -613,53 +652,17 @@ sub _rmirror_endofloop_sleep {
     }
 }
 
-# mirrors the recentfile and instantiates the recentfile object
-sub _recentfile_object_for_remote {
-    my($self) = @_;
-    # get the remote recentfile
-    my $rrfile = $self->remote or die "Alert: cannot construct a recentfile object without the 'remote' attribute";
-    my $splitter = qr{(.+)/([^/]*)};
-    my($remoteroot,$rfilename) = $rrfile =~ $splitter;
-    $self->remoteroot($remoteroot);
-    my $abslfile;
-    if (!defined $rfilename) {
-        die "Alert: Cannot resolve '$rrfile', does not match $splitter";
-    } elsif (not length $rfilename or $rfilename eq "RECENT.recent") {
-        ($abslfile,$rfilename) = $self->_resolve_rfilename($rfilename);
-    }
-    my @need_args =
-        (
-         "ignore_link_stat_errors",
-         "localroot",
-         "max_files_per_connection",
-         "remoteroot",
-         "rsync_options",
-         "tempdir",
-         "ttl",
-         "verbose",
-        );
-    my $rf0;
-    unless ($abslfile) {
-        $rf0 = File::Rsync::Mirror::Recentfile->new (map {($_ => $self->$_)} @need_args);
-        $rf0->resolve_recentfilename($rfilename);
-        $abslfile = $rf0->get_remote_recentfile_as_tempfile ();
-    }
-    $rf0 = File::Rsync::Mirror::Recentfile->new_from_file ( $abslfile );
-    for my $override (@need_args) {
-        $rf0->$override ( $self->$override );
-    }
-    unlink $abslfile; # may fail when the recentfile has already unlinked it
-    $rf0->is_slave (1);
-    return $rf0;
-}
-
-sub _resolve_rfilename {
+# it returns two things: abslfile and rfilename. But the abslfile is
+# undef when the rfilename ends in .recent. A weird interface, my
+# friend.
+sub _principal_recentfile_fromremote_resosymlink {
     my($self, $rfilename) = @_;
     $rfilename = "RECENT.recent" unless length $rfilename;
     my $abslfile = undef;
+    my $fh;
     if ($rfilename =~ /\.recent$/) {
         # may be a file *or* a symlink, 
-        $abslfile = $self->_fetch_as_tempfile ($rfilename);
+        ($abslfile,$fh) = $self->_fetch_as_tempfile ($rfilename);
         while (-l $abslfile) {
             my $symlink = readlink $abslfile;
             if ($symlink =~ m|/|) {
@@ -677,14 +680,17 @@ sub _resolve_rfilename {
             } else {
                 rename $abslfile, $localrfile or die "Cannot rename to '$localrfile': $!";
             }
-            $abslfile = $self->_fetch_as_tempfile ($symlink);
+            ($abslfile,$fh) = $self->_fetch_as_tempfile ($symlink);
         }
     }
-    return ($abslfile, $rfilename);
+    return ($abslfile, $rfilename, $fh);
 }
 
 # takes a basename, returns an absolute name, does not delete the
 # file, throws the $fh away. Caller must rename or unlink
+
+# XXX needs to activate the fh in the rf0 so that it is able to unlink
+# the file. I would like that the file is used immediately by $rf0
 sub _fetch_as_tempfile {
     my($self, $rfile) = @_;
     my($suffix) = $rfile =~ /(\.[^\.]+)$/;
@@ -698,12 +704,17 @@ sub _fetch_as_tempfile {
          UNLINK => 0,
         );
     my $rsync = File::Rsync->new($self->rsync_options);
+    my $dst = $fh->filename;
     $rsync->exec
         (
          src => join("/",$self->remoteroot,$rfile),
-         dst => $fh->filename,
+         dst => $dst,
         ) or die "Could not mirror '$rfile' to $fh\: ".join(" ",$rsync->err);
-    return $fh->filename;
+    unless (-l $dst) {
+        my $mode = 0644;
+        chmod $mode, $dst or die "Could not chmod $mode '$dst': $!";
+    }
+    return($dst,$fh);
 }
 
 =head2 $verbose = $obj->verbose ( $set )

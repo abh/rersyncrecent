@@ -2162,8 +2162,9 @@ sub write_1 {
 }
 
 BEGIN {
+    my $nq = qr/[^"]+/; # non-quotes
     my @pod_lines = 
-        split /\n/, <<'=cut'; %serializers = map { eval } grep {s/^=item\s+C<<(.+)>>$/$1/} @pod_lines; }
+        split /\n/, <<'=cut'; %serializers = map { my @x = /"($nq)"\s+=>\s+"($nq)"/; @x } grep {s/^=item\s+C<<\s+(.+)\s+>>$/$1/} @pod_lines; }
 
 =head1 SERIALIZERS
 

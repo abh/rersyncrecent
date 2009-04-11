@@ -48,6 +48,7 @@ The loop is something like this:
                   times => 1,
                   checksum => 0,
                  },
+                 tempdir => "/home/ftp/tmp", # optional tempdir to hide temporary files
                  ttl => 10,
                  verbose => 1,
                 )} "authors", "modules";

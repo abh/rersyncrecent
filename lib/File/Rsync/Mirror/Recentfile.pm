@@ -1062,6 +1062,7 @@ sub mirror {
                 my $t = $self->_current_tempfile;
                 unlink $t or die "Could not unlink '$t': $!";
                 $self->_current_tempfile(undef);
+                $self->_use_tempfile(0);
             }
             return;
         }
@@ -1574,6 +1575,7 @@ sub _refresh_internals {
     if ($old_dirtymark && $new_dirtymark && $new_dirtymark ne $old_dirtymark) {
         $self->done->reset;
         $self->dirtymark ( $new_dirtymark );
+        $self->_uptodateness_ever_reached(0);
         $self->seed;
     }
 }
@@ -2066,7 +2068,7 @@ sub uptodate {
         my $minmax = $self->minmax;
         if (exists $minmax->{mtime}) {
             my $rfile = $self->_my_current_rfile;
-            my @stat = stat $rfile;
+            my @stat = stat $rfile or die "Could not stat '$rfile': $!";
             my $mtime = $stat[9];
             if (defined $mtime && defined $minmax->{mtime} && $mtime > $minmax->{mtime}) {
                 $why = "mtime[$mtime] of rfile[$rfile] > minmax/mtime[$minmax->{mtime}], so we are not uptodate";

@@ -44,7 +44,6 @@ The loop is something like this:
                  max_files_per_connection   => 863,
                  tempdir                    => "/home/ftp/tmp", # optional tempdir to hide temporary files
                  ttl                        => 10,
-                 verbose                    => 1,
                  rsync_options              =>
                  {
                   port              => 8732, # only for PAUSE
@@ -54,6 +53,7 @@ The loop is something like this:
                   checksum          => 0,
                   'omit-dir-times'  => 1, # not available before rsync 3.0.3
                  },
+                 verbose                    => 1,
                 )} "authors", "modules";
     die "directory $_ doesn't exist, giving up" for grep { ! -d $_->localroot } @rrr;
     while (){

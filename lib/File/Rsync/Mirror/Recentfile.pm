@@ -1397,11 +1397,11 @@ timestamp are returned.
 If C<$options{before}> is specified, only file events before this
 timestamp are returned.
 
-IF C<$options{'skip-deletes'}> is specified, no files-to-be-deleted
-will be returned.
-
 If C<$options{max}> is specified only a maximum of this many events is
 returned.
+
+If C<$options{'skip-deletes'}> is specified, no files-to-be-deleted
+will be returned.
 
 If C<$options{contains}> is specified the value must be a hash
 reference containing a query. The query may contain the keys C<epoch>,

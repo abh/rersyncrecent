@@ -329,7 +329,7 @@ rmtree [$root_from, $root_to];
             (
              interval => "5s",
              localroot => $root_from,
-             aggregator => [qw(10s 30s 1m 1h Z)],
+             aggregator => [qw(10s 30s 1m Z)],
             );
         $another_rf->update($file,"new");
         my $should_have = 97 + (($i<25) ? ($i < 12 ? ($i+1) : 12) : ($i-12));
@@ -379,13 +379,13 @@ rmtree [$root_from, $root_to];
     printf "#test_counter[%d]\n", $test_counter;
     my $rf = File::Rsync::Mirror::Recentfile->new
         (
-         filenameroot   => "RECENT",
-         interval       => q(30s),
-         localroot      => $root_to,
-         max_rsync_errors  => 0,
-         remote_dir     => $root_from,
-         # verbose        => 1,
-         max_files_per_connection => 512,
+         filenameroot              => "RECENT",
+         interval                  => q(30s),
+         localroot                 => $root_to,
+         max_rsync_errors          => 0,
+         remote_dir                => $root_from,
+         # verbose                 => 1,
+         max_files_per_connection  => 65,
          rsync_options  => {
                             compress          => 0,
                             links             => 1,
@@ -411,8 +411,8 @@ rmtree [$root_from, $root_to];
             (  # ($root_from, $root_to)
              local => "$root_from/RECENT-5s.yaml",
             );
-        #diag "\n";
-        #diag $recc->overview;
+        diag "\n" if $Opt{verbose};
+        diag $recc->overview if $Opt{verbose};
     }
     {
         my $recc = File::Rsync::Mirror::Recent->new
@@ -434,26 +434,31 @@ rmtree [$root_from, $root_to];
     {
         my $recc = File::Rsync::Mirror::Recent->new
             (  # ($root_from, $root_to)
-             local => "$root_from/RECENT-5s.yaml",
+             local => "$root_to/RECENT-5s.yaml",
             );
-        #diag "\n";
-        #diag $recc->overview;
+        diag "\n" if $Opt{verbose};
+        diag $recc->overview if $Opt{verbose};
     }
     {
+        BEGIN {
+            $tests += 2;
+        }
         my $recc = File::Rsync::Mirror::Recent->new
             (
+             # order matters!
              # ignore_link_stat_errors => 1,
-             localroot => $root_to,
-             remote => "$root_from/RECENT.recent",
-             verbose => $Opt{verbose},
-             max_files_per_connection => 512,
-             rsync_options => {
-                               links => 1,
-                               times => 1,
-                               compress => 1,
-                               checksum => 1,
-                              },
-             _runstatusfile => $statusfile,
+             localroot                   => $root_to,
+             remote                      => "$root_from/RECENT.recent",
+             max_files_per_connection    => 65,
+             rsync_options               =>
+             {
+              links     => 1,
+              times     => 1,
+              compress  => 1,
+              checksum  => 1,
+             },
+             _runstatusfile              => $statusfile,
+             verbose                     => $Opt{verbose},
             );
         $recc->rmirror;
         my $rf2 = File::Rsync::Mirror::Recentfile->new_from_file("$root_from/RECENT-5s.yaml");
@@ -463,6 +468,31 @@ rmtree [$root_from, $root_to];
         close $fh or die "Could not close '$file': $!";
         $rf2->update($file, "new");
         $recc->rmirror;
+        ok -e "$root_to/about-re-mirroring.txt", "picked up the update";
+        $file = "$root_from/about-re2-mirroring.txt";
+        undef $fh;
+        open $fh, ">", $file or die "Could not open '$file': $!";
+        print $fh time;
+        close $fh or die "Could not close '$file': $!";
+        $rf2->update($file, "new", 123456789);
+        $rf2->aggregate(force => 1);
+        $rf2->aggregate(force => 1);
+        $recc->verbose(1) if $Opt{verbose};
+        { no warnings 'once'; $DB::single++; }
+        # x map { $_->dirtymark } @{$self->recentfiles}
+        # x map { $_->_seeded } @{$self->recentfiles}
+        # x sort keys %$rf
+        # $recc->verbose(1)
+        $recc->rmirror;
+        ok -e "$root_to/about-re2-mirroring.txt", "picked up a dirty update";
+    }
+    {
+        my $recc = File::Rsync::Mirror::Recent->new
+            (  # ($root_from, $root_to)
+             local => "$root_to/RECENT-5s.yaml",
+            );
+        diag "\n" if $Opt{verbose};
+        diag $recc->overview if $Opt{verbose};
     }
     {
         my $recc = File::Rsync::Mirror::Recent->new

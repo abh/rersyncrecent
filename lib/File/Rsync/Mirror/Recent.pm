@@ -83,6 +83,9 @@ BEGIN {
     @accessors =
         (
          "__pathdb",
+         "_dirtymark",            # keeps track of the dirtymark of the recentfiles
+         "_logfilefordone",       # turns on _logfile on all DONE
+                                  # systems (disk intensive)
          "_max_one_state",        # when we have no time left but want
                                   # at least get one file per
                                   # iteration to avoid procrastination
@@ -90,8 +93,6 @@ BEGIN {
          "_recentfiles",
          "_rsync",
          "_runstatusfile",        # frequenty dumps all rfs
-         "_logfilefordone",       # turns on _logfile on all DONE
-                                  # systems (disk intensive)
         );
 
     my @pod_lines =
@@ -515,6 +516,10 @@ Or try without the loop parameter and write the loop yourself:
 
 
 =cut
+sub _fullseed {
+    my($self) = @_;
+    for ( @{$self->recentfiles} ) { $_->seed(1) }
+}
 sub rmirror {
     my($self, %options) = @_;
 
@@ -527,12 +532,20 @@ sub rmirror {
     my $_sigint = sub {
         # XXX exit gracefully (reminder)
     };
-    my $minimum_time_per_loop = 20; # XXX needs accessor: warning, if
-                                    # set too low, we do nothing but
-                                    # mirror the principal!
+
+    # XXX needs accessor: warning, if set too low, we do nothing but
+    # mirror the principal!
+    my $minimum_time_per_loop = do { no warnings 'once'; $DB::VERSION ? 12345 : 20; };
+
     if (my $logfile = $self->_logfilefordone) {
         for my $i (0..$#$rfs) {
             $rfs->[$i]->done->_logfile($logfile);
+        }
+    }
+    if (my $dirtymark = $self->principal_recentfile->dirtymark) {
+        my $mydm = $self->_dirtymark;
+        if (!defined $mydm or $dirtymark ne $mydm) {
+            $self->_dirtymark($dirtymark);
         }
     }
   LOOP: while () {
@@ -593,6 +606,13 @@ sub _rmirror_mirror {
     }
     $locopt{piecemeal} = 1;
     $rf->mirror (%locopt);
+    if (my $dirtymark = $rf->dirtymark) {
+        my $mydm = $self->_dirtymark;
+        if (!defined $mydm or $dirtymark ne $mydm) {
+            $self->_dirtymark($dirtymark);
+            $self->_fullseed;
+        }
+    }
 }
 
 sub _rmirror_sleep_per_connection {
@@ -703,7 +723,11 @@ sub _fetch_as_tempfile {
          SUFFIX => $suffix,
          UNLINK => 0,
         );
-    my $rsync = File::Rsync->new($self->rsync_options);
+    my $rsync;
+    unless ($rsync = File::Rsync->new($self->rsync_options)) {
+        require Carp;
+        Carp::confess(YAML::Syck::Dump($self->rsync_options));
+    }
     my $dst = $fh->filename;
     $rsync->exec
         (

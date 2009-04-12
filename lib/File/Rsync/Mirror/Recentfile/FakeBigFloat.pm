@@ -76,9 +76,7 @@ sub _bigfloatcmp ($$) {
         }
         Carp::confess("_bigfloatcmp called with l[$_[0]]r[$_[1]]: but both must be defined");
     }
-    # unequal is much more frequent than equal
-    return  1 if $_[0] -  $_[1] >  0.001;
-    return -1 if $_[0] -  $_[1] < -0.001;
+    # unequal is much more frequent than equal but let's get rid of these
     return  0 if $_[0] eq $_[1];
     my $can_rely_on_native = 0;
     if ($_[0] =~ /\./ || $_[1] =~ /\./) {
@@ -86,6 +84,8 @@ sub _bigfloatcmp ($$) {
         for ($_[0], $_[1]){
             $_ .= ".0" unless /\./;
         }
+        return  1 if $_[0] -  $_[1] >  1;
+        return -1 if $_[0] -  $_[1] < -1;
     } else {
         $can_rely_on_native = 1; # can we?
     }

@@ -1259,40 +1259,6 @@ sub _mirror_perform_delayed_ops {
     }
 }
 
-=head2 (void) $obj->mirror_loop
-
-Run mirror in an endless loop. See the accessor C<loopinterval>. XXX
-What happens/should happen if we miss the interval during a single loop?
-
-=cut
-
-sub mirror_loop {
-    my($self) = @_;
-    my $iteration_start = time;
-
-    my $Signal = 0;
-    $SIG{INT} = sub { $Signal++ };
-    my $loopinterval = $self->loopinterval || 42;
-    my $after = -999999999;
-  LOOP: while () {
-        $self->mirror($after);
-        last LOOP if $Signal;
-        my $re = $self->recent_events;
-        $after = $re->[0]{epoch};
-        if ($self->verbose) {
-            local $| = 1;
-            print "($after)";
-        }
-        if (time - $iteration_start < $loopinterval) {
-            sleep $iteration_start + $loopinterval - time;
-        }
-        if ($self->verbose) {
-            local $| = 1;
-            print "~";
-        }
-    }
-}
-
 =head2 $success = $obj->mirror_path ( $arrref | $path )
 
 If the argument is a scalar it is treated as a path. The remote path

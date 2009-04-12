@@ -10,12 +10,12 @@
 
 	ETOOCONFUSING                                         better name?
 
-	Recentfile::get_remote_recentfile_as_tempfile
+	Recentfile::get_remote_recentfile_as_tempfile         OK
 	Recentfile::resolve_recentfilename                    split_rfilename  DONE
 
 	Recent::_principal_recentfile_object	                _principal_recentfile_fromremote
-	Recent::principal_recentfile
-	Recent::_resolve_rfilename
+	Recent::principal_recentfile                          OK
+	Recent::_resolve_rfilename                            _principal_recentfile_fromremote_resosymlink
 
 	some void, some not, some not void but called in void context.
 

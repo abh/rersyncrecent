@@ -535,7 +535,7 @@ sub rmirror {
 
     # XXX needs accessor: warning, if set too low, we do nothing but
     # mirror the principal!
-    my $minimum_time_per_loop = do { no warnings 'once'; $DB::VERSION ? 12345 : 20; };
+    my $minimum_time_per_loop = 20;
 
     if (my $logfile = $self->_logfilefordone) {
         for my $i (0..$#$rfs) {

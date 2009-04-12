@@ -567,14 +567,13 @@ sub rmirror {
                 }
                 # no further seed necessary because "every_20_seconds" does it
                 next RECENTFILE;
-            } else {
-              WORKUNIT: while (time < $ttleave) {
-                    if ($rf->uptodate) {
-                        $self->_rmirror_sleep_per_connection ($i);
-                        next RECENTFILE;
-                    } else {
-                        $self->_rmirror_mirror ($i, \%options);
-                    }
+            }
+        WORKUNIT: while (time < $ttleave) {
+                if ($rf->uptodate) {
+                    $self->_rmirror_sleep_per_connection ($i);
+                    next RECENTFILE;
+                } else {
+                    $self->_rmirror_mirror ($i, \%options);
                 }
             }
         }

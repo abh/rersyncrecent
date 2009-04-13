@@ -108,6 +108,10 @@ Set the key 'verbose' to 0 if you have no debugging demands. In this
 case you want to omit the 'sleeping $sleep ...' noise further down the
 script as well.
 
+Set the key 'verboselog' to your favorite progress watcher file. This
+option is underdeveloped and may later be replaced with something
+better. Note that the program still sends error messages to STDERR.
+
 You can leave everything else as it stands. Start experimenting and
 let me know how it works out.
 

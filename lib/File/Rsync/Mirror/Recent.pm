@@ -813,8 +813,8 @@ Getter/setter method for the path to the logfile to write verbose
 progress information to.
 
 Note: This is a primitive stop gap solution to get simple verbose
-logging working. Switching to Log4perl or similar is probably the way
-to go. TBD.
+logging working. The program still sends error messages to STDERR.
+Switching to Log4perl or similar is probably the way to go. TBD.
 
 =cut
 sub verboselog {

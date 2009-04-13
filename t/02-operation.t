@@ -478,11 +478,13 @@ rmtree [$root_from, $root_to];
         $rf2->aggregate(force => 1);
         $rf2->aggregate(force => 1);
         $recc->verbose(1) if $Opt{verbose};
-        { no warnings 'once'; $DB::single++; }
+
+        # { no warnings 'once'; $DB::single++; }
         # x map { $_->dirtymark } @{$self->recentfiles}
         # x map { $_->_seeded } @{$self->recentfiles}
         # x sort keys %$rf
         # $recc->verbose(1)
+
         $recc->rmirror;
         ok -e "$root_to/about-re2-mirroring.txt", "picked up a dirty update";
     }

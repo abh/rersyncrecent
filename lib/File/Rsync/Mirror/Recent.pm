@@ -619,7 +619,7 @@ sub _rmirror_sleep_per_connection {
     my $rfs = $self->recentfiles;
     my $rf = $rfs->[$i];
     my $sleep = $rf->sleep_per_connection;
-    $sleep = 0.42 unless defined $sleep; # XXX accessor!
+    $sleep = 0.42 unless defined $sleep;
     Time::HiRes::sleep $sleep;
     $rfs->[$i+1]->done->merge($rf->done) if $i < $#$rfs;
 }
@@ -778,6 +778,7 @@ neither necessary nor enforced. That's the basic idea. The following
 example represents a tree that has a few updates every day:
 
  RECENT.recent -> RECENT-1h.yaml
+ RECENT-1h.yaml
  RECENT-6h.yaml
  RECENT-1d.yaml
  RECENT-1M.yaml
@@ -793,11 +794,8 @@ C<.recent>. On systems that do not support symlinks there is a plain
 copy maintained instead.
 
 The last file, the Z file, contains the complementary files that are
-in none of the other files. It does never contain C<deletes>. Besides
-this it serves the role of a recovery mechanism or spill over pond.
-When things go wrong, it's a valuable controlling instance to hold the
-differences between the collection of limited interval files and the
-actual filesystem.
+in none of the other files. It may contain C<delete> events but often
+C<delete> events are discarded at the transition to the Z file.
 
 =head2 THE INDIVIDUAL RECENTFILE
 
@@ -808,10 +806,10 @@ list of fileobjects.
 =head2 THE META PART
 
 Here we find things that are pretty much self explaining: all
-lowercase attributes are accessors and as such explained somewhere
-above in this manpage. The uppercase attribute C<Producers> contains
-version information about involved software components. Nothing to
-worry about as I believe.
+lowercase attributes are accessors and as such explained in the
+manpages. The uppercase attribute C<Producers> contains version
+information about involved software components. Nothing to worry about
+as I believe.
 
 =head2 THE RECENT PART
 
@@ -844,9 +842,11 @@ guarantee they are unique.
 =head1 CORRUPTION AND RECOVERY
 
 If the origin host breaks the promise to deliver consistent and
-complete I<recentfiles> then the way back to sanity shall be achieved
-through traditional rsyncing between the hosts. But don't forget to
-report it as a bug:)
+complete I<recentfiles> then it must update its C<dirtymark> and all
+slaves must discard what they cosider the truth. In the worst case
+that something goes wrong despite the dirtymark mechanism the way back
+to sanity can always be achieved through traditional rsyncing between
+the hosts.
 
 =head1 BACKGROUND
 

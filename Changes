@@ -2,7 +2,9 @@
 
 	* release 0.0.4
 
-	* new accessor C<tempdir>
+	* new accessor C<tempdir> (suggested by Ask Bjørn Hansen)
+
+	* new accessor C<verboselog> (suggested by Barbie)
 
 	* bugfix: not all tempfiles were cleaned up correctly
 
@@ -10,7 +12,8 @@
 
 	* bugfix: changes of the dirtymark were insufficiently discovered on the slave
 
-	* bugfix: Recentfile::recent_events now honours the contains option correctly
+	* bugfix: Recentfile::recent_events now honours the C<contains> option
+	correctly
 
 	* changed several internal method and variable names
 
@@ -40,6 +43,7 @@
 
 	
 	Local Variables:
+	coding: utf-8
 	mode: change-log
 	change-log-default-name: "Changes"
 	tab-width: 2

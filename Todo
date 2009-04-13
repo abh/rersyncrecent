@@ -1,7 +1,32 @@
+2009-04-13  Andreas J. Koenig  <andk@cpan.org>
+
+	* from ABH:
+
+> https://fedorahosted.org/InstantMirror/
+> https://www.redhat.com/mailman/listinfo/instantmirror-list
+> irc.freenode.net channel #instantmirror
+
+
+2009-04-12  Andreas J. Koenig  <andk@cpan.org>
+
+	* Interesting last minute bug during real download testing: the output
+	isn't as pretty anymore, it seems that more work is being done than
+	needed.
+
+	Introducing a highlevel _alluptodate method helped a lot in debugging
+	this.
+
+	FIXED now. Reason was that dirtymark on PAUSE currently is broken; it's
+	different on 1h file than on the other files. This lead to frequent
+	calls to _fullseed. Limiting the dirtymark check to $i==0 resolved the
+	issue.
+
 2009-04-12  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* Todo: try if we can be faster with a native float package. I'm really
-	glad to have a machine exposing perl floating point bugs:-(
+	glad to have a machine exposing perl floating point bugs, it forced me
+	to retract this item from the changes file: "several speedups in the
+	fakebigfloat code" before I get cpan testers fails.
 
 2009-04-11  Andreas J. Koenig  <andk@cpan.org>
 

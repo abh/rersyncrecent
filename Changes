@@ -12,8 +12,6 @@
 
 	* bugfix: Recentfile::recent_events now honours the contains option correctly
 
-	* several speedups in the fakebigfloat code
-
 	* changed several internal method and variable names
 
 2009-03-30  Andreas J. Koenig  <andk@cpan.org>

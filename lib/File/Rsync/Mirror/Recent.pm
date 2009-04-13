@@ -516,6 +516,30 @@ Or try without the loop parameter and write the loop yourself:
 
 
 =cut
+# _alluptodate is unused but at least it worked last time I needed it,
+# so let us keep it around
+sub _alluptodate {
+    my($self) = @_;
+    my $sdm = $self->_dirtymark;
+    return unless defined $sdm;
+    for my $rf (@{$self->recentfiles}) {
+        return if $rf->seeded;
+        my $rfdm = $rf->dirtymark;
+        return unless defined $rfdm;
+        return unless $rfdm eq $sdm;
+        my $done = $rf->done;
+        return unless defined $done;
+        my $done_intervals = $done->_intervals;
+        return if !defined $done_intervals;
+        # nonono, may be more than one, only covered it must be:
+        # return if @$done_intervals > 1;
+        my $minmax = $rf->minmax;
+        return unless defined $minmax;
+        return unless $done->covered(@$minmax{qw(max min)});
+    }
+    # $DB::single++;
+    return 1;
+}
 sub _fullseed {
     my($self) = @_;
     for ( @{$self->recentfiles} ) { $_->seed(1) }
@@ -544,7 +568,12 @@ sub rmirror {
     }
     if (my $dirtymark = $self->principal_recentfile->dirtymark) {
         my $mydm = $self->_dirtymark;
-        if (!defined $mydm or $dirtymark ne $mydm) {
+        if (!defined $mydm){
+            $self->_dirtymark($dirtymark);
+        } elsif ($dirtymark ne $mydm) {
+            if ($self->verbose) {
+                print STDERR "NewDirtymark: old[$mydm] new[$dirtymark]\n";
+            }
             $self->_dirtymark($dirtymark);
         }
     }
@@ -576,6 +605,9 @@ sub rmirror {
                     $self->_rmirror_mirror ($i, \%options);
                 }
             }
+            if ($self->_max_one_state) {
+                last RECENTFILE;
+            }
         }
         $self->_max_one_state(0);
         if ($rfs->[-1]->uptodate) {
@@ -605,11 +637,15 @@ sub _rmirror_mirror {
     }
     $locopt{piecemeal} = 1;
     $rf->mirror (%locopt);
-    if (my $dirtymark = $rf->dirtymark) {
-        my $mydm = $self->_dirtymark;
-        if (!defined $mydm or $dirtymark ne $mydm) {
-            $self->_dirtymark($dirtymark);
-            $self->_fullseed;
+    if ($i==0) {
+        # we limit to 0 for the case that upstream is broken and has
+        # more than one timestamp (happened on PAUSE 200903)
+        if (my $dirtymark = $rf->dirtymark) {
+            my $mydm = $self->_dirtymark;
+            if (!defined $mydm or $dirtymark ne $mydm) {
+                $self->_dirtymark($dirtymark);
+                $self->_fullseed;
+            }
         }
     }
 }

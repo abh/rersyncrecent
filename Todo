@@ -1,12 +1,44 @@
 2009-04-13  Andreas J. Koenig  <andk@cpan.org>
 
+	* Study http://en.wikipedia.org/wiki/Magnet_URI_scheme
+
+	* is it true (as stated at
+	https://fedorahosted.org/InstantMirror/wiki/ExistingRepositoryReplicationMethods)
+	that rsync can lead to errors when upstream changes before client sync
+	has completed? Can we see the error when we run this on upstream:
+
+% perl -e '
+use Time::HiRes qw(time);
+while (){
+  open my $fh, ">", "changingfile.txt.new" or die;
+  print $fh (time."\n") x 1000000;
+  close $fh;
+  rename "changingfile.txt.new", "changingfile.txt" or die;
+}
+'
+
+	And on the receiving end:
+
+% while true; do
+rsync k75:`pwd`/changingfile.txt .; cat changingfile.txt| uniq|wc -l
+sleep 1;
+done
+
+	I cannot get it to fail. Apparently it is sufficient when upstream
+	always writes atomically (which of course is mandatory)?
+
 	* from ABH:
 
 > https://fedorahosted.org/InstantMirror/
 > https://www.redhat.com/mailman/listinfo/instantmirror-list
 > irc.freenode.net channel #instantmirror
 
+	A cool name for a project. Inspires me to write a few sentences about
+	bittorrent's role in the grand picture.
 
+	http://spreadsheets.google.com/pub?key=pGlWX10blP4u2kM05SDtiMg is a
+	spreadsheet collected by Atul Aggarwal about bittorrent implementations.
+	
 2009-04-12  Andreas J. Koenig  <andk@cpan.org>
 
 	* Interesting last minute bug during real download testing: the output

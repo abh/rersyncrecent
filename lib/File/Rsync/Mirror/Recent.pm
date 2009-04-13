@@ -912,22 +912,27 @@ Normally it takes a long time to determine the diff itself before it
 can be transferred. Known solutions at the time of this writing are
 csync2, and rsync 3 batch mode.
 
-For many years the best solution was csync2 which solves the problem
-by maintaining a sqlite database on both ends and talking a highly
-sophisticated protocol to quickly determine which files to send and
-which to delete at any given point in time. Csync2 is often
+For many years the best solution was B<csync2> which solves the
+problem by maintaining a sqlite database on both ends and talking a
+highly sophisticated protocol to quickly determine which files to send
+and which to delete at any given point in time. Csync2 is often
 inconvenient because it is push technology and the act of syncing
 demands quite an intimate relationship between the sender and the
 receiver. This is hard to achieve in an environment of loosely coupled
-sites where the number of sites is large or connections are
-unreliable or network topology is changing.
+sites where the number of sites is large or connections are unreliable
+or network topology is changing.
 
-Rsync 3 batch mode works around these problems by providing rsync-able
-batch files which allow receiving nodes to replay the history of the
-other nodes. This reduces the need to have an incestuous relation but
-it has the disadvantage that these batch files replicate the contents
-of the involved files. This seems inappropriate when the nodes already
-have a means of communicating over rsync.
+B<Rsync 3 batch mode> works around these problems by providing
+rsync-able batch files which allow receiving nodes to replay the
+history of the other nodes. This reduces the need to have an
+incestuous relation but it has the disadvantage that these batch files
+replicate the contents of the involved files. This seems inappropriate
+when the nodes already have a means of communicating over rsync.
+
+B<instantmirror> at https://fedorahosted.org/InstantMirror/ is an
+ambitious project that tries to combine various technologies to
+overcome the current situation. It's been founded in 2009-03 and at
+the time of this writing it is still a bit early to comment on.
 
 rersyncrecent solves this problem with a couple of (usually 2-10)
 lightweight index files which cover different overlapping time
@@ -941,6 +946,14 @@ The rersyncrecent mode was developed for CPAN but as it is convenient
 and economic it is also a general purpose solution. I'm looking
 forward to see a CPAN backbone that is only a few seconds behind
 PAUSE. And then ... the first FUSE based CPAN filesystem anyone?
+
+=head1 LIMITATIONS
+
+If the tree of the master server is changing faster than the bandwidth
+permits to mirror then additional protocols may need to be deployed.
+Certainly p2p/bittorrent can help in such situations because
+downloading sites help each other and bittorrent chunks large files
+into pieces.
 
 =head1 FUTURE DIRECTIONS
 

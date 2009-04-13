@@ -362,6 +362,12 @@ Defaults to arbitrary 24.2 seconds.
 
 Boolean to turn on a bit verbosity.
 
+=item verboselog
+
+Path to the logfile to write verbose progress information to. This is
+a primitive stop gap solution to get simple verbose logging working.
+Switching to Log4perl or similar is probably the way to go.
+
 =back
 
 =cut
@@ -584,7 +590,8 @@ sub get_remote_recentfile_as_tempfile {
     if ($self->verbose) {
         my $doing = -e $dst ? "Sync" : "Get";
         my $display_dst = join "/", "...", basename(dirname($dst)), basename($dst);
-        printf STDERR
+        my $LFH = $self->_logfilehandle;
+        printf $LFH
             (
              "%-4s %d (1/1/%s) temp %s ... ",
              $doing,
@@ -607,7 +614,8 @@ sub get_remote_recentfile_as_tempfile {
         }
     }
     if ($gaveup) {
-        printf STDERR "Warning: gave up mirroring %s, will try again later", $self->interval;
+        my $LFH = $self->_logfilehandle;
+        printf $LFH "Warning: gave up mirroring %s, will try again later", $self->interval;
     } else {
         $self->_refresh_internals ($dst);
         $self->have_mirrored (Time::HiRes::time);
@@ -615,7 +623,8 @@ sub get_remote_recentfile_as_tempfile {
     }
     $self->unseed;
     if ($self->verbose) {
-        print STDERR "DONE\n";
+        my $LFH = $self->_logfilehandle;
+        print $LFH "DONE\n";
     }
     my $mode = 0644;
     chmod $mode, $dst or die "Could not chmod $mode '$dst': $!";
@@ -656,6 +665,17 @@ sub _get_remote_rat_provide_tempfile_object {
     return $fh;
 }
 
+sub _logfilehandle {
+    my($self) = @_;
+    my $fh;
+    if (my $vl = $self->verboselog) {
+        open $fh, ">>", $vl or die "Could not open >> '$vl': $!";
+    } else {
+        $fh = \*STDERR;
+    }
+    return $fh;
+}
+
 =head2 $localpath = $obj->get_remotefile ( $relative_path )
 
 Rsyncs one single remote file to local filesystem.
@@ -676,7 +696,8 @@ sub get_remotefile {
     mkpath dirname $dst;
     if ($self->verbose) {
         my $doing = -e $dst ? "Sync" : "Get";
-        printf STDERR
+        my $LFH = $self->_logfilehandle;
+        printf $LFH
             (
              "%-4s %d (1/1/%s) %s ... ",
              $doing,
@@ -695,7 +716,8 @@ sub get_remotefile {
     }
     $self->un_register_rsync_error ();
     if ($self->verbose) {
-        print STDERR "DONE\n";
+        my $LFH = $self->_logfilehandle;
+        print $LFH "DONE\n";
     }
     return $dst;
 }
@@ -1076,7 +1098,8 @@ sub mirror {
         }
     }
     if ($self->verbose) {
-        print STDERR "DONE\n";
+        my $LFH = $self->_logfilehandle;
+        print $LFH "DONE\n";
     }
     # once we've gone to the end we consider ourselves free of obligations
     $self->unseed;
@@ -1163,7 +1186,8 @@ sub _mirror_item_new {
       ) = @_;
     if ($self->verbose) {
         my $doing = -e $dst ? "Sync" : "Get";
-        printf STDERR
+        my $LFH = $self->_logfilehandle;
+        printf $LFH
             (
              "%-4s %d (%d/%d/%s) %s ... ",
              $doing,
@@ -1177,7 +1201,8 @@ sub _mirror_item_new {
     my $max_files_per_connection = $self->max_files_per_connection || 42;
     my $success;
     if ($self->verbose) {
-        print STDERR "\n";
+        my $LFH = $self->_logfilehandle;
+        print $LFH "\n";
     }
     push @$dlcollector, { rev => $recent_event, i => $i };
     if (@$dlcollector >= $max_files_per_connection) {
@@ -1198,7 +1223,8 @@ sub _mirror_item_new {
         sleep 1;
     }
     if ($self->verbose) {
-        print STDERR "DONE\n";
+        my $LFH = $self->_logfilehandle;
+        print $LFH "DONE\n";
     }
 }
 
@@ -1306,7 +1332,8 @@ sub mirror_path {
             my(@err) = $self->rsync->err;
             if ($self->ignore_link_stat_errors && "@err" =~ m{^ rsync: \s link_stat }x ) {
                 if ($self->verbose) {
-                    warn "Info: ignoring link_stat error '@err'";
+                    my $LFH = $self->_logfilehandle;
+                    print $LFH "Info: ignoring link_stat error '@err'";
                 }
                 return 1;
             }
@@ -1334,7 +1361,8 @@ sub mirror_path {
             my(@err) = $self->rsync->err;
             if ($self->ignore_link_stat_errors && "@err" =~ m{^ rsync: \s link_stat }x ) {
                 if ($self->verbose) {
-                    warn "Info: ignoring link_stat error '@err'";
+                    my $LFH = $self->_logfilehandle;
+                    print $LFH "Info: ignoring link_stat error '@err'";
                 }
                 return 1;
             }

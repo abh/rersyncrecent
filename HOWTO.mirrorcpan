@@ -54,6 +54,7 @@ The loop is something like this:
                   'omit-dir-times'  => 1, # not available before rsync 3.0.3
                  },
                  verbose                    => 1,
+                 verboselog                 => "/var/log/rmirror-pause.log",
                 )} "authors", "modules";
     die "directory $_ doesn't exist, giving up" for grep { ! -d $_->localroot } @rrr;
     while (){

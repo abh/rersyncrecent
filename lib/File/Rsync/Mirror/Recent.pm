@@ -93,6 +93,8 @@ BEGIN {
          "_recentfiles",
          "_rsync",
          "_runstatusfile",        # frequenty dumps all rfs
+         "_verbose",              # internal variable for verbose setter/getter
+         "_verboselog",           # internal variable for verboselog setter/getter
         );
 
     my @pod_lines =
@@ -144,11 +146,6 @@ as in F:R:M:Recentfile
 =item ttl
 
 Minimum time before fetching the principal recentfile again.
-
-=item _verbose
-
-Boolean to turn on a bit verbosity. Use the method C<verbose> to also
-set the verbosity of associated Recentfile objects.
 
 =back
 
@@ -390,6 +387,7 @@ sub _principal_recentfile_fromremote {
          "tempdir",
          "ttl",
          "verbose",
+         "verboselog",
         );
     my $rf0;
     unless ($abslfile) {
@@ -572,7 +570,13 @@ sub rmirror {
             $self->_dirtymark($dirtymark);
         } elsif ($dirtymark ne $mydm) {
             if ($self->verbose) {
-                print STDERR "NewDirtymark: old[$mydm] new[$dirtymark]\n";
+                my $fh;
+                if (my $vl = $self->verboselog) {
+                    open $fh, ">>", $vl or die "Could not open >> '$vl': $!";
+                } else {
+                    $fh = \*STDERR;
+                }
+                print $fh "NewDirtymark: old[$mydm] new[$dirtymark]\n";
             }
             $self->_dirtymark($dirtymark);
         }
@@ -697,7 +701,13 @@ sub _rmirror_runstatusfile {
 sub _rmirror_endofloop_sleep {
     my($self, $sleep) = @_;
     if ($self->verbose) {
-        printf STDERR
+        my $fh;
+        if (my $vl = $self->verboselog) {
+            open $fh, ">>", $vl or die "Could not open >> '$vl': $!";
+        } else {
+            $fh = \*STDERR;
+        }
+        printf $fh
             (
              "Dorm %d (%s secs)\n",
              time,
@@ -778,8 +788,8 @@ sub _fetch_as_tempfile {
 
 =head2 $verbose = $obj->verbose ( $set )
 
-Getter/setter method to set verbosity for this object and all
-associated Recentfile objects.
+Getter/setter method to set verbosity for this F:R:M:Recent object and
+all associated Recentfile objects.
 
 =cut
 sub verbose {
@@ -795,6 +805,30 @@ sub verbose {
     }
     return $x;
     
+}
+
+=head2 my $vl = $obj->verboselog ( $set )
+
+Getter/setter method for the path to the logfile to write verbose
+progress information to.
+
+Note: This is a primitive stop gap solution to get simple verbose
+logging working. Switching to Log4perl or similar is probably the way
+to go. TBD.
+
+=cut
+sub verboselog {
+    my($self,$set) = @_;
+    if (defined $set) {
+        for ( @{$self->recentfiles} ) { $_->verboselog($set) }
+        $self->_verboselog ($set);
+    }
+    my $x = $self->_verboselog;
+    unless (defined $x) {
+        $x = 0;
+        $self->_verboselog ($x);
+    }
+    return $x;
 }
 
 =head1 THE ARCHITECTURE OF A COLLECTION OF RECENTFILES

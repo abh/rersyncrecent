@@ -8,7 +8,7 @@ my $version_from = 'lib/File/Rsync/Mirror/Recent.pm';
 my $version = MM->parse_version($version_from);
 if ($ARGV[0] && $ARGV[0] eq "--setversion") {
     die "Your perl is a bit dated[$]].\nDo not make a release with it\n" if $] < 5.008;
-    warn "Your MakeMaker is a bit dated[$ExtUtils::MakeMaker::VERSION].\nYou should get a new one\n"
+    die "Your MakeMaker is a bit dated[$ExtUtils::MakeMaker::VERSION].\nYou should get a new one\n"
         if $ExtUtils::MakeMaker::VERSION < 6.4502;
     use lib "lib";
     eval {  require $version_from; }; die $@ if $@;
@@ -30,6 +30,25 @@ if ($ARGV[0] && $ARGV[0] eq "--setversion") {
         warn "Not equal: $namespace\\::VERSION[\$$namespace\::VERSION] MM generated version[\$version]";
         \$version_diff = 1;
     }};
+}
+
+my $provides = {
+                "File::Rsync::Mirror::Recent" =>
+                {
+                 version => $version,
+                 file => $version_from,
+                }
+               };
+for my $m (qw(Recentfile Recentfile::Done Recentfile::FakeBigFloat )) {
+    my $fullm = "File::Rsync::Mirror::$m";
+    my $file = $fullm;
+    $file =~ s/::/\//g;
+    $file = "lib/$file.pm";
+    my $v = MM->parse_version($file);
+    $provides->{$fullm} = {
+                           version => $v,
+                           file => $file,
+                          };
 }
 
 WriteMakefile
@@ -70,17 +89,11 @@ WriteMakefile
               SUFFIX => ".bz2",
              },
      ($ExtUtils::MakeMaker::VERSION >= 6.4502 ?
-      (META_ADD => {
-                    # write: git push git+ssh://repo.or.cz/srv/git/rersyncrecent.git master
-                    repository => "git://repo.or.cz/rersyncrecent.git",
-                    provides => {
-                                 "File::Rsync::Mirror::Recent" =>
-                                 {
-                                  version => $version,
-                                  file => $version_from,
-                                 }
-                                },
-                   }) : ()),
+      (META_MERGE => {
+                      # write: git push git+ssh://repo.or.cz/srv/git/rersyncrecent.git master
+                      repository => "git://repo.or.cz/rersyncrecent.git",
+                      provides => $provides,
+                     }) : ()),
      @sign,
      clean               => { FILES => 'File-Rsync-Mirror-Recent-*' },
     );

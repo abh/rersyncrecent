@@ -1,3 +1,9 @@
+2009-04-16  Andreas J. Koenig  <andk@cpan.org>
+
+	* release 0.0.5
+
+	* focus on "delete" events that were neglected so far
+
 2009-04-13  Andreas J. Koenig  <andk@cpan.org>
 
 	* release 0.0.4

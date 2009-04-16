@@ -30,7 +30,7 @@ use Storable;
 use Time::HiRes qw();
 use YAML::Syck;
 
-use version; our $VERSION = qv('0.0.1');
+use version; our $VERSION = qv('0.0.5');
 
 use constant MAX_INT => ~0>>1; # anything better?
 use constant DEFAULT_PROTOCOL => 1;
@@ -1277,7 +1277,7 @@ sub _mirror_perform_delayed_ops {
         }
         delete $delayed->{unlink}{$dst};
     }
-    for my $dst (keys %{$delayed->{rmdir}}) {
+    for my $dst (sort {length($b) <=> length($a)} keys %{$delayed->{rmdir}}) {
         unless (rmdir $dst) {
             require Carp;
             Carp::cluck ( "Warning: Error on rmdir '$dst': $!" );
@@ -1475,7 +1475,7 @@ sub recent_events {
              $rfile_or_tempfile,
             );
     }
-    return $re unless grep {defined $options{$_}} qw(after before contains max);
+    return $re unless grep {defined $options{$_}} qw(after before contains max skip-deletes);
     $self->_recent_events_handle_options ($re, \%options);
 }
 
@@ -1555,8 +1555,23 @@ sub _recent_events_protocol_x {
         $self->$k($v);
     }
     my $re = $self->$meth ($data);
-    my @stat = stat $rfile_or_tempfile or die "Cannot stat '$rfile_or_tempfile': $!";
-    my $minmax = { mtime => $stat[9] };
+    my $minmax;
+    if (my @stat = stat $rfile_or_tempfile) {
+        $minmax = { mtime => $stat[9] };
+    } else {
+        # defensive because ABH encountered:
+
+#### Sync 1239828608 (1/1/Z) temp .../authors/.FRMRecent-RECENT-Z.yaml-
+#### Ydr_.yaml ... DONE
+#### Cannot stat '/mirrors/CPAN/authors/.FRMRecent-RECENT-Z.yaml-
+#### Ydr_.yaml': No such file or directory at /usr/lib/perl5/site_perl/
+#### 5.8.8/File/Rsync/Mirror/Recentfile.pm line 1558.
+#### unlink0: /mirrors/CPAN/authors/.FRMRecent-RECENT-Z.yaml-Ydr_.yaml is
+#### gone already at cpan-pause.pl line 0
+        
+        my $LFH = $self->_logfilehandle;
+        print $LFH "Warning (maybe harmless): Cannot stat '$rfile_or_tempfile': $!"
+    }
     if (@$re) {
         $minmax->{min} = $re->[-1]{epoch};
         $minmax->{max} = $re->[0]{epoch};

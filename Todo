@@ -1,7 +1,38 @@
+2009-04-16  Andreas J. Koenig  <andk@cpan.org>
+
+	* ABH writes:
+
+#### Sync 1239828608 (1/1/Z) temp .../authors/.FRMRecent-RECENT-Z.yaml-
+#### Ydr_.yaml ... DONE
+#### Cannot stat '/mirrors/CPAN/authors/.FRMRecent-RECENT-Z.yaml-
+#### Ydr_.yaml': No such file or directory at /usr/lib/perl5/site_perl/
+#### 5.8.8/File/Rsync/Mirror/Recentfile.pm line 1558.
+#### unlink0: /mirrors/CPAN/authors/.FRMRecent-RECENT-Z.yaml-Ydr_.yaml is
+#### gone already at cpan-pause.pl line 0
+
+	Running without skip-deletes now but cannot reproduce.
+
 2009-04-15  Andreas J. Koenig  <andk@cpan.org>
+
+	* consider state directory such we can restart after a ^C or come again
+	from a cronjob.
+
+	* consider the effect of ^C. Is it safe?
 
 	* want to use Perl::Version to up the versions on every release. Only if
 	things have changed, of course. Does this actually work?
+
+	/usr/local/perl-5.10-g/bin/perl-reversion -dryrun
+	/usr/local/perl-5.10-g/bin/perl-reversion -dryrun -bump lib/File/Rsync/Mirror/Recentfile.pm
+
+	Must do the bookkeeping myself when this should happen, maybe based on git?
+
+	I think I prefer the same version number for all pm files. But one also
+	needs a routine for setting them. Ahh:
+
+	/usr/local/perl-5.10-g/bin/perl-reversion -current 0.0.4 -set 0.0.5 lib/**/*.pm
+
+	NEEDSMOREWORK
 
 	* why indexer wrong?
 
@@ -299,9 +330,9 @@ Eintervals:
 	and should be considered as a separate TODO
 
 	* todo: integrate a dirty update with two aggregate calls before
-	unlocking for frictionless dirtying
+	unlocking for frictionless dirtying DONE
 
-	* todo: start the second rsync daemon on pause
+	* todo: start the second rsync daemon on pause DONE
 
 	* todo: move index files to .recent: this cannot simply be done by
 	setting filenameroot to .recent/RECENT. Other parts of the modules rely
@@ -405,7 +436,7 @@ SV = PVMG(0x19e0240) at 0x142a3e8
 
 	Retry with uselongdouble gives same effect. Not reproducable on 32bit box (k75).
 
-	* Todo: reset "done" or "covered" and "minmax" after a dirty operation?
+	* Todo: reset "done" or "covered" and "minmax" after a dirty operation? DONE
 
 2009-03-11  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
@@ -418,7 +449,7 @@ SV = PVMG(0x19e0240) at 0x142a3e8
 2009-01-01  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* Todo: continue working on update(...,$dirty_epoch). It must be
-	followed by a fast_aggregate!
+	followed by a fast_aggregate! DONE
 
 2008-12-26  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 

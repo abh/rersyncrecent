@@ -84,6 +84,7 @@ WriteMakefile
                                    "setversion",
                                    "all",
                                    "tardist",
+                                   "release-memo",
                                   ),
               COMPRESS => 'bzip2 -9f',
               SUFFIX => ".bz2",
@@ -129,6 +130,13 @@ verify-no-subdir:
 the-release-name :
 	$(NOECHO) $(ECHO) 'version ' $(VERSION)
 	$(NOECHO) $(ECHO) 'release-name ' $(DISTVNAME).tar$(SUFFIX)
+
+release-memo:
+	$(NOECHO) $(ECHO) 'after successful make dist and upload do not forget to'
+	$(NOECHO) $(ECHO) ' make tag'
+	$(NOECHO) $(ECHO) ' git push --tags'
+	$(NOECHO) $(ECHO) 'before writing Changes do not forget to'
+	$(NOECHO) $(ECHO) ' git --no-pager log --no-merges --pretty=format:" %x20%x20 - %s (%an)" `git tag | tail -n 1`'
 
 tag ::
 	git tag -m 'This is $(VERSION)' "$(VERSION)"

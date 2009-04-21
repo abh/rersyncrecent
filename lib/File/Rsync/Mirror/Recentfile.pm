@@ -30,7 +30,7 @@ use Storable;
 use Time::HiRes qw();
 use YAML::Syck;
 
-use version; our $VERSION = qv('0.0.5');
+use version; our $VERSION = qv('0.0.6');
 
 use constant MAX_INT => ~0>>1; # anything better?
 use constant DEFAULT_PROTOCOL => 1;

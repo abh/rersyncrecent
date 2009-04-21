@@ -30,7 +30,7 @@ use Storable;
 use Time::HiRes qw();
 use YAML::Syck;
 
-use version; our $VERSION = qv('0.0.5');
+use version; our $VERSION = qv('0.0.6');
 
 use constant MAX_INT => ~0>>1; # anything better?
 use constant DEFAULT_PROTOCOL => 1;
@@ -1550,7 +1550,10 @@ sub _recent_events_protocol_x {
     my $meth = sprintf "read_recent_%d", $data->{meta}{protocol};
     # we may be reading meta for the first time
     while (my($k,$v) = each %{$data->{meta}}) {
-        next if $k ne lc $k; # "Producers"
+        if ($k ne lc $k){ # "Producers"
+            $self->{ORIG}{$k} = $v;
+            next;
+        }
         next if defined $self->$k;
         $self->$k($v);
     }

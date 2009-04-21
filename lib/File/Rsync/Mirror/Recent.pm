@@ -27,7 +27,7 @@ use Storable;
 use Time::HiRes qw();
 use YAML::Syck;
 
-use version; our $VERSION = qv('0.0.5');
+use version; our $VERSION = qv('0.0.6');
 
 =head1 SYNOPSIS
 
@@ -282,6 +282,8 @@ sub overview {
                  scalar @$re,
                  "Dirtymark",
                  $rf->dirtymark ? sprintf("%.2f",$rf->dirtymark) : "-",
+                 "Produced",
+                 sprintf ("%.2f", $rf->{ORIG}{Producers}{time}||0),
                  "Merged",
                  ($rf->interval eq "Z"
                   ?

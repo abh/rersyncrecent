@@ -1550,7 +1550,10 @@ sub _recent_events_protocol_x {
     my $meth = sprintf "read_recent_%d", $data->{meta}{protocol};
     # we may be reading meta for the first time
     while (my($k,$v) = each %{$data->{meta}}) {
-        next if $k ne lc $k; # "Producers"
+        if ($k ne lc $k){ # "Producers"
+            $self->{ORIG}{$k} = $v;
+            next;
+        }
         next if defined $self->$k;
         $self->$k($v);
     }

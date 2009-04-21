@@ -282,6 +282,8 @@ sub overview {
                  scalar @$re,
                  "Dirtymark",
                  $rf->dirtymark ? sprintf("%.2f",$rf->dirtymark) : "-",
+                 "Produced",
+                 sprintf ("%.2f", $rf->{ORIG}{Producers}{time}||0),
                  "Merged",
                  ($rf->interval eq "Z"
                   ?

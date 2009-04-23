@@ -136,7 +136,7 @@ release-memo:
 	$(NOECHO) $(ECHO) ' make tag'
 	$(NOECHO) $(ECHO) ' git push --tags'
 	$(NOECHO) $(ECHO) 'before writing Changes do not forget to'
-	$(NOECHO) $(ECHO) ' git --no-pager log --no-merges --pretty=format:" %x20%x20 - %s (%an)" `git tag | tail -n 1`'
+	$(NOECHO) $(ECHO) ' git --no-pager log --no-merges --pretty=format:" %x20%x20 - %s (%an)" | less'
 
 tag ::
 	git tag -m 'This is $(VERSION)' "$(VERSION)"

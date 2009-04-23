@@ -18,6 +18,7 @@ use File::Basename qw(basename dirname fileparse);
 use File::Copy qw(cp);
 use File::Path qw(mkpath);
 use File::Rsync;
+use File::Rsync::Mirror::Recentfile::Done (); # at least needed by thaw()
 use File::Rsync::Mirror::Recentfile::FakeBigFloat qw(:all);
 use File::Temp;
 use List::Pairwise qw(mapp grepp);
@@ -70,6 +71,47 @@ sub new {
         my($method,$arg) = splice @args, 0, 2;
         $self->$method($arg);
     }
+    return $self;
+}
+
+=head2 my $obj = CLASS->thaw($statusfile)
+
+Constructor from a statusfile left over from a previous rmirror run.
+
+=cut
+
+sub thaw {
+    my($class, $file) = @_;
+    die "thaw called without statusfile argument" unless defined $file;
+    die "Alert: statusfile '$file' not found" unless -e $file;
+    
+    require YAML::Syck;
+    my $start = time;
+    my $sleeptime = 0.02;
+    while (not mkdir "$file.lock") {
+        my $err = $!;
+        Time::HiRes::sleep $sleeptime;
+        my $waiting = time - $start;
+        if ($waiting >= 3){
+            warn "*** waiting ($waiting) for lock ($err) ***";
+            $sleeptime = 1;
+        }
+    }
+    my $serialized = YAML::Syck::LoadFile($file);
+    rmdir "$file.lock" or die "Could not rmdir lockfile: $!";
+    warn sprintf "Reading '$file' which was written %d seconds ago\n", time-$serialized->{time};
+    my $self = $serialized->{reduced_self};
+    bless $self, $class;
+    my $rfs = $serialized->{reduced_rfs};
+    my $rfclass = $class . "file"; # "Recent" . "file"
+    my $pathdb = $self->_pathdb;
+    for my $rf (@$rfs) {
+        bless $rf, $rfclass;
+        $rf->_pathdb($pathdb);
+    }
+    $self->_recentfiles($rfs);
+    $self->_principal_recentfile($rfs->[0]);
+    # die "FIXME: thaw all recentfiles from reduced_rfs into _recentfiles as well, watch out for pathdb and rsync";
     return $self;
 }
 
@@ -585,11 +627,11 @@ sub rmirror {
     }
   LOOP: while () {
         my $ttleave = time + $minimum_time_per_loop;
+        if (my $file = $self->_runstatusfile) {
+            $self->_rmirror_runstatusfile ($file, \%options);
+        }
       RECENTFILE: for my $i (0..$#$rfs) {
             my $rf = $rfs->[$i];
-            if (my $file = $self->_runstatusfile) {
-                $self->_rmirror_runstatusfile ($file, $i, \%options);
-            }
             if (time > $ttleave){
                 # Must make sure that one file can get fetched in any case
                 $self->_max_one_state(1);
@@ -686,18 +728,38 @@ sub _rmirror_cleanup {
 }
 
 sub _rmirror_runstatusfile {
-    my($self, $file, $i, $options) = @_;
+    my($self, $file, $options) = @_;
+    my $rself;
+    while (my($k,$v) = each %$self) {
+        next if $k =~ /^-(_principal_recentfile|_recentfiles)$/;
+        $rself->{$k} = $v;
+    }
     my $rfs = $self->recentfiles;
+    my $rrfs;
+    for my $i (0..$#$rfs) {
+        my $rf = $rfs->[$i];
+        while (my($k,$v) = each %$rf) {
+            next if $k =~ /^-(_current_tempfile_fh|_pathdb|_rsync)$/;
+            $rrfs->[$i]{$k} = $rfs->[$i]{$k};
+        }
+    }
     require YAML::Syck;
+    my $start = time;
+    while (not mkdir "$file.lock") {
+        Time::HiRes::sleep 0.02;
+        warn "*** waiting for lock ***" if time - $start >= 3;
+    }
     YAML::Syck::DumpFile
           (
-           $file,
-           {i => $i,
+           "$file.new",
+           {
             options => $options,
-            self => [keys %$self], # passing $self leaks, dclone refuses because of globs
             time => time,
-            uptodate => {map {($_=>$rfs->[$_]->uptodate)} 0..$#$rfs},
+            reduced_rfs => $rrfs,
+            reduced_self => $rself,
            });
+    rename "$file.new", $file or die "Could not rename: $!";
+    rmdir "$file.lock" or die "Could not rmdir lockfile: $!";
 }
 
 sub _rmirror_endofloop_sleep {

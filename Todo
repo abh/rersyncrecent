@@ -1,3 +1,9 @@
+2009-04-17  Andreas J. Koenig  <andk@cpan.org>
+
+	* the changelog helper I included in the Makefile release memo does not
+	show tags and is much less useful than I thought. gitk is probably much
+	more convenient.
+
 2009-04-16  Andreas J. Koenig  <andk@cpan.org>
 
 	* ABH writes:
@@ -16,6 +22,10 @@
 
 	* consider state directory such we can restart after a ^C or come again
 	from a cronjob.
+
+	Reuse _runstatusfile: write atomically, see how we can use the dump to
+	start running again. Do not leak and remove globs before writing. Do not
+	only dump one rf, dump the whole complex.
 
 	* consider the effect of ^C. Is it safe?
 

@@ -1339,10 +1339,12 @@ sub mirror_path {
             }
             $self->register_rsync_error (@err);
             if (++$retried >= 3) {
-                warn "XXX giving up.";
+                my $batchsize = @$path;
+                warn "The number of rsync retries now reached 3 within a batch of size $batchsize. Error was '@err'. Giving up now, will retry later, ";
                 $gaveup = 1;
                 last;
             }
+            sleep 1;
         }
         unless ($gaveup) {
             $self->un_register_rsync_error ();

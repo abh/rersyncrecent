@@ -13,7 +13,7 @@ File::Rsync::Mirror::Recentfile::Done - intervals of already rsynced timespans
 
 =cut
 
-use version; our $VERSION = qv('0.0.6');
+use version; our $VERSION = qv('0.0.7');
 
 =head1 SYNOPSIS
 

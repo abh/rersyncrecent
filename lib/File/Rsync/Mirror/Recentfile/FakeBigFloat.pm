@@ -24,7 +24,7 @@ File::Rsync::Mirror::Recentfile::FakeBigFloat - pseudo bigfloat support
 
 =cut
 
-use version; our $VERSION = qv('0.0.6');
+use version; our $VERSION = qv('0.0.7');
 
 use Exporter;
 use base qw(Exporter);

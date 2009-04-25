@@ -1,3 +1,10 @@
+2009-04-25  Andreas J. Koenig  <andk@cpan.org>
+
+	* release 0.0.6
+
+	* bugfix: Done.pm failing to merge two intervals into one when a third
+	is present
+
 2009-04-16  Andreas J. Koenig  <andk@cpan.org>
 
 	* release 0.0.5

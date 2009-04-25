@@ -51,6 +51,9 @@ for my $m (qw(Recentfile Recentfile::Done Recentfile::FakeBigFloat )) {
                           };
 }
 
+my $preferzip = "gzip"; # bzip2 | gzip
+warn "XXXXXXXXXX current zip variant: $preferzip XXXXXXXXXX\n" for 1..3;
+sleep 2;
 WriteMakefile
     (
      NAME                => 'File::Rsync::Mirror::Recent',
@@ -75,7 +78,13 @@ WriteMakefile
       'YAML::Syck'       => 0,
       'version'          => 0,
      },
-     EXE_FILES    => [qw(bin/rrr-aggregate bin/rrr-news)],
+     EXE_FILES    => [
+                      'bin/rrr',
+                      'bin/rrr-aggregate',
+                      'bin/rrr-dirtyupdate',
+                      'bin/rrr-news',
+                      'bin/rrr-overview',
+                     ],
      dist => {
               DIST_DEFAULT => join(" ", # note: order matters!
                                    "verify-changes-date",
@@ -86,8 +95,11 @@ WriteMakefile
                                    "tardist",
                                    "release-memo",
                                   ),
-              COMPRESS => 'bzip2 -9f',
-              SUFFIX => ".bz2",
+              $preferzip eq "bzip2" ?
+              (COMPRESS => 'bzip2 -9f',
+               SUFFIX => ".bz2") :
+              (COMPRESS => 'gzip -9f',
+               SUFFIX => ".gz"),
              },
      ($ExtUtils::MakeMaker::VERSION >= 6.4502 ?
       (META_MERGE => {

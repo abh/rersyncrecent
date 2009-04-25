@@ -1,3 +1,4 @@
+bin/rrr
 bin/rrr-aggregate
 bin/rrr-dirtyupdate
 bin/rrr-news
@@ -11,7 +12,9 @@ lib/File/Rsync/Mirror/Recentfile/FakeBigFloat.pm
 Makefile.PL
 MANIFEST
 MANIFEST.SKIP
+META.yml			Module meta-data (added by MakeMaker)
 README
+SIGNATURE			Public-key signature (added by MakeMaker)
 t/00-load.t
 t/01-util.t
 t/02-operation.t
@@ -24,5 +27,3 @@ t/pod.t
 t/RECENT-1h.yaml
 t/RECENT-6h.yaml
 Todo
-META.yml                                 Module meta-data (added by MakeMaker)
-SIGNATURE                                Public-key signature (added by MakeMaker)

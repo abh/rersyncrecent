@@ -338,7 +338,7 @@ sub _register_one_fold2 {
     # 35:[45,35],        [40,35]
     # 35:[45,35],[42,37],[40,35]
     my($splicepos, $splicelen, %assert_between);
-    for my $i (0..$#$intervals) {
+ INTERVAL: for my $i (0..$#$intervals) {
         if (   $epoch eq $intervals->[$i][0]
             or $epoch eq $intervals->[$i][1]
            ) {
@@ -349,7 +349,7 @@ sub _register_one_fold2 {
                     $intervals->[$i+$j][1] = _bigfloatmin($intervals->[$i][1],$intervals->[$i+$j][1]);
                     $splicepos = $i;
                     $splicelen = $j;
-                    last;
+                    last INTERVAL;
                 } else {
                     for my $k (0,1) {
                         $assert_between{$intervals->[$i+$j][$k]}++;

@@ -1,3 +1,17 @@
+2009-04-25  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* Minor bug: I see complaints about files not existing like
+	/authors/id/G/GW/GWADEJ/SVG-Sparkline-0.2.0.meta or
+	/authors/id/R/RC/RCAPUTO/POE-1.004.readme
+
+	In the RECENT files these are delete events but of course also new
+	events in older recent files.
+
+	I think we do not properly remember deletes when we skip-deletes and so
+	do not filter them out when we later see the "new" event.
+
+	* bug in Done.pm FIXED with new test
+
 2009-04-24  Andreas J. Koenig  <andk@cpan.org>
 
 	* keep the index clean and run some kind of nondestructive fsck 4 times

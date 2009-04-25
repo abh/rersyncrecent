@@ -1,3 +1,13 @@
+2009-04-24  Andreas J. Koenig  <andk@cpan.org>
+
+	* keep the index clean and run some kind of nondestructive fsck 4 times
+	a day.
+
+	* who is our backbone?
+
+	http://cpan.cpantesters.org/authors/02STAMP     # barbie
+	http://cpan.solfo.com/authors/02STAMP           # abh
+
 2009-04-17  Andreas J. Koenig  <andk@cpan.org>
 
 	* the changelog helper I included in the Makefile release memo does not

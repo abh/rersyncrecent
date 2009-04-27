@@ -38,7 +38,6 @@ The loop is something like this:
     my @rrr = map {
         File::Rsync::Mirror::Recent->new
                 (
-                 ignore_link_stat_errors    => 1,
                  localroot                  => "/home/ftp/pub/PAUSE/$_", # your local path
                  remote                     => "pause.perl.org::PAUSE/$_/RECENT.recent", # your upstream
                  max_files_per_connection   => 863,

@@ -76,7 +76,8 @@ sub new {
 
 =head2 my $obj = CLASS->thaw($statusfile)
 
-Constructor from a statusfile left over from a previous rmirror run.
+(experimental) Constructor from a statusfile left over from a previous
+rmirror run. See _runstatusfile in the code for details.
 
 =cut
 
@@ -134,7 +135,7 @@ BEGIN {
          "_principal_recentfile",
          "_recentfiles",
          "_rsync",
-         "_runstatusfile",        # frequenty dumps all rfs
+         "_runstatusfile",        # frequently dumps all rfs
          "_verbose",              # internal variable for verbose setter/getter
          "_verboselog",           # internal variable for verboselog setter/getter
         );
@@ -838,6 +839,7 @@ sub _fetch_as_tempfile {
         Carp::confess(YAML::Syck::Dump($self->rsync_options));
     }
     my $dst = $fh->filename;
+    local($ENV{LANG}) = "C";
     $rsync->exec
         (
          src => join("/",$self->remoteroot,$rfile),

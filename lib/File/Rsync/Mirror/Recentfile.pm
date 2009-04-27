@@ -61,7 +61,6 @@ Reader/mirrorer:
     my $rf = File::Rsync::Mirror::Recentfile->new
       (
        filenameroot => "RECENT",
-       ignore_link_stat_errors => 1,
        interval => q(6h),
        localroot => "/home/ftp/pub/PAUSE/authors",
        remote_dir => "",
@@ -265,8 +264,8 @@ Only relevant for slaves.
 
 If set to true, rsync errors are ignored that complain about link stat
 errors. These seem to happen only when there are files missing at the
-origin. In race conditions this can always happen, so it is
-recommended to set this value to true.
+origin. In race conditions this can always happen, so it defaults to
+true.
 
 =item is_slave
 
@@ -602,6 +601,7 @@ sub get_remote_recentfile_as_tempfile {
     }
     my $gaveup = 0;
     my $retried = 0;
+    local($ENV{LANG}) = "C";
     while (!$self->rsync->exec(
                                src => $src,
                                dst => $dst,
@@ -706,6 +706,7 @@ sub get_remotefile {
              $path,
             );
     }
+    local($ENV{LANG}) = "C";
     while (!$self->rsync->exec(
                                src => join("/",
                                            $self->remoteroot,
@@ -1321,6 +1322,7 @@ sub mirror_path {
         $fh->unlink_on_destroy(1);
         my $gaveup = 0;
         my $retried = 0;
+        local($ENV{LANG}) = "C";
         while (!$self->rsync->exec
                (
                 src => join("/",
@@ -1330,7 +1332,7 @@ sub mirror_path {
                 'files-from' => $fh->filename,
                )) {
             my(@err) = $self->rsync->err;
-            if ($self->ignore_link_stat_errors && "@err" =~ m{^ rsync: \s link_stat }x ) {
+            if ($self->_my_ignore_link_stat_errors && "@err" =~ m{^ rsync: \s link_stat }x ) {
                 if ($self->verbose) {
                     my $LFH = $self->_logfilehandle;
                     print $LFH "Info: ignoring link_stat error '@err'";
@@ -1352,6 +1354,7 @@ sub mirror_path {
     } else {
         my $dst = $self->local_path($path);
         mkpath dirname $dst;
+        local($ENV{LANG}) = "C";
         while (!$self->rsync->exec
                (
                 src => join("/",
@@ -1361,7 +1364,7 @@ sub mirror_path {
                 dst => $dst,
                 )) {
             my(@err) = $self->rsync->err;
-            if ($self->ignore_link_stat_errors && "@err" =~ m{^ rsync: \s link_stat }x ) {
+            if ($self->_my_ignore_link_stat_errors && "@err" =~ m{^ rsync: \s link_stat }x ) {
                 if ($self->verbose) {
                     my $LFH = $self->_logfilehandle;
                     print $LFH "Info: ignoring link_stat error '@err'";
@@ -1373,6 +1376,13 @@ sub mirror_path {
         $self->un_register_rsync_error ();
     }
     return 1;
+}
+
+sub _my_ignore_link_stat_errors {
+    my($self) = @_;
+    my $x = $self->ignore_link_stat_errors;
+    $x = 1 unless defined $x;
+    return $x;
 }
 
 sub _my_current_rfile {
@@ -1833,6 +1843,7 @@ sub _sparse_clone {
                   _use_tempfile
                   aggregator
                   filenameroot
+                  ignore_link_stat_errors
                   is_slave
                   max_files_per_connection
                   protocol

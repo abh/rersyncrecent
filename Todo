@@ -1,3 +1,18 @@
+2009-04-27  Andreas J. Koenig  <andk@cpan.org>
+
+	* Todo: more experimenting with runstatusfile to get it official
+
+	* Todo: make sure $ENV{LANG}="C" when we call rsync because we will
+	parse the error.
+
+	rsync: link_stat "/authors/id/T/TH/THINC/DateTime-Format-Flexible-0.02.tar.gz" (in PAUSE) failed: No such file or directory
+
+	rsync: link_stat "/authors/id/A/AG/AGENT/SSH-Batch-0.001.meta" (in PAUSE) failed: No such file or directory (2)
+
+	And that ignore_link_stat_error is propagated in sparse_clone.
+
+	DONE
+	
 2009-04-25  Andreas J. Koenig  <andk@cpan.org>
 
 	* Todo: fill rrr program with life
@@ -13,6 +28,11 @@
 
 	I think we do not properly remember deletes when we skip-deletes and so
 	do not filter them out when we later see the "new" event.
+
+	Yes, but that what ignore_link_stat_error is for, we know about this
+	race condition. We must make ignore_link_stat_error default to true.
+
+	DONE
 
 	* bug in Done.pm failing to merge two fields into one when a third is
 	present. FIXED and accompanied with new test.

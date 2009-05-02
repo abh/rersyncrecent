@@ -707,9 +707,10 @@ sub get_remotefile {
             );
     }
     local($ENV{LANG}) = "C";
+    my $remoteroot = $self->remoteroot or die "Alert: missing remoteroot. Cannot continue";
     while (!$self->rsync->exec(
                                src => join("/",
-                                           $self->remoteroot,
+                                           $remoteroot,
                                            $path),
                                dst => $dst,
                               )) {

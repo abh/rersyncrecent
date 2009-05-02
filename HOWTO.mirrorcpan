@@ -32,7 +32,7 @@ host, maybe excluding authors/ and modules/.
 The loop is something like this:
 
     $ENV{USER}="sandy"; # fill in your name
-    $ENV{RSYNC_PASSWORD} = "secret"; # fill in you passwd
+    $ENV{RSYNC_PASSWORD} = "secret"; # fill in your passwd
 
     use File::Rsync::Mirror::Recent;
     my @rrr = map {

@@ -134,6 +134,7 @@ BEGIN {
                                   # iteration to avoid procrastination
          "_principal_recentfile",
          "_recentfiles",
+         "_remoteroot",
          "_rsync",
          "_runstatusfile",        # frequently dumps all rfs
          "_verbose",              # internal variable for verbose setter/getter
@@ -500,6 +501,26 @@ sub recentfiles {
     }
     $self->_recentfiles(\@rf);
     return \@rf;
+}
+
+=head2 $remoteroot = $obj->remoteroot ( $set )
+
+Getter/setter method to set verbosity for this F:R:M:Recent object and
+all associated Recentfile objects.
+
+=cut
+sub remoteroot {
+    my($self,$set) = @_;
+    if (defined $set) {
+        for ( @{$self->recentfiles} ) { $_->remoteroot($set) }
+        $self->_remoteroot ($set);
+    }
+    my $x = $self->_remoteroot;
+    unless (defined $x) {
+        $x = 0;
+        $self->_remoteroot ($x);
+    }
+    return $x;
 }
 
 =head2 $success = $obj->rmirror ( %options )

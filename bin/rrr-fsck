@@ -1,0 +1,175 @@
+#!/usr/bin/perl -- -*- mode: cperl -*-
+
+=head1 NAME
+
+rrr-fsck - 
+
+=head1 SYNOPSIS
+
+  rrr-fsck [options] principalfile
+
+=head1 OPTIONS
+
+=over 8
+
+=cut
+
+my @opt = <<'=back' =~ /B<--(\S+)>/g;
+
+=item B<--dry-run|n>
+
+Does nothing, only prints what it would do. B<ATM, this is the default
+and cannot be turned off>.
+
+=item B<--help|h>
+
+Prints a brief message and exists.
+
+=item B<--remoteroot=s>
+
+If provided fsck will try to mirror missing files from this location.
+For remote locations requiring authentication you may need to set the
+environment variables USER and RSYNC_PASSWORD as well.
+
+=item B<--verbose|v+>
+
+More feedback.
+
+=item B<--yes|y>
+
+Consider all answers to asked questions to be I<yes>.
+
+=back
+
+=head1 DESCRIPTION
+
+Compare disk contents with index content and gather files missing on
+local disk and file missing in local index.
+
+If remoteroot is given missing files are fetched from remote.
+
+Files on the local disk that have no counterpart in the index are
+considered obsolete and the user is asked for each file if the file
+should be deleted. And if the user confirms it will be deleted.
+
+=head1 BUGS
+
+There is a race condition when the tree or the index is manipulated
+while we are running.
+
+=cut
+
+
+use strict;
+use warnings;
+
+use lib "/home/k/sources/rersyncrecent/lib";
+
+use File::Basename qw(dirname);
+use File::Find qw(find);
+use ExtUtils::MakeMaker qw(prompt);
+use File::Rsync::Mirror::Recent;
+use File::Spec;
+use Getopt::Long;
+use List::Util qw(max);
+use Pod::Usage qw(pod2usage);
+
+our %Opt;
+GetOptions(\%Opt,
+           @opt,
+          ) or pod2usage(1);
+
+if ($Opt{help}) {
+    pod2usage(0);
+}
+
+if (@ARGV == 1) {
+} else {
+    pod2usage(1);
+}
+
+my($principal) = @ARGV;
+my $recc = File::Rsync::Mirror::Recent->new
+    (
+     local => $principal,
+     localroot => dirname $principal,
+    );
+for my $passthrough (qw(remoteroot verbose)) {
+    if (my $opt = $Opt{$passthrough}) {
+        $recc->$passthrough($opt);
+    }
+}
+my $root = $recc->localroot;
+die "Alert: Root not defined, giving up" unless defined $root;
+
+my %diskfiles;
+find({
+      wanted => sub {
+          my @stat = lstat $_;
+          return if -l _;
+          return unless -f _;
+          $diskfiles{$File::Find::name} = $stat[9];
+      },
+      no_chdir => 1,
+     },
+     $root
+    );
+
+my $indexfiles = $recc->news;
+my %seen;
+my %indexfiles = map {("$root/$_->{path}"=>$_->{epoch})} grep { !$seen{$_->{path}}++ && $_->{type} eq "new" } @$indexfiles;
+for my $rf (@{$recc->recentfiles}) {
+    my $rfrfile = $rf->rfile;
+    my @stat = stat $rfrfile or die "Could not stat '$rfrfile': $!";
+    $indexfiles{$rfrfile} = $stat[9];
+}
+my $sprintfd = length(max scalar @$indexfiles, scalar keys %diskfiles);
+warn sprintf(
+             "diskfiles:    %*d\n".
+             "indexfiles:   %*d\n",
+             $sprintfd, scalar keys %diskfiles,
+             $sprintfd, scalar keys %indexfiles,
+            );
+my @diskmisses  = sort { $indexfiles{$b} <=> $indexfiles{$a} } grep { ! exists $diskfiles{$_}  } keys %indexfiles;
+my @indexmisses = sort { $diskfiles{$a}  <=> $diskfiles{$b}  } grep { ! exists $indexfiles{$_} } keys %diskfiles;
+warn sprintf(
+             "not on disk:  %*d\n".
+             "not in index: %*d\n",
+             $sprintfd, scalar @diskmisses,
+             $sprintfd, scalar @indexmisses,
+            );
+$DB::single++;
+for my $dm (@diskmisses) {
+    if ($Opt{"dry-run"}) {
+        warn "Would fetch $dm\n";
+    } elsif ($Opt{remoteroot}) {
+        my $relative = substr $dm, 1 + length $root;
+        $recc->principal_recentfile->get_remotefile($relative);
+    } else {
+        warn "Missing on disk: $dm\n";
+    }
+}
+for my $im (@indexmisses) {
+    if ($Opt{"dry-run"}) {
+        warn "Would remove $im\n";
+    } else {
+        my $ans;
+        if ($Opt{yes}) {
+            warn "Going to unlink '$im'\n";
+            $ans = "y";
+        } else {
+            $ans = prompt "Unlink '$im'?", "y";
+        }
+        if ($ans =~ /^y/i) {
+            unlink $im or die "Could not unlink '$im': $!";
+        }
+    }
+}
+__END__
+
+
+# Local Variables:
+# mode: cperl
+# coding: utf-8
+# cperl-indent-level: 4
+# End:

@@ -1,5 +1,11 @@
 2009-04-27  Andreas J. Koenig  <andk@cpan.org>
 
+	* Todo: I still see more link_stat errors than expected. I come back to
+	the former suspicion that we do not do necessary bookkeeping on deleted
+	files so that when we reach the "new" event on a meanwhile deleted file
+	we try to mirror it although we could know better. It's just noise, no
+	harm but noise is irritating.
+
 	* Todo: more experimenting with runstatusfile to get it official
 
 	* Todo: make sure $ENV{LANG}="C" when we call rsync because we will
@@ -12,6 +18,10 @@
 	And that ignore_link_stat_error is propagated in sparse_clone.
 
 	DONE
+
+	For the record: the bug was that ignore_link_stat_error was lost during
+	sparse_clone. And then the second bug was that it did not default to
+	true. Both are now fixed.
 	
 2009-04-25  Andreas J. Koenig  <andk@cpan.org>
 
@@ -39,13 +49,14 @@
 
 2009-04-24  Andreas J. Koenig  <andk@cpan.org>
 
-	* keep the index clean and run some kind of nondestructive fsck 4 times
-	a day.
+	* Todo: keep the index clean and run some kind of nondestructive fsck 4
+	times a day.
 
 	* who is our backbone?
 
 	http://cpan.cpantesters.org/authors/02STAMP     # barbie
 	http://cpan.solfo.com/authors/02STAMP           # abh
+	(http|ftp)://theoryx5.uwinnipeg.ca/pub/CPAN/    # rkobes
 
 2009-04-17  Andreas J. Koenig  <andk@cpan.org>
 
@@ -139,6 +150,8 @@ done
 
 	I cannot get it to fail. Apparently it is sufficient when upstream
 	always writes atomically (which of course is mandatory)?
+
+	SENT to mailing list Apr 28.
 
 	* from ABH:
 

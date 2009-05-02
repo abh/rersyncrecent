@@ -1018,10 +1018,10 @@ most recent index file usually covers the last seconds or minutes or
 hours of the tree and depending on the needs, slaves can rsync every
 few seconds or minutes and then bring their trees in full sync.
 
-The rersyncrecent mode was developed for CPAN but as it is convenient
-and economic it is also a general purpose solution. I'm looking
-forward to see a CPAN backbone that is only a few seconds behind
-PAUSE.
+The rersyncrecent model was developed for CPAN but as it is both
+convenient and economic it is also a general purpose solution. I'm
+looking forward to see a CPAN backbone that is only a few seconds
+behind PAUSE.
 
 =head2 NON-COMPETITORS
 

@@ -1277,14 +1277,38 @@ sub _mirror_perform_delayed_ops {
             require Carp;
             Carp::cluck ( "Warning: Error while unlinking '$dst': $!" );
         }
-        delete $delayed->{unlink}{$dst};
+        if ($self->verbose) {
+            my $doing = "Del";
+            my $LFH = $self->_logfilehandle;
+            printf $LFH
+                (
+                 "%-4s %d (%s) %s DONE\n",
+                 $doing,
+                 time,
+                 $self->interval,
+                 $dst,
+                );
+            delete $delayed->{unlink}{$dst};
+        }
     }
     for my $dst (sort {length($b) <=> length($a)} keys %{$delayed->{rmdir}}) {
         unless (rmdir $dst) {
             require Carp;
             Carp::cluck ( "Warning: Error on rmdir '$dst': $!" );
         }
-        delete $delayed->{rmdir}{$dst};
+        if ($self->verbose) {
+            my $doing = "Del";
+            my $LFH = $self->_logfilehandle;
+            printf $LFH
+                (
+                 "%-4s %d (%s) %s DONE\n",
+                 $doing,
+                 time,
+                 $self->interval,
+                 $dst,
+                );
+            delete $delayed->{rmdir}{$dst};
+        }
     }
 }
 

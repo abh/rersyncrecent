@@ -51,8 +51,8 @@ for my $m (qw(Recentfile Recentfile::Done Recentfile::FakeBigFloat )) {
                           };
 }
 
-my $preferzip = "gzip"; # bzip2 | gzip
-warn "XXXXXXXXXX current zip variant: $preferzip XXXXXXXXXX\n" for 1..3;
+my $preferzip = "bzip2"; # bzip2 | gzip
+warn "Current zip variant: $preferzip\n";
 sleep 2;
 WriteMakefile
     (

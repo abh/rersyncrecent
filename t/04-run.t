@@ -6,12 +6,7 @@ sub _f ($) {File::Spec->catfile(split /\//, shift);}
 
 my $Id = q$Id: bap.t 26 2003-02-16 19:01:03Z k $;
 
-my @s = qw(
-           bin/rrr-aggregate
-           bin/rrr-dirtyupdate
-           bin/rrr-news
-           bin/rrr-overview
-          );
+my @s = grep {-x $_} grep { !/~/ } glob("bin/rrr*");
 
 my $tests_per_loop = 3;
 my $plan = scalar @s * $tests_per_loop;

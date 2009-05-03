@@ -1,8 +1,9 @@
 bin/rrr
 bin/rrr-aggregate
-bin/rrr-dirtyupdate
+bin/rrr-fsck
 bin/rrr-news
 bin/rrr-overview
+bin/rrr-update
 Changes
 HOWTO.mirrorcpan
 lib/File/Rsync/Mirror/Recent.pm

@@ -18,8 +18,7 @@ my @opt = <<'=back' =~ /B<--(\S+)>/g;
 
 =item B<--dry-run|n>
 
-Does nothing, only prints what it would do. B<ATM, this is the default
-and cannot be turned off>.
+Does nothing, only prints what it would do.
 
 =item B<--help|h>
 
@@ -43,8 +42,8 @@ Consider all answers to asked questions to be I<yes>.
 
 =head1 DESCRIPTION
 
-Compare disk contents with index content and gather files missing on
-local disk and file missing in local index.
+Compares disk contents with index contents and gathers files missing
+on local disk and files missing in local index.
 
 If remoteroot is given missing files are fetched from remote.
 
@@ -55,7 +54,11 @@ should be deleted. And if the user confirms it will be deleted.
 =head1 BUGS
 
 There is a race condition when the tree or the index is manipulated
-while we are running.
+while we are running. This implies that the result is only then 100%
+correct when disk and index are not changed while we are running.
+
+There should be an option to declare the files on disk authoritative
+so that they are added to the index.
 
 =cut
 

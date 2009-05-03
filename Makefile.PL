@@ -79,11 +79,7 @@ WriteMakefile
       'version'          => 0,
      },
      EXE_FILES    => [
-                      'bin/rrr',
-                      'bin/rrr-aggregate',
-                      'bin/rrr-dirtyupdate',
-                      'bin/rrr-news',
-                      'bin/rrr-overview',
+                      grep {-x $_} grep { !/~/ } glob("bin/rrr*")
                      ],
      dist => {
               DIST_DEFAULT => join(" ", # note: order matters!

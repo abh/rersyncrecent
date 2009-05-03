@@ -1,3 +1,10 @@
+2009-05-02  Andreas J. Koenig  <andk@cpan.org>
+
+	* Todo: rename rrr-dirtyupdate to rrr-update and add an option --dirty
+	so we can use it for normal update with a single file. And add a cronjob
+	that runs rrr-fsck so we get a reminder when something is not working
+	as it should.
+
 2009-04-27  Andreas J. Koenig  <andk@cpan.org>
 
 	* Todo: I still see more link_stat errors than expected. I come back to
@@ -208,9 +215,6 @@ done
 	some void, some not, some not void but called in void context.
 
 2009-04-10  Andreas J. Koenig  <andk@cpan.org>
-
-	* Todo: rename rrr-dirtyupdate to rrr-update and add an option --dirty
-	so we can use it for normal update with a single file.
 
 	* Bug? When the dirtymark changes then the second tier hosts quickly
 	reset their DONE state and restart mirroring. But then they mirror

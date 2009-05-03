@@ -89,7 +89,7 @@ WriteMakefile
                                    "setversion",
                                    "all",
                                    "tardist",
-                                   "release-memo",
+                                   "memo-howto-release",
                                   ),
               $preferzip eq "bzip2" ?
               (COMPRESS => 'bzip2 -9f',
@@ -139,7 +139,7 @@ the-release-name :
 	$(NOECHO) $(ECHO) 'version ' $(VERSION)
 	$(NOECHO) $(ECHO) 'release-name ' $(DISTVNAME).tar$(SUFFIX)
 
-release-memo:
+memo-howto-release:
 	$(NOECHO) $(ECHO) 'after successful make dist and upload do not forget to'
 	$(NOECHO) $(ECHO) ' make tag'
 	$(NOECHO) $(ECHO) ' git push --tags'

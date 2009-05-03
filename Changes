@@ -1,3 +1,17 @@
+2009-05-03  Andreas J. Koenig  <andk@cpan.org>
+
+	* release 0.0.7
+
+	* bugfix: state of ignore_link_stat_errors was lost during cloning
+
+	* make ignore_link_stat_errors true per default
+
+	* set $ENV{LANG} before exec of rsync
+
+	* overhaul the bin/ directory with rrr-update and rrr-fsck
+
+	* adjust verbosity of delete events
+
 2009-04-25  Andreas J. Koenig  <andk@cpan.org>
 
 	* release 0.0.6

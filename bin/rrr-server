@@ -1,0 +1,121 @@
+#!/usr/bin/perl -- -*- mode: cperl -*-
+
+=head1 NAME
+
+rrr-server - watch a tree and update indexfiles
+
+=head1 SYNOPSIS
+
+  rrr-server [options] principalfile
+
+=head1 OPTIONS
+
+=over 8
+
+=cut
+
+my @opt = <<'=back' =~ /B<--(\S+)>/g;
+
+=item B<--help|h>
+
+Prints a brief message and exists.
+
+=item B<--verbose|v+>
+
+More feedback.
+
+=back
+
+=head1 DESCRIPTION
+
+After you have setup a tree watch it with inotify and keep it
+uptodate. Depends on inotify which probably only exists on linux.
+
+=head1 PREREQUISITES
+
+Linux::Inotify2, File::Find::Rule.
+
+They are not declared as prerequisites of the F:R:M:Recent package
+because there are so many ways to deal with the serverr side that
+rrr-server is not considered essential.
+
+=cut
+
+
+use strict;
+use warnings;
+
+use File::Find qw(find);
+use lib "/home/k/sources/rersyncrecent/lib";
+use File::Rsync::Mirror::Recent;
+use File::Spec;
+use Getopt::Long;
+use Pod::Usage qw(pod2usage);
+use Time::HiRes qw(time);
+
+our %Opt;
+GetOptions(\%Opt,
+           @opt,
+          ) or pod2usage(1);
+
+if ($Opt{help}) {
+    pod2usage(0);
+}
+
+if (@ARGV != 1) {
+    pod2usage(1);
+}
+
+my($principal) = @ARGV;
+my $recc = File::Rsync::Mirror::Recent->new
+    (local => $principal);
+my($rf) = $recc->principal_recentfile;
+my $rootdir = $rf->localroot;
+for my $req (qw(Linux::Inotify2 File::Find::Rule)) {
+    eval qq{ require $req; 1 };
+    if ($@) {
+        die "Failing on 'require $req': $@"
+    } else {
+        $req->import;
+    }
+}
+
+my $inotify = new Linux::Inotify2
+    or die "Unable to create new inotify object: $!";
+
+foreach my $directory ( File::Find::Rule->new->directory->in($rootdir) ) {
+    $inotify->watch( $directory, IN_MODIFY()|IN_MOVED_FROM()|IN_MOVED_TO()|IN_CREATE()|IN_DELETE()|IN_DELETE_SELF()|IN_MOVE_SELF() )
+        or die "watch creation failed";
+}
+
+
+my $i;
+my $in_callback = sub {
+    my $ev = shift;
+    my @stringifiedmask;
+    for my $watch (qw(IN_MODIFY IN_MOVED_FROM IN_MOVED_TO IN_CREATE IN_DELETE IN_DELETE_SELF IN_MOVE_SELF)) {
+        push @stringifiedmask, $watch if $ev->$watch();
+    }
+    warn sprintf "%s %s %s %s %s %s", ++$i, time, $ev->w->name, $ev->name, $ev->fullname, join("|",@stringifiedmask);
+};
+
+while () {
+    my @events = $inotify->read;
+    unless ( @events > 0 ) {
+        print "read error: $!";
+        last;
+    }
+    foreach my $event (@events) {
+        $in_callback->($event);
+    }
+    # no sleep necessary, read is blocking
+}
+
+__END__
+
+
+# Local Variables:
+# mode: cperl
+# coding: utf-8
+# cperl-indent-level: 4
+# End:

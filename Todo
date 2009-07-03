@@ -1,6 +1,11 @@
+2009-06-22  Andreas J. Koenig  <andk@cpan.org>
+
+	* Todo: rrr-init to generate some index files so that rrr-server can be
+	started.
+
 2009-05-02  Andreas J. Koenig  <andk@cpan.org>
 
-	* Todo: rename rrr-dirtyupdate to rrr-update and add an option --dirty
+	* DONE: rename rrr-dirtyupdate to rrr-update and add an option --dirty
 	so we can use it for normal update with a single file. And add a cronjob
 	that runs rrr-fsck so we get a reminder when something is not working
 	as it should.

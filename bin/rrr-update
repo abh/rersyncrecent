@@ -16,6 +16,10 @@ rrr-update - add a file to the dataset
 
 my @opt = <<'=back' =~ /B<--(\S+)>/g;
 
+=item B<--add>
+
+Inject an add event.
+
 =item B<--delete>
 
 Inject a delete event.
@@ -103,6 +107,12 @@ if ($Opt{delete}) {
         die "Didn't find '$file' in this recentfile collection, giving up.";
     }
     $type = "delete";
+} elsif ($Opt{add}) {
+    my $news = $recc->news(contains => { path => $rel_file });
+    if (@$news) {
+        warn "Info: found file in index:\n".YAML::Syck::Dump $news;
+    }
+    $type = "add";
 }
 
 my $epoch = $Opt{epoch};

@@ -69,7 +69,7 @@ WriteMakefile
       'Test::More'       => 0,
       'File::Basename'   => 0,
       'File::Path'       => 0,
-      'File::Temp'       => 0,
+      'File::Temp'       => 0.21, # removes bogus test on parent directory
       'List::MoreUtils'  => 0,
       'List::Pairwise'   => 0,
       'Scalar::Util'     => 0,

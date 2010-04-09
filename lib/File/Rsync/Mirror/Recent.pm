@@ -296,7 +296,7 @@ I<Cnt> is the number of entries in this recentfile.
 
 I<Max> is the highest(first) epoch in this recentfile, rounded.
 
-I<Min> is the lowest(last) epoch in thie recentfile, rounded.
+I<Min> is the lowest(last) epoch in this recentfile, rounded.
 
 I<Span> is the timespan currently covered, rounded.
 

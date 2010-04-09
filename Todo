@@ -1,3 +1,15 @@
+2009-12-10  Andreas J. Koenig  <andk@cpan.org>
+
+	* Prominent request for statusfile to safe memory consumption. I'd like
+	to work backwards: get a verification program that verifies how well in
+	sync two nodes are without using frmr itself. Pretend that the forking
+	agent already works and can be interrupted with ^C. Then let it die at
+	random and restart at random and see the memory consumption and the
+	failure rate over time. Compare it with the curve we have now.
+
+	Of course we also invented the status file as a sharp debugging tool.
+	I'd like to see it in action.
+
 2009-06-22  Andreas J. Koenig  <andk@cpan.org>
 
 	* Todo: rrr-init to generate some index files so that rrr-server can be

@@ -1014,6 +1014,7 @@ behind PAUSE.
  rsnapshot           www.rsnapshot.org                       focus on backup
  csync               www.csync.org                           more like unison
  multi-rsync         sourceforge 167893                      lan push to many
+ chasm               chasmd.org                              per-directory manifests
 
 =head2 COMPETITORS
 

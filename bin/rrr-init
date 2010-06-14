@@ -1,0 +1,92 @@
+#!/usr/bin/perl -- -*- mode: cperl -*-
+
+=head1 NAME
+
+rrr-init - set up RECENT files for a directory tree
+
+=head1 SYNOPSIS
+
+  rrr-init [options] directory
+
+=head1 OPTIONS
+
+=over 8
+
+=cut
+
+my @opt = <<'=back' =~ /B<--(\S+)>/g;
+
+=item B<--aggregator=s>
+
+Comma separated list of aggregator specifications, e.g.
+
+  --aggregator=1h,6h,1d,1W,1M,1Q,1Y,Z
+
+Defaults to C<1h,1d,1M,1Y,Z>
+
+=item B<--help|h>
+
+Prints a brief message and exists.
+
+=item B<--verbose|v+>
+
+More feedback.
+
+=back
+
+=head1 DESCRIPTION
+
+Walk through a tree and fill all files into initial recentfiles.
+
+=cut
+
+
+use strict;
+use warnings;
+
+use File::Find::Rule;
+use lib "/home/k/sources/rersyncrecent/lib";
+use File::Rsync::Mirror::Recent;
+use File::Rsync::Mirror::Recentfile;
+use File::Spec;
+use Getopt::Long;
+use Pod::Usage qw(pod2usage);
+use Time::HiRes qw(time);
+
+our %Opt;
+GetOptions(\%Opt,
+           @opt,
+          ) or pod2usage(1);
+
+if ($Opt{help}) {
+    pod2usage(0);
+}
+
+if (@ARGV != 1) {
+    pod2usage(1);
+}
+
+my($rootdir) = @ARGV;
+my $aggregator_string = $Opt{aggregator} || "1h,1d,1M,1Y,Z";
+my @aggregator = split /\s*,\s*/, $aggregator_string;
+my $localroot = File::Spec->rel2abs($rootdir);
+my $rf = File::Rsync::Mirror::Recentfile->new
+    (
+     aggregator => \@aggregator,
+     interval => $aggregator[0],
+     localroot => $localroot,
+     verbose => $Opt{verbose},
+    );
+
+foreach my $file ( map {$_->[1]} sort {$a->[0] <=> $b->[0]} map {[-M $_, $_]} File::Find::Rule->new->file->in($rootdir) ) {
+    $rf->update(File::Spec->rel2abs($file),"new");
+}
+
+__END__
+
+
+# Local Variables:
+# mode: cperl
+# coding: utf-8
+# cperl-indent-level: 4
+# End:

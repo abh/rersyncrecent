@@ -31,16 +31,15 @@ More feedback.
 After you have setup a tree watch it with inotify and keep it
 uptodate. Depends on inotify which probably only exists on linux.
 
-=head1 PREREQUISITES
+=head1 PREREQUISITE
 
-Linux::Inotify2, File::Find::Rule.
+Linux::Inotify2.
 
-They are not declared as prerequisites of the F:R:M:Recent package
-because there are so many ways to deal with the serverr side that
-rrr-server is not considered essential.
+It is not declared as prerequisites of the F:R:M:Recent package
+because there are so many ways to use the package so that server side
+is considered optional.
 
 =cut
-
 
 use strict;
 use warnings;

@@ -1045,12 +1045,11 @@ sub meta_data {
 =head2 $success = $obj->mirror ( %options )
 
 Mirrors the files in this I<recentfile> as reported by
-C<recent_events>. Options named C<after>, C<before>, C<max>, and
-C<skip-deletes> are passed through to the C<recent_events> call. The
-boolean option C<piecemeal>, if true, causes C<mirror> to only rsync
-C<max_files_per_connection> and keep track of the rsynced files so
-that future calls will rsync different files until all files are
-brought to sync.
+C<recent_events>. Options named C<after>, C<before>, C<max> are passed
+through to the C<recent_events> call. The boolean option C<piecemeal>,
+if true, causes C<mirror> to only rsync C<max_files_per_connection>
+and keep track of the rsynced files so that future calls will rsync
+different files until all files are brought to sync.
 
 =cut
 
@@ -1058,7 +1057,10 @@ sub mirror {
     my($self, %options) = @_;
     my $trecentfile = $self->get_remote_recentfile_as_tempfile();
     $self->_use_tempfile (1);
-    my %passthrough = map { ($_ => $options{$_}) } qw(before after max skip-deletes);
+    # skip-deletes is inadequat for passthrough within mirror. We
+    # would never reach uptodateness when a delete were on a
+    # borderline
+    my %passthrough = map { ($_ => $options{$_}) } qw(before after max);
     my ($recent_events) = $self->recent_events(%passthrough);
     my(@error, @dlcollector); # download-collector: array containing paths we need
     my $first_item = 0;

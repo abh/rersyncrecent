@@ -1,3 +1,8 @@
+2010-06-15  Andreas J. Koenig  <andk@cpan.org>
+
+	* remove the wild alpha alerts and say, it is alpha but parts of it are
+	already working very well or so.
+
 2009-12-10  Andreas J. Koenig  <andk@cpan.org>
 
 	* Prominent request for statusfile to safe memory consumption. I'd like

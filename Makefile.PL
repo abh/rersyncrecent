@@ -78,7 +78,7 @@ WriteMakefile
       'version'          => 0,
      },
      EXE_FILES    => [
-                      grep {-x $_} grep { !/~/ } glob("bin/rrr*")
+                      grep { !/~/ } glob("bin/rrr bin/rrr-*")
                      ],
      dist => {
               DIST_DEFAULT => join(" ", # note: order matters!

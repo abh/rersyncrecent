@@ -52,8 +52,6 @@ for my $m (qw(Recentfile Recentfile::Done Recentfile::FakeBigFloat )) {
 }
 
 my $preferzip = "bzip2"; # bzip2 | gzip
-warn "Current zip variant: $preferzip\n";
-sleep 2;
 WriteMakefile
     (
      NAME                => 'File::Rsync::Mirror::Recent',

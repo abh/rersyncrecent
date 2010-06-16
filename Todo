@@ -1,3 +1,18 @@
+2010-06-16  Andreas J. Koenig  <andk@cpan.org>
+
+	* rrr-init seems to be sssslllloooowwww. At 3:49 I started it for the
+	video tree. After twelve minutes the file has reached a size of 500k. It
+	is locking and rewriting the YAML after every file. Wasn't there an
+	unlocked variant? For "init" one would not expect locked correctness and
+	a rewrite after every item. Given that this tends to become slower with
+	every file it is really unacceptable.
+
+	Reminds me of rrr-dirtyupdate (the former name of rrr-update). It seems
+	the code was not dirty enough and that was the reason why it was so
+	slow. And rrr-update does not have a --dirty switch, so it looks like we
+	have no way to force dirty and fast operation yet but we need it for
+	init.
+
 2010-06-15  Andreas J. Koenig  <andk@cpan.org>
 
 	* remove the wild alpha alerts and say, it is alpha but parts of it are
@@ -13,7 +28,7 @@
 	failure rate over time. Compare it with the curve we have now.
 
 	Of course we also invented the status file as a sharp debugging tool.
-	I'd like to see it in action.
+	I'd like to see it in action. See also: F:R:M:Recent::thaw().
 
 2009-06-22  Andreas J. Koenig  <andk@cpan.org>
 

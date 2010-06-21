@@ -1982,81 +1982,84 @@ sub update {
 }
 sub _locked_batch_update {
     my($self,$batch) = @_;
-    my($path,$type,$dirty_epoch) = @{$batch->[0]}{qw(path type epoch)};
-    if (defined $path or defined $type or defined $dirty_epoch) {
-        die "update called without path argument" unless defined $path;
-        die "update called without type argument" unless defined $type;
-        die "update called with illegal type argument: $type" unless $type =~ /(new|delete)/;
-        # since we have keep_delete_objects_forever we must let them inject delete objects too:
-        #die "update called with \$type=$type and \$dirty_epoch=$dirty_epoch; ".
-        #    "dirty_epoch only allowed with type=new" if defined $dirty_epoch and $type ne "new";
-        my $canonmeth = $self->canonize;
-        unless ($canonmeth) {
-            $canonmeth = "naive_path_normalize";
-        }
-        $path = $self->$canonmeth($path);
-    }
-    my $lrd = $self->localroot;
-    # you must calculate the time after having locked, of course
-    my $now = Time::HiRes::time;
-    my $interval = $self->interval;
-    my $secs = $self->interval_secs();
-    my $recent = $self->recent_events;
-
-    my $epoch;
-    if (defined $dirty_epoch && _bigfloatgt($now,$dirty_epoch)) {
-        $epoch = $dirty_epoch;
-    } else {
-        $epoch = $self->_epoch_monotonically_increasing($now,$recent);
-    }
-
-    $recent ||= [];
-    my $oldest_allowed = 0;
-    my $merged = $self->merged;
-    if ($merged->{epoch}) {
-        my $virtualnow = _bigfloatmax($now,$epoch);
-        # for the lower bound I think we need no big math, we calc already
-        $oldest_allowed = min($virtualnow - $secs, $merged->{epoch}, $epoch);
-    } else {
-        # as long as we are not merged at all, no limits!
-    }
     my $something_done = 0;
- TRUNCATE: while (@$recent) {
-        # $DB::single++ unless defined $oldest_allowed;
-        if (_bigfloatlt($recent->[-1]{epoch}, $oldest_allowed)) {
-            pop @$recent;
+    my $recent;
+    for my $item (@$batch) {
+        my($path,$type,$dirty_epoch) = @{$item}{qw(path type epoch)};
+        if (defined $path or defined $type or defined $dirty_epoch) {
+            die "update called without path argument" unless defined $path;
+            die "update called without type argument" unless defined $type;
+            die "update called with illegal type argument: $type" unless $type =~ /(new|delete)/;
+            # since we have keep_delete_objects_forever we must let them inject delete objects too:
+            #die "update called with \$type=$type and \$dirty_epoch=$dirty_epoch; ".
+            #    "dirty_epoch only allowed with type=new" if defined $dirty_epoch and $type ne "new";
+            my $canonmeth = $self->canonize;
+            unless ($canonmeth) {
+                $canonmeth = "naive_path_normalize";
+            }
+            $path = $self->$canonmeth($path);
+        }
+        my $lrd = $self->localroot;
+        # you must calculate the time after having locked, of course
+        my $now = Time::HiRes::time;
+        my $interval = $self->interval;
+        my $secs = $self->interval_secs();
+        $recent = $self->recent_events;
+
+        my $epoch;
+        if (defined $dirty_epoch && _bigfloatgt($now,$dirty_epoch)) {
+            $epoch = $dirty_epoch;
+        } else {
+            $epoch = $self->_epoch_monotonically_increasing($now,$recent);
+        }
+
+        $recent ||= [];
+        my $oldest_allowed = 0;
+        my $merged = $self->merged;
+        if ($merged->{epoch}) {
+            my $virtualnow = _bigfloatmax($now,$epoch);
+            # for the lower bound I think we need no big math, we calc already
+            $oldest_allowed = min($virtualnow - $secs, $merged->{epoch}, $epoch);
+        } else {
+            # as long as we are not merged at all, no limits!
+        }
+    TRUNCATE: while (@$recent) {
+            # $DB::single++ unless defined $oldest_allowed;
+            if (_bigfloatlt($recent->[-1]{epoch}, $oldest_allowed)) {
+                pop @$recent;
+                $something_done = 1;
+            } else {
+                last TRUNCATE;
+            }
+        }
+        if (defined $path && $path =~ s|^\Q$lrd\E||) {
+            $path =~ s|^/||;
+            my $splicepos;
+            # remove the older duplicates of this $path, irrespective of $type:
+            if (defined $dirty_epoch) {
+                my $ctx = $self->_update_with_dirty_epoch($path,$recent,$epoch);
+                $recent    = $ctx->{recent};
+                $splicepos = $ctx->{splicepos};
+                $epoch     = $ctx->{epoch};
+                my $dirtymark = $self->dirtymark;
+                my $new_dm = $now;
+                if (_bigfloatgt($epoch, $now)) { # just in case we had to increase it
+                    $new_dm = $epoch;
+                }
+                $self->dirtymark($new_dm);
+                my $merged = $self->merged;
+                if (not defined $merged->{epoch} or _bigfloatlt($epoch,$merged->{epoch})) {
+                    $self->merged(+{});
+                }
+            } else {
+                $recent = [ grep { $_->{path} ne $path } @$recent ];
+                $splicepos = 0;
+            }
+            if (defined $splicepos) {
+                splice @$recent, $splicepos, 0, { epoch => $epoch, path => $path, type => $type };
+            }
             $something_done = 1;
-        } else {
-            last TRUNCATE;
         }
-    }
-    if (defined $path && $path =~ s|^\Q$lrd\E||) {
-        $path =~ s|^/||;
-        my $splicepos;
-        # remove the older duplicates of this $path, irrespective of $type:
-        if (defined $dirty_epoch) {
-            my $ctx = $self->_update_with_dirty_epoch($path,$recent,$epoch);
-            $recent    = $ctx->{recent};
-            $splicepos = $ctx->{splicepos};
-            $epoch     = $ctx->{epoch};
-            my $dirtymark = $self->dirtymark;
-            my $new_dm = $now;
-            if (_bigfloatgt($epoch, $now)) { # just in case we had to increase it
-                $new_dm = $epoch;
-            }
-            $self->dirtymark($new_dm);
-            my $merged = $self->merged;
-            if (not defined $merged->{epoch} or _bigfloatlt($epoch,$merged->{epoch})) {
-                $self->merged(+{});
-            }
-        } else {
-            $recent = [ grep { $_->{path} ne $path } @$recent ];
-            $splicepos = 0;
-        }
-        if (defined $splicepos) {
-            splice @$recent, $splicepos, 0, { epoch => $epoch, path => $path, type => $type };
-        }
-        $something_done = 1;
     }
     return {something_done=>$something_done,recent=>$recent};
 }

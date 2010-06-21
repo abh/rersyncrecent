@@ -1974,6 +1974,15 @@ sub _epoch_monotonically_increasing {
 }
 sub update {
     my($self,$path,$type,$dirty_epoch) = @_;
+    $self->lock;
+    my $ctx = $self->_locked_batch_update([{path=>$path,type=>$type,epoch=>$dirty_epoch}]);
+    $self->write_recent($ctx->{recent}) if $ctx->{something_done};
+    $self->_assert_symlink;
+    $self->unlock;
+}
+sub _locked_batch_update {
+    my($self,$batch) = @_;
+    my($path,$type,$dirty_epoch) = @{$batch->[0]}{qw(path type epoch)};
     if (defined $path or defined $type or defined $dirty_epoch) {
         die "update called without path argument" unless defined $path;
         die "update called without type argument" unless defined $type;
@@ -1988,7 +1997,6 @@ sub update {
         $path = $self->$canonmeth($path);
     }
     my $lrd = $self->localroot;
-    $self->lock;
     # you must calculate the time after having locked, of course
     my $now = Time::HiRes::time;
     my $interval = $self->interval;
@@ -2050,10 +2058,7 @@ sub update {
         }
         $something_done = 1;
     }
-
-    $self->write_recent($recent) if $something_done;
-    $self->_assert_symlink;
-    $self->unlock;
+    return {something_done=>$something_done,recent=>$recent};
 }
 
 sub _update_with_dirty_epoch {

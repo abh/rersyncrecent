@@ -13,6 +13,12 @@
 	have no way to force dirty and fast operation yet but we need it for
 	init.
 
+	Irritating the bootstrapping race: the order {(1) fill initial
+	array, (2) start server} leaves the need for an fsck to cover the time
+	between 1 and 2. Given that regular fsck is needed in any case the price
+	is not high but still doesn't give a warm feeling. Maybe starting the
+	server will by itself do an fsck?
+
 2010-06-15  Andreas J. Koenig  <andk@cpan.org>
 
 	* remove the wild alpha alerts and say, it is alpha but parts of it are

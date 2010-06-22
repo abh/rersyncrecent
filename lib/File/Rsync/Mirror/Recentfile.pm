@@ -1983,7 +1983,7 @@ sub update {
 sub _locked_batch_update {
     my($self,$batch) = @_;
     my $something_done = 0;
-    my $recent;
+    my $recent = $self->recent_events;
     my $lrd = $self->localroot;
     my $interval = $self->interval;
     my $secs = $self->interval_secs();
@@ -2004,7 +2004,6 @@ sub _locked_batch_update {
         }
         # you must calculate the time after having locked, of course
         my $now = Time::HiRes::time;
-        $recent = $self->recent_events;
 
         my $epoch;
         if (defined $dirty_epoch && _bigfloatgt($now,$dirty_epoch)) {
@@ -2013,7 +2012,11 @@ sub _locked_batch_update {
             $epoch = $self->_epoch_monotonically_increasing($now,$recent);
         }
 
-        # XXX truncate should go out of batch loop
+        # XXX truncate should go out of batch loop: old code had the
+        # order first truncate, then inject new value but when we have
+        # more than one item to inject we may have more than one
+        # dirty_epoch and dirty_mark may change or not. So maybe we
+        # can truncate better after the loop than before it?
         $recent ||= [];
         my $oldest_allowed = 0;
         my $merged = $self->merged;

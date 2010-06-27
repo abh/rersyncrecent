@@ -1996,6 +1996,8 @@ sub _locked_batch_update {
     unless ($canonmeth) {
         $canonmeth = "naive_path_normalize";
     }
+    my $oldest_allowed = 0;
+    my $setting_new_dirty_mark = 0;
  ITEM: for my $item (@$batch) {
         my($path,$type,$dirty_epoch) = @{$item}{qw(path type epoch)};
         if (defined $path or defined $type or defined $dirty_epoch) {
@@ -2010,14 +2012,7 @@ sub _locked_batch_update {
         } else {
             $epoch = $self->_epoch_monotonically_increasing($now,$recent);
         }
-
-        # XXX truncate should go out of batch loop: old code had the
-        # order first truncate, then inject new value but when we have
-        # more than one item to inject we may have more than one
-        # dirty_epoch and dirty_mark may change or not. So maybe we
-        # can truncate better after the loop than before it?
         $recent ||= [];
-        my $oldest_allowed = 0;
         my $merged = $self->merged;
         if ($merged->{epoch}) {
             my $virtualnow = _bigfloatmax($now,$epoch);
@@ -2025,15 +2020,6 @@ sub _locked_batch_update {
             $oldest_allowed = min($virtualnow - $secs, $merged->{epoch}, $epoch);
         } else {
             # as long as we are not merged at all, no limits!
-        }
-    TRUNCATE: while (@$recent) {
-            # $DB::single++ unless defined $oldest_allowed;
-            if (_bigfloatlt($recent->[-1]{epoch}, $oldest_allowed)) {
-                pop @$recent;
-                $something_done = 1;
-            } else {
-                last TRUNCATE;
-            }
         }
         if (defined $path && $path =~ s|^\Q$lrd\E||) {
             $path =~ s|^/||;
@@ -2050,6 +2036,7 @@ sub _locked_batch_update {
                     $new_dm = $epoch;
                 }
                 $self->dirtymark($new_dm);
+                $setting_new_dirty_mark = 1;
                 my $merged = $self->merged;
                 if (not defined $merged->{epoch} or _bigfloatlt($epoch,$merged->{epoch})) {
                     $self->merged(+{});
@@ -2062,6 +2049,18 @@ sub _locked_batch_update {
                 splice @$recent, $splicepos, 0, { epoch => $epoch, path => $path, type => $type };
             }
             $something_done = 1;
+        }
+    }
+    if ($setting_new_dirty_mark) {
+        $oldest_allowed = 0;
+    }
+TRUNCATE: while (@$recent) {
+        # $DB::single++ unless defined $oldest_allowed;
+        if (_bigfloatlt($recent->[-1]{epoch}, $oldest_allowed)) {
+            pop @$recent;
+            $something_done = 1;
+        } else {
+            last TRUNCATE;
         }
     }
     return {something_done=>$something_done,recent=>$recent};

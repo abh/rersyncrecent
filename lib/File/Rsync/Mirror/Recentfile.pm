@@ -2037,7 +2037,6 @@ sub _locked_batch_update {
                 }
                 $self->dirtymark($new_dm);
                 $setting_new_dirty_mark = 1;
-                my $merged = $self->merged;
                 if (not defined $merged->{epoch} or _bigfloatlt($epoch,$merged->{epoch})) {
                     $self->merged(+{});
                 }

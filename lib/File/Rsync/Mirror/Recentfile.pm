@@ -2014,7 +2014,7 @@ sub _locked_batch_update {
         }
         $recent ||= [];
         my $merged = $self->merged;
-        if ($merged->{epoch}) {
+        if ($merged->{epoch} && !$setting_new_dirty_mark) {
             my $virtualnow = _bigfloatmax($now,$epoch);
             # for the lower bound I think we need no big math, we calc already
             $oldest_allowed = min($virtualnow - $secs, $merged->{epoch}, $epoch);

@@ -78,13 +78,22 @@ my $rf = File::Rsync::Mirror::Recentfile->new
      verbose => $Opt{verbose},
     );
 
+my @t = time;
 my @batch;
 foreach my $file ( map {$_->[1]} sort {$a->[0] <=> $b->[0]} map {[-M $_, $_]} File::Find::Rule->new->file->in($rootdir) ) {
     my $path = File::Spec->rel2abs($file);
     my $epoch = (stat $path)[9];
     push @batch, {path=>$path,type=>"new",epoch=>$epoch};
 }
+if ($Opt{verbose}) {
+    $t[1] = time;
+    warn sprintf "Found %d files to register in %.6f s. Writing to %s/%s\n", scalar @batch, $t[1]-$t[0], $rootdir, $rf->rfilename;
+}
 $rf->batch_update(\@batch);
+if ($Opt{verbose}) {
+    $t[2] = time;
+    warn sprintf "Registered %d files in %.6f s\n", scalar @batch, $t[2]-$t[1];
+}
 
 __END__
 

@@ -1974,6 +1974,11 @@ sub _epoch_monotonically_increasing {
 }
 sub update {
     my($self,$path,$type,$dirty_epoch) = @_;
+    if (defined $path or defined $type or defined $dirty_epoch) {
+        die "update called without path argument" unless defined $path;
+        die "update called without type argument" unless defined $type;
+        die "update called with illegal type argument: $type" unless $type =~ /(new|delete)/;
+    }
     $self->lock;
     my $ctx = $self->_locked_batch_update([{path=>$path,type=>$type,epoch=>$dirty_epoch}]);
     $self->write_recent($ctx->{recent}) if $ctx->{something_done};
@@ -1994,12 +1999,6 @@ sub _locked_batch_update {
  ITEM: for my $item (@$batch) {
         my($path,$type,$dirty_epoch) = @{$item}{qw(path type epoch)};
         if (defined $path or defined $type or defined $dirty_epoch) {
-            die "update called without path argument" unless defined $path;
-            die "update called without type argument" unless defined $type;
-            die "update called with illegal type argument: $type" unless $type =~ /(new|delete)/;
-            # since we have keep_delete_objects_forever we must let them inject delete objects too:
-            #die "update called with \$type=$type and \$dirty_epoch=$dirty_epoch; ".
-            #    "dirty_epoch only allowed with type=new" if defined $dirty_epoch and $type ne "new";
             $path = $self->$canonmeth($path);
         }
         # you must calculate the time after having locked, of course

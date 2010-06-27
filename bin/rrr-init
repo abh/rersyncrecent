@@ -78,9 +78,13 @@ my $rf = File::Rsync::Mirror::Recentfile->new
      verbose => $Opt{verbose},
     );
 
+my @batch;
 foreach my $file ( map {$_->[1]} sort {$a->[0] <=> $b->[0]} map {[-M $_, $_]} File::Find::Rule->new->file->in($rootdir) ) {
-    $rf->update(File::Spec->rel2abs($file),"new");
+    my $path = File::Spec->rel2abs($file);
+    my $epoch = (stat $path)[9];
+    push @batch, {path=>$path,type=>"new",epoch=>$epoch};
 }
+$rf->batch_update(\@batch);
 
 __END__
 

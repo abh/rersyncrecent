@@ -1985,6 +1985,14 @@ sub update {
     $self->_assert_symlink;
     $self->unlock;
 }
+sub batch_update {
+    my($self,$batch) = @_;
+    $self->lock;
+    my $ctx = $self->_locked_batch_update($batch);
+    $self->write_recent($ctx->{recent}) if $ctx->{something_done};
+    $self->_assert_symlink;
+    $self->unlock;
+}
 sub _locked_batch_update {
     my($self,$batch) = @_;
     my $something_done = 0;

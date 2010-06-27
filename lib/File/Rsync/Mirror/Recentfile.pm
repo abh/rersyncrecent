@@ -1989,9 +1989,7 @@ sub _locked_batch_update {
     my($self,$batch) = @_;
     my $something_done = 0;
     my $recent = $self->recent_events;
-    my $lrd = $self->localroot;
     my $interval = $self->interval;
-    my $secs = $self->interval_secs();
     my $canonmeth = $self->canonize;
     unless ($canonmeth) {
         $canonmeth = "naive_path_normalize";
@@ -1999,56 +1997,11 @@ sub _locked_batch_update {
     my $oldest_allowed = 0;
     my $setting_new_dirty_mark = 0;
  ITEM: for my $item (@$batch) {
-        my($path,$type,$dirty_epoch) = @{$item}{qw(path type epoch)};
-        if (defined $path or defined $type or defined $dirty_epoch) {
-            $path = $self->$canonmeth($path);
-        }
-        # you must calculate the time after having locked, of course
-        my $now = Time::HiRes::time;
-
-        my $epoch;
-        if (defined $dirty_epoch && _bigfloatgt($now,$dirty_epoch)) {
-            $epoch = $dirty_epoch;
-        } else {
-            $epoch = $self->_epoch_monotonically_increasing($now,$recent);
-        }
-        $recent ||= [];
-        my $merged = $self->merged;
-        if ($merged->{epoch} && !$setting_new_dirty_mark) {
-            my $virtualnow = _bigfloatmax($now,$epoch);
-            # for the lower bound I think we need no big math, we calc already
-            $oldest_allowed = min($virtualnow - $secs, $merged->{epoch}, $epoch);
-        } else {
-            # as long as we are not merged at all, no limits!
-        }
-        if (defined $path && $path =~ s|^\Q$lrd\E||) {
-            $path =~ s|^/||;
-            my $splicepos;
-            # remove the older duplicates of this $path, irrespective of $type:
-            if (defined $dirty_epoch) {
-                my $ctx = $self->_update_with_dirty_epoch($path,$recent,$epoch);
-                $recent    = $ctx->{recent};
-                $splicepos = $ctx->{splicepos};
-                $epoch     = $ctx->{epoch};
-                my $dirtymark = $self->dirtymark;
-                my $new_dm = $now;
-                if (_bigfloatgt($epoch, $now)) { # just in case we had to increase it
-                    $new_dm = $epoch;
-                }
-                $self->dirtymark($new_dm);
-                $setting_new_dirty_mark = 1;
-                if (not defined $merged->{epoch} or _bigfloatlt($epoch,$merged->{epoch})) {
-                    $self->merged(+{});
-                }
-            } else {
-                $recent = [ grep { $_->{path} ne $path } @$recent ];
-                $splicepos = 0;
-            }
-            if (defined $splicepos) {
-                splice @$recent, $splicepos, 0, { epoch => $epoch, path => $path, type => $type };
-            }
-            $something_done = 1;
-        }
+        my $ctx = $self->_update_batch_item($item,$canonmeth,$recent,$setting_new_dirty_mark,$oldest_allowed,$something_done);
+        $something_done = $ctx->{something_done};
+        $oldest_allowed = $ctx->{oldest_allowed};
+        $setting_new_dirty_mark = $ctx->{setting_new_dirty_mark};
+        $recent = $ctx->{recent};
     }
     if ($setting_new_dirty_mark) {
         $oldest_allowed = 0;
@@ -2064,7 +2017,68 @@ TRUNCATE: while (@$recent) {
     }
     return {something_done=>$something_done,recent=>$recent};
 }
+sub _update_batch_item {
+    my($self,$item,$canonmeth,$recent,$setting_new_dirty_mark,$oldest_allowed,$something_done) = @_;
+    my($path,$type,$dirty_epoch) = @{$item}{qw(path type epoch)};
+    if (defined $path or defined $type or defined $dirty_epoch) {
+        $path = $self->$canonmeth($path);
+    }
+    # you must calculate the time after having locked, of course
+    my $now = Time::HiRes::time;
 
+    my $epoch;
+    if (defined $dirty_epoch && _bigfloatgt($now,$dirty_epoch)) {
+        $epoch = $dirty_epoch;
+    } else {
+        $epoch = $self->_epoch_monotonically_increasing($now,$recent);
+    }
+    $recent ||= [];
+    my $merged = $self->merged;
+    if ($merged->{epoch} && !$setting_new_dirty_mark) {
+        my $virtualnow = _bigfloatmax($now,$epoch);
+        # for the lower bound I think we need no big math, we calc already
+        my $secs = $self->interval_secs();
+        $oldest_allowed = min($virtualnow - $secs, $merged->{epoch}, $epoch);
+        } else {
+            # as long as we are not merged at all, no limits!
+        }
+    my $lrd = $self->localroot;
+    if (defined $path && $path =~ s|^\Q$lrd\E||) {
+        $path =~ s|^/||;
+        my $splicepos;
+        # remove the older duplicates of this $path, irrespective of $type:
+        if (defined $dirty_epoch) {
+            my $ctx = $self->_update_with_dirty_epoch($path,$recent,$epoch);
+            $recent    = $ctx->{recent};
+            $splicepos = $ctx->{splicepos};
+            $epoch     = $ctx->{epoch};
+            my $dirtymark = $self->dirtymark;
+            my $new_dm = $now;
+            if (_bigfloatgt($epoch, $now)) { # just in case we had to increase it
+                $new_dm = $epoch;
+            }
+            $self->dirtymark($new_dm);
+            $setting_new_dirty_mark = 1;
+            if (not defined $merged->{epoch} or _bigfloatlt($epoch,$merged->{epoch})) {
+                $self->merged(+{});
+            }
+        } else {
+            $recent = [ grep { $_->{path} ne $path } @$recent ];
+            $splicepos = 0;
+        }
+        if (defined $splicepos) {
+            splice @$recent, $splicepos, 0, { epoch => $epoch, path => $path, type => $type };
+        }
+        $something_done = 1;
+    }
+    return
+        {
+         something_done => $something_done,
+         oldest_allowed => $oldest_allowed,
+         setting_new_dirty_mark => $setting_new_dirty_mark,
+         recent => $recent,
+        }
+}
 sub _update_with_dirty_epoch {
     my($self,$path,$recent,$epoch) = @_;
     my $splicepos;

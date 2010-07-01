@@ -1985,6 +1985,21 @@ sub update {
     $self->_assert_symlink;
     $self->unlock;
 }
+
+=head2 $obj->batch_update($batch)
+
+Like update but for many files. $batch is an arrayref containing
+hashrefs with the structure
+
+  {
+    path => $path,
+    type => $type,
+    epoch => $epoch,
+  }
+
+
+
+=cut
 sub batch_update {
     my($self,$batch) = @_;
     $self->lock;

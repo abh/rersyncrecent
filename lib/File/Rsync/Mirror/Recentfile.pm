@@ -2121,7 +2121,7 @@ sub _update_with_dirty_epoch {
     my($self,$path,$recent,$epoch) = @_;
     my $splicepos;
     my $new_recent = [];
-    if (grep { $_->{path} ne $path } @$recent) {
+    if (grep { $_->{path} eq $path } @$recent) {
         my $cancel = 0;
     KNOWN_EVENT: for my $i (0..$#$recent) {
             if ($recent->[$i]{path} eq $path) {

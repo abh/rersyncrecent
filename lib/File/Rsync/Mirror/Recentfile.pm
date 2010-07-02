@@ -821,12 +821,26 @@ sub lock {
     # XXX need a way to allow breaking the lock
     my $start = time;
     my $locktimeout = $self->locktimeout || 600;
+    my %have_warned;
     while (not mkdir "$rfile.lock") {
+        if (open my $fh, "<", "$rfile.lock/process") {
+            chomp(my $process = <$fh>);
+            if (kill 0, $process) {
+                warn "Warning: process $process holds a lock, waiting..." unless $have_warned{$process}++;
+            } else {
+                warn "Warning: breaking lock held by process $process";
+                sleep 1;
+                last;
+            }
+        }
         Time::HiRes::sleep 0.01;
         if (time - $start > $locktimeout) {
             die "Could not acquire lockdirectory '$rfile.lock': $!";
         }
     }
+    open my $fh, ">", "$rfile.lock/process" or die "Could not open >$rfile.lock/process\: $!";
+    print $fh $$, "\n";
+    close $fh or die "Could not close: $!";
     $self->_is_locked (1);
 }
 
@@ -1914,7 +1928,8 @@ sub unlock {
     my($self) = @_;
     return unless $self->_is_locked;
     my $rfile = $self->rfile;
-    rmdir "$rfile.lock";
+    unlink "$rfile.lock/process" or warn "Could not unlink lockfile '$rfile.lock/process': $!";
+    rmdir "$rfile.lock" or warn "Could not rmdir lockdir '$rfile.lock': $!";;
     $self->_is_locked (0);
 }
 

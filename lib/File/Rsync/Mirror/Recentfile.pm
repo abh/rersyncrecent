@@ -822,15 +822,18 @@ sub lock {
     my $start = time;
     my $locktimeout = $self->locktimeout || 600;
     my %have_warned;
-    while (not mkdir "$rfile.lock") {
+  GETLOCK: while (not mkdir "$rfile.lock") {
         if (open my $fh, "<", "$rfile.lock/process") {
             chomp(my $process = <$fh>);
-            if (kill 0, $process) {
+            if (0) {
+            } elsif ($$ == $process) {
+                last GETLOCK;
+            } elsif (kill 0, $process) {
                 warn "Warning: process $process holds a lock, waiting..." unless $have_warned{$process}++;
             } else {
                 warn "Warning: breaking lock held by process $process";
                 sleep 1;
-                last;
+                last GETLOCK;
             }
         }
         Time::HiRes::sleep 0.01;

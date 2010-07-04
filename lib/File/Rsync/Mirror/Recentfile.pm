@@ -2037,7 +2037,7 @@ sub _locked_batch_update {
     }
     my $oldest_allowed = 0;
     my $setting_new_dirty_mark = 0;
- ITEM: for my $item (@$batch) {
+ ITEM: for my $item (sort {($b->{epoch}||0) <=> ($a->{epoch}||0)} @$batch) {
         my $ctx = $self->_update_batch_item($item,$canonmeth,$recent,$setting_new_dirty_mark,$oldest_allowed,$something_done);
         $something_done = $ctx->{something_done};
         $oldest_allowed = $ctx->{oldest_allowed};

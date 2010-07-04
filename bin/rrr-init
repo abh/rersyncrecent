@@ -103,7 +103,7 @@ if (-e $rfilename) {
 }
 my @t = time;
 my @batch;
-foreach my $file ( map {$_->[1]} sort {$a->[0] <=> $b->[0]} map {[-M $_, $_]} File::Find::Rule->new->file->in($rootdir) ) {
+foreach my $file ( File::Find::Rule->new->file->in($rootdir) ) {
     my $path = File::Spec->rel2abs($file);
     my $epoch = (stat $path)[9];
     push @batch, {path=>$path,type=>"new",epoch=>$epoch};

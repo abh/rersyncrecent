@@ -190,6 +190,8 @@ sub _increase_a_bit ($;$) {
     if (defined $r){
         if ($r eq $l){
             die "Alert: _increase_a_bit called with identical arguments";
+        } elsif ($r > int($l)+1) {
+            $r = int($l)+1;
         }
     } else {
         $r = _my_sprintf_float(Data::Float::nextup($l));

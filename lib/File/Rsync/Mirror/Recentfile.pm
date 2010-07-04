@@ -2030,6 +2030,7 @@ sub _locked_batch_update {
     my($self,$batch) = @_;
     my $something_done = 0;
     my $recent = $self->recent_events;
+    my %paths_in_recent = map { $_->{path} => undef } @$recent;
     my $interval = $self->interval;
     my $canonmeth = $self->canonize;
     unless ($canonmeth) {
@@ -2038,7 +2039,7 @@ sub _locked_batch_update {
     my $oldest_allowed = 0;
     my $setting_new_dirty_mark = 0;
  ITEM: for my $item (sort {($b->{epoch}||0) <=> ($a->{epoch}||0)} @$batch) {
-        my $ctx = $self->_update_batch_item($item,$canonmeth,$recent,$setting_new_dirty_mark,$oldest_allowed,$something_done);
+        my $ctx = $self->_update_batch_item($item,$canonmeth,$recent,$setting_new_dirty_mark,$oldest_allowed,$something_done,\%paths_in_recent);
         $something_done = $ctx->{something_done};
         $oldest_allowed = $ctx->{oldest_allowed};
         $setting_new_dirty_mark = $ctx->{setting_new_dirty_mark};
@@ -2059,7 +2060,7 @@ TRUNCATE: while (@$recent) {
     return {something_done=>$something_done,recent=>$recent};
 }
 sub _update_batch_item {
-    my($self,$item,$canonmeth,$recent,$setting_new_dirty_mark,$oldest_allowed,$something_done) = @_;
+    my($self,$item,$canonmeth,$recent,$setting_new_dirty_mark,$oldest_allowed,$something_done,$paths_in_recent) = @_;
     my($path,$type,$dirty_epoch) = @{$item}{qw(path type epoch)};
     if (defined $path or defined $type or defined $dirty_epoch) {
         $path = $self->$canonmeth($path);
@@ -2089,7 +2090,7 @@ sub _update_batch_item {
         my $splicepos;
         # remove the older duplicates of this $path, irrespective of $type:
         if (defined $dirty_epoch) {
-            my $ctx = $self->_update_with_dirty_epoch($path,$recent,$epoch);
+            my $ctx = $self->_update_with_dirty_epoch($path,$recent,$epoch,$paths_in_recent);
             $recent    = $ctx->{recent};
             $splicepos = $ctx->{splicepos};
             $epoch     = $ctx->{epoch};
@@ -2109,6 +2110,7 @@ sub _update_batch_item {
         }
         if (defined $splicepos) {
             splice @$recent, $splicepos, 0, { epoch => $epoch, path => $path, type => $type };
+            $paths_in_recent->{$path} = undef;
         }
         $something_done = 1;
     }
@@ -2121,10 +2123,10 @@ sub _update_batch_item {
         }
 }
 sub _update_with_dirty_epoch {
-    my($self,$path,$recent,$epoch) = @_;
+    my($self,$path,$recent,$epoch,$paths_in_recent) = @_;
     my $splicepos;
     my $new_recent = [];
-    if (grep { $_->{path} eq $path } @$recent) {
+    if (exists $paths_in_recent->{$path}) {
         my $cancel = 0;
     KNOWN_EVENT: for my $i (0..$#$recent) {
             if ($recent->[$i]{path} eq $path) {

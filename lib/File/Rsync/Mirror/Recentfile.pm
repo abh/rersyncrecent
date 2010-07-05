@@ -2038,12 +2038,14 @@ sub _locked_batch_update {
     }
     my $oldest_allowed = 0;
     my $setting_new_dirty_mark = 0;
+    my $memo_splicepos;
  ITEM: for my $item (sort {($b->{epoch}||0) <=> ($a->{epoch}||0)} @$batch) {
-        my $ctx = $self->_update_batch_item($item,$canonmeth,$recent,$setting_new_dirty_mark,$oldest_allowed,$something_done,\%paths_in_recent);
+        my $ctx = $self->_update_batch_item($item,$canonmeth,$recent,$setting_new_dirty_mark,$oldest_allowed,$something_done,\%paths_in_recent,$memo_splicepos);
         $something_done = $ctx->{something_done};
         $oldest_allowed = $ctx->{oldest_allowed};
         $setting_new_dirty_mark = $ctx->{setting_new_dirty_mark};
         $recent = $ctx->{recent};
+        $memo_splicepos = $ctx->{memo_splicepos};
     }
     if ($setting_new_dirty_mark) {
         $oldest_allowed = 0;
@@ -2060,7 +2062,7 @@ TRUNCATE: while (@$recent) {
     return {something_done=>$something_done,recent=>$recent};
 }
 sub _update_batch_item {
-    my($self,$item,$canonmeth,$recent,$setting_new_dirty_mark,$oldest_allowed,$something_done,$paths_in_recent) = @_;
+    my($self,$item,$canonmeth,$recent,$setting_new_dirty_mark,$oldest_allowed,$something_done,$paths_in_recent,$memo_splicepos) = @_;
     my($path,$type,$dirty_epoch) = @{$item}{qw(path type epoch)};
     if (defined $path or defined $type or defined $dirty_epoch) {
         $path = $self->$canonmeth($path);
@@ -2090,7 +2092,7 @@ sub _update_batch_item {
         my $splicepos;
         # remove the older duplicates of this $path, irrespective of $type:
         if (defined $dirty_epoch) {
-            my $ctx = $self->_update_with_dirty_epoch($path,$recent,$epoch,$paths_in_recent);
+            my $ctx = $self->_update_with_dirty_epoch($path,$recent,$epoch,$paths_in_recent,$memo_splicepos);
             $recent    = $ctx->{recent};
             $splicepos = $ctx->{splicepos};
             $epoch     = $ctx->{epoch};
@@ -2112,6 +2114,7 @@ sub _update_batch_item {
             splice @$recent, $splicepos, 0, { epoch => $epoch, path => $path, type => $type };
             $paths_in_recent->{$path} = undef;
         }
+        $memo_splicepos = $splicepos;
         $something_done = 1;
     }
     return
@@ -2120,10 +2123,11 @@ sub _update_batch_item {
          oldest_allowed => $oldest_allowed,
          setting_new_dirty_mark => $setting_new_dirty_mark,
          recent => $recent,
+         memo_splicepos => $memo_splicepos,
         }
 }
 sub _update_with_dirty_epoch {
-    my($self,$path,$recent,$epoch,$paths_in_recent) = @_;
+    my($self,$path,$recent,$epoch,$paths_in_recent,$memo_splicepos) = @_;
     my $splicepos;
     my $new_recent = [];
     if (exists $paths_in_recent->{$path}) {
@@ -2146,7 +2150,13 @@ sub _update_with_dirty_epoch {
     } elsif (_bigfloatlt($epoch,$recent->[-1]{epoch})) {
         $splicepos = @$recent;
     } else {
-    RECENT: for my $i (0..$#$recent) {
+        my $startingpoint;
+        if (_bigfloatgt($memo_splicepos<=$#$recent && $epoch, $recent->[$memo_splicepos]{epoch})) {
+            $startingpoint = 0;
+        } else {
+            $startingpoint = $memo_splicepos;
+        }
+    RECENT: for my $i ($startingpoint..$#$recent) {
             my $ev = $recent->[$i];
             if ($epoch eq $recent->[$i]{epoch}) {
                 $epoch = _increase_a_bit($epoch, $i ? $recent->[$i-1]{epoch} : undef);

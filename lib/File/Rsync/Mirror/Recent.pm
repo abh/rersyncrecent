@@ -32,17 +32,8 @@ use version; our $VERSION = qv('0.0.8');
 
 =head1 SYNOPSIS
 
-B<!!!! PRE-ALPHA ALERT !!!!>
-
-Nothing in here is believed to be stable, nothing yet intended for
-public consumption. The plan is to provide scripts that act as
-frontends for all the backend functionality. Option and method names
-may still change.
-
-For the rationale see the section BACKGROUND.
-
 The documentation in here is normally not needed because the code is
-meant to be run from several standalone programs. For a quick
+considered to be run from several standalone programs. For a quick
 overview, see the file README.mirrorcpan and the bin/ directory of the
 distribution. For the architectural ideas see the section THE
 ARCHITECTURE OF A COLLECTION OF RECENTFILES below.

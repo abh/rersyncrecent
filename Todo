@@ -1,3 +1,7 @@
+2010-07-06  Andreas J. Koenig  <andk@cpan.org>
+
+	* rrr-init now being fast we can now remove the alpha alerts. Done.
+
 2010-06-16  Andreas J. Koenig  <andk@cpan.org>
 
 	* rrr-init seems to be sssslllloooowwww. At 3:49 I started it for the

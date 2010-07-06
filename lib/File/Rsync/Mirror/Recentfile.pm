@@ -2004,13 +2004,26 @@ sub _locked_batch_update {
     }
     my $oldest_allowed = 0;
     my $setting_new_dirty_mark = 0;
+    my $console;
+    if ($self->verbose && @$batch > 1) {
+        eval {require Time::Progress};
+        warn "dollarat[$@]" if $@;
+        $| = 1;
+        $console = new Time::Progress;
+        $console->attr( min => 1, max => scalar @$batch );
+        print "\n";
+    }
+    my $i = 0;
  ITEM: for my $item (@$batch) {
+        $i++;
+        print $console->report( "\rdone %p elapsed: %L (%l sec), ETA %E (%e sec)", $i ) if $console and not $i % 50;
         my $ctx = $self->_update_batch_item($item,$canonmeth,$recent,$setting_new_dirty_mark,$oldest_allowed,$something_done);
         $something_done = $ctx->{something_done};
         $oldest_allowed = $ctx->{oldest_allowed};
         $setting_new_dirty_mark = $ctx->{setting_new_dirty_mark};
         $recent = $ctx->{recent};
     }
+    print "\n" if $console;
     if ($setting_new_dirty_mark) {
         $oldest_allowed = 0;
     }

@@ -821,12 +821,29 @@ sub lock {
     # XXX need a way to allow breaking the lock
     my $start = time;
     my $locktimeout = $self->locktimeout || 600;
-    while (not mkdir "$rfile.lock") {
+    my %have_warned;
+  GETLOCK: while (not mkdir "$rfile.lock") {
+        if (open my $fh, "<", "$rfile.lock/process") {
+            chomp(my $process = <$fh>);
+            if (0) {
+            } elsif ($$ == $process) {
+                last GETLOCK;
+            } elsif (kill 0, $process) {
+                warn "Warning: process $process holds a lock, waiting..." unless $have_warned{$process}++;
+            } else {
+                warn "Warning: breaking lock held by process $process";
+                sleep 1;
+                last GETLOCK;
+            }
+        }
         Time::HiRes::sleep 0.01;
         if (time - $start > $locktimeout) {
             die "Could not acquire lockdirectory '$rfile.lock': $!";
         }
     }
+    open my $fh, ">", "$rfile.lock/process" or die "Could not open >$rfile.lock/process\: $!";
+    print $fh $$, "\n";
+    close $fh or die "Could not close: $!";
     $self->_is_locked (1);
 }
 
@@ -1914,7 +1931,8 @@ sub unlock {
     my($self) = @_;
     return unless $self->_is_locked;
     my $rfile = $self->rfile;
-    rmdir "$rfile.lock";
+    unlink "$rfile.lock/process" or warn "Could not unlink lockfile '$rfile.lock/process': $!";
+    rmdir "$rfile.lock" or warn "Could not rmdir lockdir '$rfile.lock': $!";;
     $self->_is_locked (0);
 }
 
@@ -1985,6 +2003,21 @@ sub update {
     $self->_assert_symlink;
     $self->unlock;
 }
+
+=head2 $obj->batch_update($batch)
+
+Like update but for many files. $batch is an arrayref containing
+hashrefs with the structure
+
+  {
+    path => $path,
+    type => $type,
+    epoch => $epoch,
+  }
+
+
+
+=cut
 sub batch_update {
     my($self,$batch) = @_;
     $self->lock;
@@ -1997,6 +2030,7 @@ sub _locked_batch_update {
     my($self,$batch) = @_;
     my $something_done = 0;
     my $recent = $self->recent_events;
+    my %paths_in_recent = map { $_->{path} => undef } @$recent;
     my $interval = $self->interval;
     my $canonmeth = $self->canonize;
     unless ($canonmeth) {
@@ -2014,14 +2048,16 @@ sub _locked_batch_update {
         print "\n";
     }
     my $i = 0;
- ITEM: for my $item (@$batch) {
+    my $memo_splicepos;
+ ITEM: for my $item (sort {($b->{epoch}||0) <=> ($a->{epoch}||0)} @$batch) {
         $i++;
         print $console->report( "\rdone %p elapsed: %L (%l sec), ETA %E (%e sec)", $i ) if $console and not $i % 50;
-        my $ctx = $self->_update_batch_item($item,$canonmeth,$recent,$setting_new_dirty_mark,$oldest_allowed,$something_done);
+        my $ctx = $self->_update_batch_item($item,$canonmeth,$recent,$setting_new_dirty_mark,$oldest_allowed,$something_done,\%paths_in_recent,$memo_splicepos);
         $something_done = $ctx->{something_done};
         $oldest_allowed = $ctx->{oldest_allowed};
         $setting_new_dirty_mark = $ctx->{setting_new_dirty_mark};
         $recent = $ctx->{recent};
+        $memo_splicepos = $ctx->{memo_splicepos};
     }
     print "\n" if $console;
     if ($setting_new_dirty_mark) {
@@ -2039,7 +2075,7 @@ TRUNCATE: while (@$recent) {
     return {something_done=>$something_done,recent=>$recent};
 }
 sub _update_batch_item {
-    my($self,$item,$canonmeth,$recent,$setting_new_dirty_mark,$oldest_allowed,$something_done) = @_;
+    my($self,$item,$canonmeth,$recent,$setting_new_dirty_mark,$oldest_allowed,$something_done,$paths_in_recent,$memo_splicepos) = @_;
     my($path,$type,$dirty_epoch) = @{$item}{qw(path type epoch)};
     if (defined $path or defined $type or defined $dirty_epoch) {
         $path = $self->$canonmeth($path);
@@ -2069,7 +2105,7 @@ sub _update_batch_item {
         my $splicepos;
         # remove the older duplicates of this $path, irrespective of $type:
         if (defined $dirty_epoch) {
-            my $ctx = $self->_update_with_dirty_epoch($path,$recent,$epoch);
+            my $ctx = $self->_update_with_dirty_epoch($path,$recent,$epoch,$paths_in_recent,$memo_splicepos);
             $recent    = $ctx->{recent};
             $splicepos = $ctx->{splicepos};
             $epoch     = $ctx->{epoch};
@@ -2089,7 +2125,9 @@ sub _update_batch_item {
         }
         if (defined $splicepos) {
             splice @$recent, $splicepos, 0, { epoch => $epoch, path => $path, type => $type };
+            $paths_in_recent->{$path} = undef;
         }
+        $memo_splicepos = $splicepos;
         $something_done = 1;
     }
     return
@@ -2098,13 +2136,14 @@ sub _update_batch_item {
          oldest_allowed => $oldest_allowed,
          setting_new_dirty_mark => $setting_new_dirty_mark,
          recent => $recent,
+         memo_splicepos => $memo_splicepos,
         }
 }
 sub _update_with_dirty_epoch {
-    my($self,$path,$recent,$epoch) = @_;
+    my($self,$path,$recent,$epoch,$paths_in_recent,$memo_splicepos) = @_;
     my $splicepos;
     my $new_recent = [];
-    if (grep { $_->{path} ne $path } @$recent) {
+    if (exists $paths_in_recent->{$path}) {
         my $cancel = 0;
     KNOWN_EVENT: for my $i (0..$#$recent) {
             if ($recent->[$i]{path} eq $path) {
@@ -2124,7 +2163,13 @@ sub _update_with_dirty_epoch {
     } elsif (_bigfloatlt($epoch,$recent->[-1]{epoch})) {
         $splicepos = @$recent;
     } else {
-    RECENT: for my $i (0..$#$recent) {
+        my $startingpoint;
+        if (_bigfloatgt($memo_splicepos<=$#$recent && $epoch, $recent->[$memo_splicepos]{epoch})) {
+            $startingpoint = 0;
+        } else {
+            $startingpoint = $memo_splicepos;
+        }
+    RECENT: for my $i ($startingpoint..$#$recent) {
             my $ev = $recent->[$i];
             if ($epoch eq $recent->[$i]{epoch}) {
                 $epoch = _increase_a_bit($epoch, $i ? $recent->[$i-1]{epoch} : undef);

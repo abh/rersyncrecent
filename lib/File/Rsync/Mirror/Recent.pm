@@ -81,6 +81,13 @@ rmirror run. See also C<runstatusfile>.
 
 =cut
 
+sub _thaw_if_small_enough {
+    my($self,$file) = @_;
+    return if -s $file > 100_000; # XXX should read and look how
+                                    # many lines we have for
+                                    # "reduced_self.-__pathdb"?
+    return $self->thaw($file);
+}
 sub thaw {
     my($self, $file) = @_;
     die "thaw called without statusfile argument" unless defined $file;
@@ -97,9 +104,10 @@ sub thaw {
             $sleeptime = 1;
         }
     }
+    my $size = -s $file;
     my $serialized = YAML::Syck::LoadFile($file);
     rmdir "$file.lock" or die "Could not rmdir lockfile: $!";
-    warn sprintf "DEBUG: Reading '$file' which was written %d seconds ago", time-$serialized->{time};
+    warn sprintf "DEBUG: Process $$ reading '$file' (size=$size). It was written %d seconds ago", time-$serialized->{time};
     my $charged_self = $serialized->{reduced_self};
     my $class = blessed $self;
     bless $charged_self, $class;
@@ -633,8 +641,8 @@ sub _rmirror_loop {
   LOOP: while () {
         my $ttleave = time + $minimum_time_per_loop;
         my $file = $self->runstatusfile;
-        my $child = $self->thaw ($file);
-        if ($child->recentfiles->[-1]->uptodate) {
+        my $child = $self->_thaw_if_small_enough ($file);
+        if ($child && $child->recentfiles->[-1]->uptodate) {
             warn "DEBUG: parent process[$$] about to leave loop";
             last LOOP;
         }
@@ -648,7 +656,7 @@ sub _rmirror_loop {
         } elsif ($pid) {
             waitpid($pid,0);
         } else {
-            $self = $child;
+            $self = $child || $self->thaw ($file);
             my $rfs = $self->recentfiles;
             $self->principal_recentfile->seed;
         RECENTFILE: for my $i (0..$#$rfs) {
@@ -684,10 +692,14 @@ sub _rmirror_loop {
                 $self->_rmirror_cleanup;
                 my $file = $self->runstatusfile;
                 unless ($options->{loop}) {
-                    # warn "DEBUG: child process[$$] about to leave loop";
+                    warn "DEBUG: uptodate child process[$$] about to leave loop";
                     sleep 1.5;
                     last LOOP;
                 }
+            } elsif ($options->{loop}) {
+                warn "DEBUG: child process[$$] about to leave loop";
+                sleep 1.5;
+                last LOOP;
             }
         }
 

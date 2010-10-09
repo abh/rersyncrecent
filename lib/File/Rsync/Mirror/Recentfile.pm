@@ -1434,7 +1434,8 @@ sub _my_current_rfile {
     my $rfile;
     if ($self->_use_tempfile) {
         $rfile = $self->_current_tempfile;
-    } else {
+    }
+    unless ($rfile && -s $rfile) {
         $rfile = $self->rfile;
     }
     return $rfile;

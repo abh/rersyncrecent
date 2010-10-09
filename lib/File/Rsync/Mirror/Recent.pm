@@ -641,8 +641,8 @@ sub _rmirror_loop {
   LOOP: while () {
         my $ttleave = time + $minimum_time_per_loop;
         my $file = $self->runstatusfile;
-        my $child = $self->_thaw_if_small_enough ($file);
-        if (!$options->{loop} && $child && $child->recentfiles->[-1]->uptodate) {
+        my $otherproc = $self->_thaw_if_small_enough ($file);
+        if (!$options->{loop} && $otherproc && $otherproc->recentfiles->[-1]->uptodate) {
             warn "DEBUG: parent process[$$] about to leave loop";
             last LOOP;
         }
@@ -653,10 +653,13 @@ sub _rmirror_loop {
             $pid = 0;
         }
         if (! defined $pid) {
+            warn "Contention: $!";
+            sleep 0.25;
+            next LOOP;
         } elsif ($pid) {
             waitpid($pid,0);
         } else {
-            $self = $child || $self->thaw ($file);
+            $self = $otherproc || $self->thaw ($file);
             my $rfs = $self->recentfiles;
             $self->principal_recentfile->seed;
         RECENTFILE: for my $i (0..$#$rfs) {
@@ -692,16 +695,12 @@ sub _rmirror_loop {
                 $self->_rmirror_cleanup;
                 my $file = $self->runstatusfile;
                 $self->_rmirror_runstatusfile_write ($file, $options);
-                unless ($options->{loop}) {
-                    warn "DEBUG: uptodate child process[$$] about to leave loop";
-                    sleep 1.5;
-                    last LOOP;
-                }
+                warn "DEBUG: uptodate child process[$$] about to leave loop";
             } elsif ($options->{loop}) {
                 warn "DEBUG: child process[$$] about to leave loop";
-                sleep 1.5;
-                last LOOP;
             }
+            sleep 1.5;
+            last LOOP;
         }
 
         my $sleep = $ttleave - time;

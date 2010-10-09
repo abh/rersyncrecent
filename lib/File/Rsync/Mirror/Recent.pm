@@ -642,7 +642,7 @@ sub _rmirror_loop {
         my $ttleave = time + $minimum_time_per_loop;
         my $file = $self->runstatusfile;
         my $child = $self->_thaw_if_small_enough ($file);
-        if ($child && $child->recentfiles->[-1]->uptodate) {
+        if (!$options->{loop} && $child && $child->recentfiles->[-1]->uptodate) {
             warn "DEBUG: parent process[$$] about to leave loop";
             last LOOP;
         }
@@ -691,6 +691,7 @@ sub _rmirror_loop {
             if ($rfs->[-1]->uptodate) {
                 $self->_rmirror_cleanup;
                 my $file = $self->runstatusfile;
+                $self->_rmirror_runstatusfile_write ($file, $options);
                 unless ($options->{loop}) {
                     warn "DEBUG: uptodate child process[$$] about to leave loop";
                     sleep 1.5;
@@ -831,7 +832,7 @@ sub _rmirror_runstatusfile_write {
     require YAML::Syck;
     my $start = time;
     while (not mkdir "$file.lock") {
-        Time::HiRes::sleep 0.02;
+        Time::HiRes::sleep 0.15;
         warn "*** waiting for lock ***" if time - $start >= 3;
     }
     YAML::Syck::DumpFile

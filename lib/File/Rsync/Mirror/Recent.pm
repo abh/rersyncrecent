@@ -81,17 +81,45 @@ rmirror run. See also C<runstatusfile>.
 
 =cut
 
-sub _thaw_if_small_enough {
+sub _thaw_without_pathdb {
     my($self,$file) = @_;
-    return if -s $file > 100_000; # XXX should read and look how
-                                    # many lines we have for
-                                    # "reduced_self.-__pathdb"?
-    return $self->thaw($file);
+    open my $fh, $file or die "Can't open '$file': $!";
+    local $/ = "\n";
+    my $in_pathdb = 0;
+    my $tfile = File::Temp->new
+        (
+         TEMPLATE => "Recent-thaw-XXXX",
+         TMPDIR => 1,
+         UNLINK => 0,
+         CLEANUP => 0,
+         SUFFIX => '.dat',
+        );
+    my $template_for_eop;
+    while (<$fh>) {
+        if ($in_pathdb) {
+            if (/$template_for_eop/) {
+                $in_pathdb = 0;
+            }
+        } elsif (/(\s+)-\s*__pathdb\s*:/) {
+            $in_pathdb = 1;
+            my $next_attr = sprintf "^%s\\S", " ?" x length($1);
+            $template_for_eop = qr{$next_attr};
+        }
+        print $tfile $_ unless $in_pathdb;
+    }
+    close $tfile or die "Could not close: $!";
+    my $return = $self->thaw($tfile->filename);
+    $return->_havelostpathdb(1);
+    unlink $tfile->filename;
+    return $return;
 }
 sub thaw {
     my($self, $file) = @_;
     die "thaw called without statusfile argument" unless defined $file;
-    die "Alert: statusfile '$file' not found" unless -e $file;
+    unless (-e $file){
+        require Carp;
+        Carp::confess("Alert: statusfile '$file' not found");
+    }
     require YAML::Syck;
     my $start = time;
     my $sleeptime = 0.02;
@@ -135,6 +163,7 @@ BEGIN {
         (
          "__pathdb",
          "_dirtymark",            # keeps track of the dirtymark of the recentfiles
+         "_havelostpathdb",       # boolean
          "_logfilefordone",       # turns on _logfile on all DONE
                                   # systems (disk intensive)
          "_max_one_state",        # when we have no time left but want
@@ -631,8 +660,10 @@ sub rmirror {
             $self->_dirtymark($dirtymark);
         }
     }
-    my $file = $self->runstatusfile;
-    $self->_rmirror_runstatusfile_write ($file, \%options);
+    my $rstfile = $self->runstatusfile;
+    unless ($self->_havelostpathdb) {
+        $self->_rmirror_runstatusfile_write ($rstfile, \%options);
+    }
     $self->_rmirror_loop($minimum_time_per_loop,\%options);
 }
 
@@ -640,18 +671,13 @@ sub _rmirror_loop {
     my($self,$minimum_time_per_loop,$options) = @_;
   LOOP: while () {
         my $ttleave = time + $minimum_time_per_loop;
-        my $file = $self->runstatusfile;
-        my $otherproc = $self->_thaw_if_small_enough ($file);
+        my $rstfile = $self->runstatusfile;
+        my $otherproc = $self->_thaw_without_pathdb ($rstfile);
         if (!$options->{loop} && $otherproc && $otherproc->recentfiles->[-1]->uptodate) {
-            warn "DEBUG: parent process[$$] about to leave loop";
+            warn "DEBUG: parent process[$$] about to leave loop before the fork";
             last LOOP;
         }
-        my $pid;
-        if ($options->{loop}) {
-            $pid = fork;
-        } else {
-            $pid = 0;
-        }
+        my $pid = fork;
         if (! defined $pid) {
             warn "Contention: $!";
             sleep 0.25;
@@ -659,7 +685,7 @@ sub _rmirror_loop {
         } elsif ($pid) {
             waitpid($pid,0);
         } else {
-            $self = $otherproc || $self->thaw ($file);
+            $self = $self->thaw ($rstfile);
             my $rfs = $self->recentfiles;
             $self->principal_recentfile->seed;
         RECENTFILE: for my $i (0..$#$rfs) {
@@ -690,19 +716,23 @@ sub _rmirror_loop {
                 }
             }
             $self->_max_one_state(0);
-            $self->_rmirror_runstatusfile_write ($file, $options);
+            $self->_rmirror_runstatusfile_write ($rstfile, $options);
             if ($rfs->[-1]->uptodate) {
                 $self->_rmirror_cleanup;
-                my $file = $self->runstatusfile;
-                $self->_rmirror_runstatusfile_write ($file, $options);
+                $self->_rmirror_runstatusfile_write ($rstfile, $options);
                 warn "DEBUG: uptodate child process[$$] about to leave loop";
             } elsif ($options->{loop}) {
                 warn "DEBUG: child process[$$] about to leave loop";
             }
-            sleep 1.5;
+            sleep 1.5; # only during debugging
             last LOOP;
         }
 
+        $otherproc = $self->_thaw_without_pathdb ($rstfile);
+        if (!$options->{loop} && $otherproc && $otherproc->recentfiles->[-1]->uptodate) {
+            warn "DEBUG: parent process[$$] about to leave loop after the fork";
+            last LOOP;
+        }
         my $sleep = $ttleave - time;
         if ($sleep > 0.01) {
             $self->_rmirror_endofloop_sleep ($sleep);

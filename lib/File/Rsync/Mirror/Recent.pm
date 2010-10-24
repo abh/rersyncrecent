@@ -164,6 +164,7 @@ BEGIN {
          "__pathdb",
          "_dirtymark",            # keeps track of the dirtymark of the recentfiles
          "_havelostpathdb",       # boolean
+         "_have_written_statusfile", # boolean
          "_logfilefordone",       # turns on _logfile on all DONE
                                   # systems (disk intensive)
          "_max_one_state",        # when we have no time left but want
@@ -661,8 +662,9 @@ sub rmirror {
         }
     }
     my $rstfile = $self->runstatusfile;
-    unless ($self->_havelostpathdb) {
+    unless ($self->_have_written_statusfile) {
         $self->_rmirror_runstatusfile_write ($rstfile, \%options);
+        $self->_have_written_statusfile(1);
     }
     $self->_rmirror_loop($minimum_time_per_loop,\%options);
 }
@@ -673,10 +675,6 @@ sub _rmirror_loop {
         my $ttleave = time + $minimum_time_per_loop;
         my $rstfile = $self->runstatusfile;
         my $otherproc = $self->_thaw_without_pathdb ($rstfile);
-        if (!$options->{loop} && $otherproc && $otherproc->recentfiles->[-1]->uptodate) {
-            warn "DEBUG: parent process[$$] about to leave loop before the fork";
-            last LOOP;
-        }
         my $pid = fork;
         if (! defined $pid) {
             warn "Contention: $!";
@@ -716,15 +714,20 @@ sub _rmirror_loop {
                 }
             }
             $self->_max_one_state(0);
-            $self->_rmirror_runstatusfile_write ($rstfile, $options);
+            my $exit = 0;
             if ($rfs->[-1]->uptodate) {
                 $self->_rmirror_cleanup;
-                $self->_rmirror_runstatusfile_write ($rstfile, $options);
                 warn "DEBUG: uptodate child process[$$] about to leave loop";
-            } elsif ($options->{loop}) {
-                warn "DEBUG: child process[$$] about to leave loop";
             }
+            if ($options->{loop}) {
+                warn "DEBUG: child process[$$] about to leave loop";
+            } else {
+                warn "DEBUG: child process[$$] about to exit";
+                $exit = 1;
+            }
+            $self->_rmirror_runstatusfile_write ($rstfile, $options);
             sleep 1.5; # only during debugging
+            exit if $exit;
             last LOOP;
         }
 

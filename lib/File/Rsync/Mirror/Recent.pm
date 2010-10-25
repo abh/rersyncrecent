@@ -23,7 +23,7 @@ use File::Rsync::Mirror::Recentfile::FakeBigFloat qw(:all);
 use File::Temp;
 use List::Pairwise qw(mapp grepp);
 use List::Util qw(first max);
-use Scalar::Util qw(reftype);
+use Scalar::Util qw(blessed reftype);
 use Storable;
 use Time::HiRes qw();
 use YAML::Syck;
@@ -67,16 +67,50 @@ sub new {
 
 =head2 my $obj = CLASS->thaw($statusfile)
 
-(experimental) Constructor from a statusfile left over from a previous
-rmirror run. See _runstatusfile in the code for details.
+Constructor from a statusfile left over from a previous
+rmirror run. See also C<runstatusfile>.
 
 =cut
 
+sub _thaw_without_pathdb {
+    my($self,$file) = @_;
+    open my $fh, $file or die "Can't open '$file': $!";
+    local $/ = "\n";
+    my $in_pathdb = 0;
+    my $tfile = File::Temp->new
+        (
+         TEMPLATE => "Recent-thaw-XXXX",
+         TMPDIR => 1,
+         UNLINK => 0,
+         CLEANUP => 0,
+         SUFFIX => '.dat',
+        );
+    my $template_for_eop;
+    while (<$fh>) {
+        if ($in_pathdb) {
+            if (/$template_for_eop/) {
+                $in_pathdb = 0;
+            }
+        } elsif (/(\s+)-\s*__pathdb\s*:/) {
+            $in_pathdb = 1;
+            my $next_attr = sprintf "^%s\\S", " ?" x length($1);
+            $template_for_eop = qr{$next_attr};
+        }
+        print $tfile $_ unless $in_pathdb;
+    }
+    close $tfile or die "Could not close: $!";
+    my $return = $self->thaw($tfile->filename);
+    $return->_havelostpathdb(1);
+    unlink $tfile->filename;
+    return $return;
+}
 sub thaw {
-    my($class, $file) = @_;
+    my($self, $file) = @_;
     die "thaw called without statusfile argument" unless defined $file;
-    die "Alert: statusfile '$file' not found" unless -e $file;
-    
+    unless (-e $file){
+        require Carp;
+        Carp::confess("Alert: statusfile '$file' not found");
+    }
     require YAML::Syck;
     my $start = time;
     my $sleeptime = 0.02;
@@ -89,22 +123,24 @@ sub thaw {
             $sleeptime = 1;
         }
     }
+    my $size = -s $file;
     my $serialized = YAML::Syck::LoadFile($file);
     rmdir "$file.lock" or die "Could not rmdir lockfile: $!";
-    warn sprintf "Reading '$file' which was written %d seconds ago\n", time-$serialized->{time};
-    my $self = $serialized->{reduced_self};
-    bless $self, $class;
+    warn sprintf "DEBUG: Process $$ reading '$file' (size=$size). It was written %d seconds ago", time-$serialized->{time};
+    my $charged_self = $serialized->{reduced_self};
+    my $class = blessed $self;
+    bless $charged_self, $class;
     my $rfs = $serialized->{reduced_rfs};
     my $rfclass = $class . "file"; # "Recent" . "file"
-    my $pathdb = $self->_pathdb;
+    my $pathdb = $charged_self->_pathdb;
     for my $rf (@$rfs) {
         bless $rf, $rfclass;
         $rf->_pathdb($pathdb);
     }
-    $self->_recentfiles($rfs);
-    $self->_principal_recentfile($rfs->[0]);
+    $charged_self->_recentfiles($rfs);
+    $charged_self->_principal_recentfile($rfs->[0]);
     # die "FIXME: thaw all recentfiles from reduced_rfs into _recentfiles as well, watch out for pathdb and rsync";
-    return $self;
+    return $charged_self;
 }
 
 =head1 ACCESSORS
@@ -118,6 +154,8 @@ BEGIN {
         (
          "__pathdb",
          "_dirtymark",            # keeps track of the dirtymark of the recentfiles
+         "_havelostpathdb",       # boolean
+         "_have_written_statusfile", # boolean
          "_logfilefordone",       # turns on _logfile on all DONE
                                   # systems (disk intensive)
          "_max_one_state",        # when we have no time left but want
@@ -126,7 +164,7 @@ BEGIN {
          "_principal_recentfile",
          "_recentfiles",
          "_rsync",
-         "_runstatusfile",        # frequently dumps all rfs
+         "_runstatusfile",        # occasionally dumps all rfs
          "_verbose",              # internal variable for verbose setter/getter
          "_verboselog",           # internal variable for verboselog setter/getter
         );
@@ -583,10 +621,7 @@ sub rmirror {
 
     my $rfs = $self->recentfiles;
 
-    my $_every_20_seconds = sub {
-        $self->principal_recentfile->seed;
-    };
-    $_every_20_seconds->();
+    $self->principal_recentfile->seed;
     my $_sigint = sub {
         # XXX exit gracefully (reminder)
     };
@@ -617,45 +652,80 @@ sub rmirror {
             $self->_dirtymark($dirtymark);
         }
     }
+    my $rstfile = $self->runstatusfile;
+    unless ($self->_have_written_statusfile) {
+        $self->_rmirror_runstatusfile_write ($rstfile, \%options);
+        $self->_have_written_statusfile(1);
+    }
+    $self->_rmirror_loop($minimum_time_per_loop,\%options);
+}
+
+sub _rmirror_loop {
+    my($self,$minimum_time_per_loop,$options) = @_;
   LOOP: while () {
         my $ttleave = time + $minimum_time_per_loop;
-        if (my $file = $self->_runstatusfile) {
-            $self->_rmirror_runstatusfile ($file, \%options);
-        }
-      RECENTFILE: for my $i (0..$#$rfs) {
-            my $rf = $rfs->[$i];
-            if (time > $ttleave){
-                # Must make sure that one file can get fetched in any case
-                $self->_max_one_state(1);
-            }
-            if ($rf->seeded) {
-                $self->_rmirror_mirror ($i, \%options);
-            } elsif ($rf->uptodate){
-                if ($i < $#$rfs){
-                    $rfs->[$i+1]->done->merge($rf->done);
+        my $rstfile = $self->runstatusfile;
+        my $otherproc = $self->_thaw_without_pathdb ($rstfile);
+        my $pid = fork;
+        if (! defined $pid) {
+            warn "Contention: $!";
+            sleep 0.25;
+            next LOOP;
+        } elsif ($pid) {
+            waitpid($pid,0);
+        } else {
+            $self = $self->thaw ($rstfile);
+            my $rfs = $self->recentfiles;
+            $self->principal_recentfile->seed;
+        RECENTFILE: for my $i (0..$#$rfs) {
+                my $rf = $rfs->[$i];
+                if (time > $ttleave) {
+                    # Must make sure that one file can get fetched in any case
+                    $self->_max_one_state(1);
                 }
-                # no further seed necessary because "every_20_seconds" does it
-                next RECENTFILE;
-            }
-        WORKUNIT: while (time < $ttleave) {
-                if ($rf->uptodate) {
-                    $self->_rmirror_sleep_per_connection ($i);
+                if ($rf->seeded) {
+                    $self->_rmirror_mirror ($i, $options);
+                } elsif ($rf->uptodate) {
+                    if ($i < $#$rfs) {
+                        $rfs->[$i+1]->done->merge($rf->done);
+                    }
+                    # no further seed necessary because "periodic" does it
                     next RECENTFILE;
-                } else {
-                    $self->_rmirror_mirror ($i, \%options);
+                }
+            WORKUNIT: while (time < $ttleave) {
+                    if ($rf->uptodate) {
+                        $self->_rmirror_sleep_per_connection ($i);
+                        next RECENTFILE;
+                    } else {
+                        $self->_rmirror_mirror ($i, $options);
+                    }
+                }
+                if ($self->_max_one_state) {
+                    last RECENTFILE;
                 }
             }
-            if ($self->_max_one_state) {
-                last RECENTFILE;
+            $self->_max_one_state(0);
+            my $exit = 0;
+            if ($rfs->[-1]->uptodate) {
+                $self->_rmirror_cleanup;
+                warn "DEBUG: uptodate child process[$$] about to leave loop";
             }
-        }
-        $self->_max_one_state(0);
-        if ($rfs->[-1]->uptodate) {
-            $self->_rmirror_cleanup;
-            if ($options{loop}) {
+            if ($options->{loop}) {
+                warn "DEBUG: child process[$$] about to leave loop";
             } else {
-                last LOOP;
+                warn "DEBUG: child process[$$] about to exit";
+                $exit = 1;
             }
+            $self->_rmirror_runstatusfile_write ($rstfile, $options);
+            sleep 1.5; # only during debugging
+            exit if $exit;
+            last LOOP;
+        }
+
+        $otherproc = $self->_thaw_without_pathdb ($rstfile);
+        if (!$options->{loop} && $otherproc && $otherproc->recentfiles->[-1]->uptodate) {
+            warn "DEBUG: parent process[$$] about to leave loop after the fork";
+            last LOOP;
         }
         my $sleep = $ttleave - time;
         if ($sleep > 0.01) {
@@ -663,7 +733,6 @@ sub rmirror {
         } else {
             # negative time not invented yet:)
         }
-        $_every_20_seconds->();
     }
 }
 
@@ -719,7 +788,55 @@ sub _rmirror_cleanup {
     }
 }
 
-sub _rmirror_runstatusfile {
+=head2 $file = $obj->runstatusfile ($set)
+
+Getter/setter for C<_runstatusfile> attribute. Defaults to a temporary
+file created by C<File::Temp>. A status file is required for
+C<rmirror> working. Since it may be interesting for debugging
+purposes, you may want to specify a permanent file for this.
+
+=cut
+sub runstatusfile {
+    my($self,$set) = @_;
+    if (defined $set) {
+        $self->_runstatusfile ($set);
+    }
+    my $x = $self->_runstatusfile;
+    unless (defined $x) {
+        require File::Temp;
+        my $tfile = File::Temp->new
+            (
+             TEMPLATE => "Recent-XXXX",
+             TMPDIR => 1,
+             UNLINK => 0,
+             CLEANUP => 0,
+             SUFFIX => '.dat',
+            );
+        $self->_runstatusfile($tfile->filename);
+    }
+    return $self->_runstatusfile;
+}
+
+# unused code.... it was an oops, discovered the thaw() method too
+# late, and starting writing this here....
+sub _rmirror_runstatusfile_read {
+    my($self, $file) = @_;
+
+    require YAML::Syck;
+    my $start = time;
+    # XXX is locking useful here?
+    while (not mkdir "$file.lock") {
+        Time::HiRes::sleep 0.2;
+        warn "*** waiting for lock ***" if time - $start >= 3;
+    }
+    my $yml = YAML::Syck::LoadFile $file;
+    rmdir "$file.lock" or die "Could not rmdir lockfile: $!";
+    my $rself = $yml->{reduced_self};
+    my $rfs = $yml->{reduced_rfs};
+    # XXX bring them into self
+}
+
+sub _rmirror_runstatusfile_write {
     my($self, $file, $options) = @_;
     my $rself;
     while (my($k,$v) = each %$self) {
@@ -738,7 +855,7 @@ sub _rmirror_runstatusfile {
     require YAML::Syck;
     my $start = time;
     while (not mkdir "$file.lock") {
-        Time::HiRes::sleep 0.02;
+        Time::HiRes::sleep 0.15;
         warn "*** waiting for lock ***" if time - $start >= 3;
     }
     YAML::Syck::DumpFile

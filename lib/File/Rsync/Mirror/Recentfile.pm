@@ -188,7 +188,7 @@ sub DESTROY {
     unless ($self->_current_tempfile_fh) {
         if (my $tempfile = $self->_current_tempfile) {
             if (-e $tempfile) {
-                unlink $tempfile; # may fail in global destruction
+                # unlink $tempfile; # may fail in global destruction
             }
         }
     }
@@ -1125,7 +1125,7 @@ sub mirror {
     # once we've gone to the end we consider ourselves free of obligations
     $self->unseed;
     $self->_mirror_unhide_tempfile ($trecentfile);
-    $self->_mirror_perform_delayed_ops;
+    $self->_mirror_perform_delayed_ops(\%options);
     return !@error;
 }
 
@@ -1289,12 +1289,12 @@ sub _mirror_unhide_tempfile {
 }
 
 sub _mirror_perform_delayed_ops {
-    my($self) = @_;
+    my($self,$options) = @_;
     my $delayed = $self->delayed_operations;
     for my $dst (keys %{$delayed->{unlink}}) {
         unless (unlink $dst) {
             require Carp;
-            Carp::cluck ( "Warning: Error while unlinking '$dst': $!" );
+            Carp::cluck ( "Warning: Error while unlinking '$dst': $!" ) if $options->{verbose};
         }
         if ($self->verbose) {
             my $doing = "Del";
@@ -1313,7 +1313,7 @@ sub _mirror_perform_delayed_ops {
     for my $dst (sort {length($b) <=> length($a)} keys %{$delayed->{rmdir}}) {
         unless (rmdir $dst) {
             require Carp;
-            Carp::cluck ( "Warning: Error on rmdir '$dst': $!" );
+            Carp::cluck ( "Warning: Error on rmdir '$dst': $!" ) if $options->{verbose};
         }
         if ($self->verbose) {
             my $doing = "Del";
@@ -1434,7 +1434,8 @@ sub _my_current_rfile {
     my $rfile;
     if ($self->_use_tempfile) {
         $rfile = $self->_current_tempfile;
-    } else {
+    }
+    unless ($rfile && -s $rfile) {
         $rfile = $self->rfile;
     }
     return $rfile;

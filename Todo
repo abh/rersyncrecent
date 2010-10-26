@@ -1,4 +1,12 @@
+2010-10-26  Andreas J. Koenig  <andk@cpan.org>
+
+	* forking slave is done, needs more testing.
+
 2010-07-06  Andreas J. Koenig  <andk@cpan.org>
+
+	* The two next most important goals are to get a useable rrr-server and
+	a forking slave implementation that uses virtually no memory after the
+	first pass through. Does it need the status file?
 
 	* rrr-init now being fast we can now remove the alpha alerts. Done.
 

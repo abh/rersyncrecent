@@ -83,11 +83,12 @@ the other, the traditional rsync loop. Worry about that later.
 You see the option 'max_files_per_connection' which I filled with 863
 and you need to find your favorite number. The larger the number the
 faster the whole download goes. As you already have a mirror, you
-probably want to take 10 or 20 times times that much. CPAN is at the
-moment (2009-03) consisting of 142000 files. This option chunks the
-downloads into piecemeal units and between these units the process
-takes a peek at the most recent files to download them with higher
-preference.
+probably want to take 10 or 20 times times that much. CPAN's authors
+directory is at the moment (2010-10) consisting of 180000 files. This
+option chunks the downloads into piecemeal units and between these
+units the process takes a peek at the most recent files to download
+them with higher preference. That way we get the newest files
+immediately in sync while we are mirroring the long tail of old files.
 
 The localroot parameter contains your target directory. Because only
 the authors/ and the modules/ directory are hosted by the PAUSE, you

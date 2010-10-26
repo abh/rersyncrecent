@@ -126,7 +126,6 @@ sub thaw {
     my $size = -s $file;
     my $serialized = YAML::Syck::LoadFile($file);
     rmdir "$file.lock" or die "Could not rmdir lockfile: $!";
-    warn sprintf "DEBUG: Process $$ reading '$file' (size=$size). It was written %d seconds ago", time-$serialized->{time};
     my $charged_self = $serialized->{reduced_self};
     my $class = blessed $self;
     bless $charged_self, $class;
@@ -708,23 +707,17 @@ sub _rmirror_loop {
             my $exit = 0;
             if ($rfs->[-1]->uptodate) {
                 $self->_rmirror_cleanup;
-                warn "DEBUG: uptodate child process[$$] about to leave loop";
             }
-            if ($options->{loop}) {
-                warn "DEBUG: child process[$$] about to leave loop";
-            } else {
-                warn "DEBUG: child process[$$] about to exit";
+            unless ($options->{loop}) {
                 $exit = 1;
             }
             $self->_rmirror_runstatusfile_write ($rstfile, $options);
-            sleep 1.5; # only during debugging
             exit if $exit;
             last LOOP;
         }
 
         $otherproc = $self->_thaw_without_pathdb ($rstfile);
         if (!$options->{loop} && $otherproc && $otherproc->recentfiles->[-1]->uptodate) {
-            warn "DEBUG: parent process[$$] about to leave loop after the fork";
             last LOOP;
         }
         my $sleep = $ttleave - time;
@@ -780,10 +773,8 @@ sub _rmirror_cleanup {
         my $thismerged = $rfs->[$i]->merged;
         my $next = $rfs->[$i+1];
         my $nextminmax = $next->minmax;
-        # warn "DEBUG: i[$i] nextminmaxmax[$nextminmax->{max}] thismergedepoch[$thismerged->{epoch}]";
         if (not defined $thismerged->{epoch} or _bigfloatlt($nextminmax->{max},$thismerged->{epoch})){
             $next->seed;
-            # warn sprintf "DEBUG: next iv %s seeded since next-minmax-max[$nextminmax->{max}]lt this-merged-epoch[$thismerged->{epoch}]\n", $next->interval;
         }
     }
 }

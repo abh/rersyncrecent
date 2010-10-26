@@ -36,8 +36,8 @@ uptodate. Depends on inotify which probably only exists on linux.
 Linux::Inotify2.
 
 It is not declared as prerequisites of the F:R:M:Recent package
-because there are so many ways to use the package so that server side
-is considered optional.
+because there are so many ways to use this distribution so that server
+side is considered optional.
 
 =cut
 
@@ -93,9 +93,13 @@ my $in_callback = sub {
     my $ev = shift;
     my @stringifiedmask;
     for my $watch (qw(IN_MODIFY IN_MOVED_FROM IN_MOVED_TO IN_CREATE IN_DELETE IN_DELETE_SELF IN_MOVE_SELF)) {
-        push @stringifiedmask, $watch if $ev->$watch();
+        if ($ev->$watch()){
+            push @stringifiedmask, $watch;
+            # new directories must be added to the watches, deleted
+            # directories deleted; moved directories both
+        }
     }
-    warn sprintf "%s %s %s %s %s %s", ++$i, time, $ev->w->name, $ev->name, $ev->fullname, join("|",@stringifiedmask);
+    warn sprintf "i[%s]time[%s]ev.w.name[%s]ev.name[%s]ev.fullname[%s]mask[%s]\n", ++$i, time, $ev->w->name, $ev->name, $ev->fullname, join("|",@stringifiedmask);
 };
 
 while () {

@@ -32,9 +32,11 @@ if ($ARGV[0]){
         \$version_diff = 1;
     }};
     } elsif ($ARGV[0] eq "--trial") {
+        die "FIXME: --trial does not seem to work";
         $version .= "-TRIAL";
     }
 }
+$version .= "-TRIAL";
 
 my $provides = {
                 "File::Rsync::Mirror::Recent" =>

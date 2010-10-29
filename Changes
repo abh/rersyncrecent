@@ -1,3 +1,10 @@
+2010-10-29  Andreas J. Koenig  <andk@cpan.org>
+
+	* release 0.0.8-TRIAL
+
+	* Client is now forking: children write their state into a YAML file.
+	Parent stays at constant memory.
+
 2009-05-03  Andreas J. Koenig  <andk@cpan.org>
 
 	* release 0.0.7

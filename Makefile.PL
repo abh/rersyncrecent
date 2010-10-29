@@ -6,30 +6,34 @@ my @sign = (MM->can("signature_target") ? (SIGN => 1) : ());
 my $version_diff = 0; # we'll have to die if this becomes true
 my $version_from = 'lib/File/Rsync/Mirror/Recent.pm';
 my $version = MM->parse_version($version_from);
-if ($ARGV[0] && $ARGV[0] eq "--setversion") {
-    die "Your perl is a bit dated[$]].\nDo not make a release with it\n" if $] < 5.008;
-    die "Your MakeMaker is a bit dated[$ExtUtils::MakeMaker::VERSION].\nYou should get a new one\n"
-        if $ExtUtils::MakeMaker::VERSION < 6.4502;
-    use lib "lib";
-    eval {  require $version_from; }; die $@ if $@;
-    my $makefile = "Makefile";
-    unless (-f $makefile) {
-        $makefile = "Makefile.old";
-    }
-    unless (-f $makefile) {
-        die "no Makefile and no Makefile.old found";
-    }
-    open my $fh, "make -f $makefile the-release-name|" or die "Could not fork: $!";
-    local $/;
-    my ($have_version) = <$fh> =~ /^version\s+([\d\._]+)/m;
-    close $fh or die "Could not close: $!";
-    my ($namespace) = $version_from;
-    $namespace =~ s|^lib/(.+)\.pm$|$1|;
-    $namespace =~ s|/|::|g;
-    eval qq{ if (\$$namespace\::VERSION != \$version) {
+if ($ARGV[0]){
+    if ($ARGV[0] eq "--setversion") {
+        die "Your perl is a bit dated[$]].\nDo not make a release with it\n" if $] < 5.008;
+        die "Your MakeMaker is a bit dated[$ExtUtils::MakeMaker::VERSION].\nYou should get a new one\n"
+            if $ExtUtils::MakeMaker::VERSION < 6.4502;
+        use lib "lib";
+        eval {  require $version_from; }; die $@ if $@;
+        my $makefile = "Makefile";
+        unless (-f $makefile) {
+            $makefile = "Makefile.old";
+        }
+        unless (-f $makefile) {
+            die "no Makefile and no Makefile.old found";
+        }
+        open my $fh, "make -f $makefile the-release-name|" or die "Could not fork: $!";
+        local $/;
+        my ($have_version) = <$fh> =~ /^version\s+([\d\._]+)/m;
+        close $fh or die "Could not close: $!";
+        my ($namespace) = $version_from;
+        $namespace =~ s|^lib/(.+)\.pm$|$1|;
+        $namespace =~ s|/|::|g;
+        eval qq{ if (\$$namespace\::VERSION != \$version) {
         warn "Not equal: $namespace\\::VERSION[\$$namespace\::VERSION] MM generated version[\$version]";
         \$version_diff = 1;
     }};
+    } elsif ($ARGV[0] eq "--trial") {
+        $version .= "-TRIAL";
+    }
 }
 
 my $provides = {

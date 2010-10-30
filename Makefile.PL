@@ -105,7 +105,9 @@ WriteMakefile
      ($ExtUtils::MakeMaker::VERSION >= 6.4502 ?
       (META_MERGE => {
                       # write: git push git+ssh://repo.or.cz/srv/git/rersyncrecent.git master
-                      repository => "git://repo.or.cz/rersyncrecent.git",
+                      resources => {
+                                    repository => "git://repo.or.cz/rersyncrecent.git",
+                                   },
                       provides => $provides,
                      }) : ()),
      @sign,

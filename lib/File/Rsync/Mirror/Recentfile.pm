@@ -407,8 +407,9 @@ rate and as such are quite useless on their own.
 
 sub aggregate {
     my($self, %option) = @_;
+    my %seen_interval;
     my @aggs = sort { $a->{secs} <=> $b->{secs} }
-        grep { $_->{secs} >= $self->interval_secs }
+        grep { !$seen_interval{$_->{interval}}++ && $_->{secs} >= $self->interval_secs }
             map { { interval => $_, secs => $self->interval_secs($_)} }
                 $self->interval, @{$self->aggregator || []};
     $self->update;
@@ -974,12 +975,14 @@ sub _merge_something_done {
 sub _merge_sanitycheck {
     my($self, $other) = @_;
     if ($self->interval_secs <= $other->interval_secs) {
-        die sprintf
-            (
-             "Alert: illegal merge operation of a bigger interval[%d] into a smaller[%d]",
-             $self->interval_secs,
-             $other->interval_secs,
-            );
+        require Carp;
+        Carp::confess
+                (sprintf
+                 (
+                  "Alert: illegal merge operation of a bigger interval[%d] into a smaller[%d]",
+                  $self->interval_secs,
+                  $other->interval_secs,
+                 ));
     }
 }
 

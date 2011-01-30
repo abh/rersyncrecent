@@ -90,6 +90,7 @@ foreach my $directory ( File::Find::Rule->new->directory->in($rootdir) ) {
 
 
 my $i;
+my $last_aggregate_call = 0;
 my $in_callback = sub {
     my $ev = shift;
     my @stringifiedmask;
@@ -105,35 +106,41 @@ my $in_callback = sub {
         }
     }
     # warn sprintf "rootdir[$rootdir]i[%s]time[%s]ev.w.name[%s]ev.name[%s]ev.fullname[%s]mask[%s]\n", ++$i, time, $ev->w->name, $ev->name, $ev->fullname, join("|",@stringifiedmask);
+    my $ignore = 0;
     if ($ev->w->name eq $rootdir) {
         my $meta = $rf->meta_data;
         my $ignore_rx = qr((?x: ^ \Q$meta->{filenameroot}\E - [0-9]*[smhdWMQYZ] \Q$meta->{serializer_suffix}\E ));
         if ($ev->name =~ $ignore_rx) {
             # warn sprintf "==> Ignoring object in rootdir looking like internal file: %s", $ev->name;
-            return;
+            $ignore++;
         }
     }
-    my $fullname = $ev->fullname;
-    if (-d $fullname) {
-        $inotify->watch( $fullname,
-                         IN_MODIFY()|IN_MOVED_FROM()|IN_MOVED_TO()|IN_CREATE()|IN_DELETE()|IN_DELETE_SELF()|IN_MOVE_SELF() )
-            or die "watch creation failed";
-        warn "==> Newwatcher $fullname\n";
-    } elsif (-f $ev->fullname) {
-        if ($ev->IN_CREATE || $ev->IN_MODIFY || $ev->IN_MOVED_TO) {
-            $rf->update($ev->fullname,"new");
-            warn "==> Updatefile $fullname\n";
+    unless ($ignore) {
+        my $fullname = $ev->fullname;
+        if (-d $fullname) {
+            $inotify->watch( $fullname,
+                             IN_MODIFY()|IN_MOVED_FROM()|IN_MOVED_TO()|IN_CREATE()|IN_DELETE()|IN_DELETE_SELF()|IN_MOVE_SELF() )
+                or die "watch creation failed";
+            warn "==> Newwatcher $fullname\n";
+        } elsif (-f $ev->fullname) {
+            if ($ev->IN_CREATE || $ev->IN_MODIFY || $ev->IN_MOVED_TO) {
+                $rf->update($ev->fullname,"new");
+                warn "==> Updatefile $fullname\n";
+            }
+        } elsif ($ev->IN_DELETE || $ev->IN_MOVED_FROM) {
+            $rf->update($ev->fullname,"delete");
+            warn "==> Deletefile $fullname";
+        } elsif ($ev->IN_DELETE_SELF || $ev->IN_MOVE_SELF) {
+            $ev->w->cancel;
+            warn "==> Delwatcher $fullname";
+        } else {
+            warn "==> Ignore     $fullname";
         }
-    } elsif ($ev->IN_DELETE || $ev->IN_MOVED_FROM) {
-        $rf->update($ev->fullname,"delete");
-        warn "==> Deletefile $fullname";
-    } elsif ($ev->IN_DELETE_SELF || $ev->IN_MOVE_SELF) {
-        $ev->w->cancel;
-        warn "==> Delwatcher $fullname";
-    } else {
-        warn "==> Ignore     $fullname";
     }
-
+    if (time > $last_aggregate_call + $rf->interval_secs) {
+        $rf->aggregate;
+        $last_aggregate_call = time;
+    }
 };
 
 while () {

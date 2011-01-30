@@ -158,6 +158,11 @@ tag ::
 
 sign:
 	cpansign -s
+
+test-server-run:
+	$(PERL) bin/rrr-init --force t/testserver
+	$(PERL) bin/rrr-server t/testserver/RECENT-1h.yaml &
+	$(PERL) bin/rrr-init --force t/testserver
 };
   join "", @m;
 }

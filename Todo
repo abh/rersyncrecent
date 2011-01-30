@@ -1,3 +1,13 @@
+2011-01-30  Andreas J. Koenig  <andk@cpan.org>
+
+	* rrr-init and rrr-server need to be used such:
+
+	init
+	server
+	init again
+
+	Stupid but no showstopper ATM.
+
 2010-10-26  Andreas J. Koenig  <andk@cpan.org>
 
 	* forking slave is done, needs more testing.

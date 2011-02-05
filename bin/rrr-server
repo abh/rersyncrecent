@@ -127,7 +127,20 @@ my $in_callback = sub {
     }
     unless ($ignore) {
         my $fullname = $ev->fullname;
-        if (-d $fullname) {
+        my($reportname) = $fullname =~ m{^\Q$rootdir\E/(.*)};
+        my $time = sprintf "%02d:%02d:%02d", (localtime)[2,1,0];
+        if (0) {
+        } elsif ($ev->IN_DELETE || $ev->IN_MOVED_FROM) {
+            # we don't know whether it was a directory, we simply pass
+            # it to $rf. $rf must be robust enough to swallow bogus
+            # deletes. Alternatively we could look into $rf whether
+            # this object is known, couldn't we?
+            $rf->update($fullname,"delete");
+            warn "[$time] Deleteobj  $reportname (@stringifiedmask)\n";
+        } elsif (-l $fullname) {
+            $rf->update($fullname,"new");
+            warn "[$time] Updatelink $reportname (@stringifiedmask)\n";
+        } elsif (-d _) {
             $inotify->watch
                 (
                  $fullname,
@@ -140,20 +153,17 @@ my $in_callback = sub {
                  |IN_MOVE_SELF()
                 )
                 or die "watch creation failed";
-            warn "==> Newwatcher $fullname\n";
-        } elsif (-f $ev->fullname) {
+            warn "[$time] Newwatcher $reportname (@stringifiedmask)\n";
+        } elsif (-f _) {
             if ($ev->IN_CLOSE_WRITE || $ev->IN_MOVED_TO) {
-                $rf->update($ev->fullname,"new");
-                warn "==> Updatefile $fullname\n";
+                $rf->update($fullname,"new");
+                warn "[$time] Updatefile $reportname (@stringifiedmask)\n";
             }
-        } elsif ($ev->IN_DELETE || $ev->IN_MOVED_FROM) {
-            $rf->update($ev->fullname,"delete");
-            warn "==> Deletefile $fullname\n";
         } elsif ($ev->IN_DELETE_SELF || $ev->IN_MOVE_SELF) {
             $ev->w->cancel;
-            warn "==> Delwatcher $fullname\n";
+            warn "[$time] Delwatcher $reportname (@stringifiedmask)\n";
         } else {
-            warn "==> Ignore     $fullname\n";
+            warn "[$time] Ignore     $reportname (@stringifiedmask)\n";
         }
     }
     if (time > $last_aggregate_call + $rf->interval_secs) {

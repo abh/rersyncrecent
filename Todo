@@ -1,3 +1,16 @@
+2011-02-05  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* IN_Q_OVERFLOW needs to trigger an fsck, likewise the entry into the
+	server.
+
+	* wishlist: callback in recent_events that fires when an event is added
+	to the list so we can display the progress during fsck.
+
+	* speed: a large directory remove that is done by the kernel in 1
+	seconds triggers minutes of bookkeeping (07:56:42 - 08:01:10 for ~3000
+	files, all due to Schlemiehl again. Want to do some collecting of
+	pending ops before actually writing to the RECENT files. Lock!
+
 2011-01-30  Andreas J. Koenig  <andk@cpan.org>
 
 	* rrr-init and rrr-server need to be used such:

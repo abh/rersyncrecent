@@ -76,6 +76,7 @@ use File::Spec;
 use Getopt::Long;
 use List::Util qw(max);
 use Pod::Usage qw(pod2usage);
+use Time::HiRes qw(time sleep);
 
 our %Opt;
 GetOptions(\%Opt,
@@ -106,18 +107,34 @@ my $root = $recc->localroot;
 die "Alert: Root not defined, giving up" unless defined $root;
 
 my %diskfiles;
+my $i;
+my $last_verbosity = 0;
+$|=1;
+if ($Opt{verbose}) {
+    print "\n";
+}
 find({
       wanted => sub {
-          my @stat = lstat $_;
-          return if -l _;
-          return unless -f _;
-          $diskfiles{$File::Find::name} = $stat[9];
+          my @lstat = lstat $_;
+          return unless -l _ or -f _;
+          $i++;
+          if ($Opt{verbose} && time - $last_verbosity > 0.166666) {
+              printf "\r%8d files and symlinks checked on disk ", $i;
+              $last_verbosity = time;
+          }
+          $diskfiles{$File::Find::name} = $lstat[9];
       },
       no_chdir => 1,
      },
      $root
     );
+if ($Opt{verbose}) {
+    printf "\r%8d files checked on disk\n", $i;
+}
 
+if ($Opt{verbose}) {
+    print "\rChecking index";
+}
 my $indexfiles = $recc->news;
 my %seen;
 my %indexfiles = map {("$root/$_->{path}"=>$_->{epoch})} grep { !$seen{$_->{path}}++ && $_->{type} eq "new" } @$indexfiles;
@@ -125,6 +142,9 @@ for my $rf (@{$recc->recentfiles}) {
     my $rfrfile = $rf->rfile;
     my @stat = stat $rfrfile or die "Could not stat '$rfrfile': $!";
     $indexfiles{$rfrfile} = $stat[9];
+}
+if ($Opt{verbose}) {
+    printf "%8d entries read from index\n", scalar keys %indexfiles;
 }
 my $sprintfd = length(max scalar @$indexfiles, scalar keys %diskfiles);
 warn sprintf(
@@ -142,20 +162,38 @@ warn sprintf(
              $sprintfd, scalar @indexmisses,
             );
 $DB::single++;
+my $rf = $recc->principal_recentfile;
+my $last_aggregate_call = time;
 for my $dm (@diskmisses) {
-    if ($Opt{"dry-run"}) {
-        warn "Would fetch $dm\n";
+    if (0) {
+    } elsif ($Opt{"dry-run"}) {
+        if ($Opt{remoteroot}) {
+            warn "Would fetch $dm\n";
+        } else {
+            warn "Would remove from indexfile $dm\n";
+        }
     } elsif ($Opt{remoteroot}) {
         my $relative = substr $dm, 1 + length $root;
-        $recc->principal_recentfile->get_remotefile($relative);
+        $rf->get_remotefile($relative);
     } else {
-        warn "Missing on disk: $dm\n";
+        warn "Removing from indexfile: $dm\n";
+        $rf->update($dm,"delete");
+        if (time > $last_aggregate_call + $rf->interval_secs) {
+            warn "Aggregating\n";
+            $rf->aggregate;
+            $last_aggregate_call = time;
+        }
+        sleep 0.33;
     }
 }
 for my $im (@indexmisses) {
     if ($Opt{"dry-run"}) {
-        warn "Would remove $im\n";
-    } else {
+        if ($Opt{remoteroot}) {
+            warn "Would remove $im\n";
+        } else {
+            warn "Would add to indexfile $im\n";
+        }
+    } elsif ($Opt{remoteroot}) {
         my $ans;
         if ($Opt{yes}) {
             warn "Going to unlink '$im'\n";
@@ -166,6 +204,15 @@ for my $im (@indexmisses) {
         if ($ans =~ /^y/i) {
             unlink $im or die "Could not unlink '$im': $!";
         }
+    } else {
+        warn "Adding to indexfile: $im\n";
+        $rf->update($im,"new");
+        if (time > $last_aggregate_call + $rf->interval_secs) {
+            warn "Aggregating\n";
+            $rf->aggregate;
+            $last_aggregate_call = time;
+        }
+        sleep 0.33;
     }
 }
 __END__

@@ -131,11 +131,26 @@ find({
 if ($Opt{verbose}) {
     printf "\r%8d files checked on disk\n", $i;
 }
+$i = 0;
 
 if ($Opt{verbose}) {
     print "\rChecking index";
 }
-my $indexfiles = $recc->news;
+my @newsargs = ();
+if ($Opt{verbose}) {
+    @newsargs =
+        (callback => sub {
+             $i = scalar @{shift;};
+             if (time - $last_verbosity > 0.166666) {
+                 printf "\r%8d entries read from index ", $i;
+                 $last_verbosity = time;
+             }
+         });
+}
+my $indexfiles = $recc->news(@newsargs);
+if ($Opt{verbose}) {
+    printf "\r%8d entries read from index\n", scalar @$indexfiles;
+}
 my %seen;
 my %indexfiles = map {("$root/$_->{path}"=>$_->{epoch})} grep { !$seen{$_->{path}}++ && $_->{type} eq "new" } @$indexfiles;
 for my $rf (@{$recc->recentfiles}) {
@@ -144,20 +159,20 @@ for my $rf (@{$recc->recentfiles}) {
     $indexfiles{$rfrfile} = $stat[9];
 }
 if ($Opt{verbose}) {
-    printf "%8d entries read from index\n", scalar keys %indexfiles;
+    printf "\r%8d file objects found in index\n", scalar keys %indexfiles;
 }
 my $sprintfd = length(max scalar @$indexfiles, scalar keys %diskfiles);
 warn sprintf(
-             "diskfiles:    %*d\n".
-             "indexfiles:   %*d\n",
+             "diskfiles:        %*d\n".
+             "indexfiles:       %*d\n",
              $sprintfd, scalar keys %diskfiles,
              $sprintfd, scalar keys %indexfiles,
             );
 my @diskmisses  = sort { $indexfiles{$b} <=> $indexfiles{$a} } grep { ! exists $diskfiles{$_}  } keys %indexfiles;
 my @indexmisses = sort { $diskfiles{$a}  <=> $diskfiles{$b}  } grep { ! exists $indexfiles{$_} } keys %diskfiles;
 warn sprintf(
-             "not on disk:  %*d\n".
-             "not in index: %*d\n",
+             "missing on disk:  %*d\n".
+             "missing in index: %*d\n",
              $sprintfd, scalar @diskmisses,
              $sprintfd, scalar @indexmisses,
             );

@@ -243,7 +243,9 @@ Test this with:
        -remote pause.perl.org::authors/RECENT.recent
        -verbose
 
-Note: all parameters that can be passed to recent_events can also be specified here.
+Note: all parameters that can be passed to
+File:Rsync:Mirror:Recentfile::recent_events() can also be specified
+here.
 
 Note: all data are kept in memory
 

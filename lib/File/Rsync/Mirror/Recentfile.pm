@@ -1486,8 +1486,8 @@ timestamp are returned.
 If C<$options{before}> is specified, only file events before this
 timestamp are returned.
 
-If C<$options{max}> is specified only a maximum of this many events is
-returned.
+If C<$options{max}> is specified only a maximum of this many most
+recent events is returned.
 
 If C<$options{'skip-deletes'}> is specified, no files-to-be-deleted
 will be returned.

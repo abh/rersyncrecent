@@ -98,13 +98,11 @@ foreach my $directory ( File::Find::Rule->new->directory->in($rootdir) ) {
         or die "watch creation failed";
 }
 
-
-my $i;
-my $last_aggregate_call = 0;
 sub newfile {
     my($rf,$fullname) = @_;
     $rf->update($fullname,"new");
-};
+}
+
 sub newdir {
     my($inotify,$rf,$fullname) = @_;
     $inotify->watch
@@ -133,8 +131,13 @@ sub newdir {
             newdir($inotify,$rf,$abs);
         }
     }
-};
-my $in_callback = sub {
+}
+
+my $last_aggregate_call = 0;
+my $requires_fsck = 1;
+my $have_warned_fsck = 0;
+
+sub handle_event {
     my $ev = shift;
     my @stringifiedmask;
     for my $watch (
@@ -148,7 +151,7 @@ my $in_callback = sub {
             # directories deleted; moved directories both
         }
     }
-    # warn sprintf "rootdir[$rootdir]i[%s]time[%s]ev.w.name[%s]ev.name[%s]ev.fullname[%s]mask[%s]\n", ++$i, time, $ev->w->name, $ev->name, $ev->fullname, join("|",@stringifiedmask);
+    # warn sprintf "rootdir[$rootdir]time[%s]ev.w.name[%s]ev.name[%s]ev.fullname[%s]mask[%s]\n", time, $ev->w->name, $ev->name, $ev->fullname, join("|",@stringifiedmask);
     my $ignore = 0;
     if ($ev->w->name eq $rootdir) {
         my $meta = $rf->meta_data;
@@ -163,6 +166,8 @@ my $in_callback = sub {
         my($reportname) = $fullname =~ m{^\Q$rootdir\E/(.*)};
         my $time = sprintf "%02d:%02d:%02d", (localtime)[2,1,0];
         if (0) {
+        } elsif ($ev->IN_Q_OVERFLOW) {
+            $requires_fsck = 1;
         } elsif ($ev->IN_DELETE || $ev->IN_MOVED_FROM) {
             # we don't know whether it was a directory, we simply pass
             # it to $rf. $rf must be robust enough to swallow bogus
@@ -170,20 +175,20 @@ my $in_callback = sub {
             # this object is known, couldn't we?
             $rf->update($fullname,"delete");
             warn "[$time] Deleteobj  $reportname (@stringifiedmask)\n";
+        } elsif ($ev->IN_DELETE_SELF || $ev->IN_MOVE_SELF) {
+            $ev->w->cancel;
+            warn "[$time] Delwatcher $reportname (@stringifiedmask)\n";
+        } elsif ($ev->IS_DIR) {
+            newdir($inotify,$rf,$fullname);
+            warn "[$time] Newwatcher $reportname (@stringifiedmask)\n";
         } elsif (-l $fullname) {
             newfile($rf,$fullname);
             warn "[$time] Updatelink $reportname (@stringifiedmask)\n";
-        } elsif (-d _) {
-            newdir($inotify,$rf,$fullname);
-            warn "[$time] Newwatcher $reportname (@stringifiedmask)\n";
         } elsif (-f _) {
             if ($ev->IN_CLOSE_WRITE || $ev->IN_MOVED_TO) {
                 newfile($rf,$fullname);
                 warn "[$time] Updatefile $reportname (@stringifiedmask)\n";
             }
-        } elsif ($ev->IN_DELETE_SELF || $ev->IN_MOVE_SELF) {
-            $ev->w->cancel;
-            warn "[$time] Delwatcher $reportname (@stringifiedmask)\n";
         } else {
             warn "[$time] Ignore     $reportname (@stringifiedmask)\n";
         }
@@ -201,9 +206,14 @@ while () {
         last;
     }
     foreach my $event (@events) {
-        $in_callback->($event);
+        handle_event($event);
     }
-    # no sleep necessary, read is blocking
+    if ($requires_fsck) {
+        if (time > $have_warned_fsck + 3600) {
+            warn "REMINDER: TODO: HANDLE FSCK";
+            $have_warned_fsck = time;
+        }
+    }
 }
 
 __END__

@@ -1,3 +1,11 @@
+2011-02-09  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* lockdirectory expiration? server died and blocked fsck for so long.
+
+	* At the moment rrr-init is not needed anymore, rrr-server can be
+	started and followed by rrr-fsck. Still stupid but not the main
+	showstopper.
+
 2011-02-05  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* IN_Q_OVERFLOW needs to trigger an fsck, likewise the entry into the

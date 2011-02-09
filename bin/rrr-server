@@ -101,6 +101,37 @@ foreach my $directory ( File::Find::Rule->new->directory->in($rootdir) ) {
 
 my $i;
 my $last_aggregate_call = 0;
+sub newfile {
+    my($rf,$fullname) = @_;
+    $rf->update($fullname,"new");
+};
+sub newdir {
+    my($inotify,$rf,$fullname) = @_;
+    $inotify->watch
+        (
+         $fullname,
+         IN_CLOSE_WRITE()
+         |IN_MOVED_FROM()
+         |IN_MOVED_TO()
+         |IN_CREATE()
+         |IN_DELETE()
+         |IN_DELETE_SELF()
+         |IN_MOVE_SELF()
+        )
+            or die "watch creation failed";
+    # immediately inspect it, we certainly have missed the first
+    # events in this directory
+    opendir my $dh, $fullname or return;
+    for my $dirent (readdir $dh) {
+        next if $dirent eq "." || $dirent eq "..";
+        my $abs = File::Spec->catfile($fullname,$dirent);
+        if (-l $abs || -f _) {
+            newfile($rf,$abs);
+        } elsif (-d $abs) {
+            newdir($inotify,$rf,$abs);
+        }
+    }
+};
 my $in_callback = sub {
     my $ev = shift;
     my @stringifiedmask;
@@ -138,25 +169,14 @@ my $in_callback = sub {
             $rf->update($fullname,"delete");
             warn "[$time] Deleteobj  $reportname (@stringifiedmask)\n";
         } elsif (-l $fullname) {
-            $rf->update($fullname,"new");
+            newfile($rf,$fullname);
             warn "[$time] Updatelink $reportname (@stringifiedmask)\n";
         } elsif (-d _) {
-            $inotify->watch
-                (
-                 $fullname,
-                 IN_CLOSE_WRITE()
-                 |IN_MOVED_FROM()
-                 |IN_MOVED_TO()
-                 |IN_CREATE()
-                 |IN_DELETE()
-                 |IN_DELETE_SELF()
-                 |IN_MOVE_SELF()
-                )
-                or die "watch creation failed";
+            newdir($inotify,$rf,$fullname);
             warn "[$time] Newwatcher $reportname (@stringifiedmask)\n";
         } elsif (-f _) {
             if ($ev->IN_CLOSE_WRITE || $ev->IN_MOVED_TO) {
-                $rf->update($fullname,"new");
+                newfile($rf,$fullname);
                 warn "[$time] Updatefile $reportname (@stringifiedmask)\n";
             }
         } elsif ($ev->IN_DELETE_SELF || $ev->IN_MOVE_SELF) {

@@ -126,8 +126,10 @@ sub newdir {
         next if $dirent eq "." || $dirent eq "..";
         my $abs = File::Spec->catfile($fullname,$dirent);
         if (-l $abs || -f _) {
+            warn "[..:..:..] Readdir_F  $abs\n";
             newfile($rf,$abs);
         } elsif (-d $abs) {
+            warn "[..:..:..] Readdir_D  $abs\n";
             newdir($inotify,$rf,$abs);
         }
     }

@@ -178,7 +178,7 @@ sub handle_event {
         } elsif ($ev->IN_DELETE_SELF || $ev->IN_MOVE_SELF) {
             $ev->w->cancel;
             warn "[$time] Delwatcher $reportname (@stringifiedmask)\n";
-        } elsif ($ev->IS_DIR) {
+        } elsif ($ev->IN_ISDIR) {
             newdir($inotify,$rf,$fullname,$batch);
             warn "[$time] Newwatcher $reportname (@stringifiedmask)\n";
         } elsif (-l $fullname) {

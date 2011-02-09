@@ -1,5 +1,19 @@
 2011-02-09  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
+	* minor bug: fsck just added the lockfile to the index which should be
+	considered bookkeeping.
+
+	* speed: a large directory remove that is done by the kernel in 1
+	seconds triggers minutes of bookkeeping (07:56:42 - 08:01:10 for ~3000
+	files, all due to Schlemiehl again. Want to do some collecting of
+	pending ops before actually writing to the RECENT files. Lock!
+
+	Repeating the timing with 2600 files and it took 21:28:08 - 21:35:27.
+
+	Now having rewritten the loop to use batch_update(): 4383 file removed
+	21:43:37 - 21:44:12. From 7:30 to 0:35 while doing 60% more work that's
+	a joy.
+
 	* lockdirectory expiration? server died and blocked fsck for so long.
 
 	* At the moment rrr-init is not needed anymore, rrr-server can be
@@ -10,11 +24,6 @@
 
 	* IN_Q_OVERFLOW needs to trigger an fsck, likewise the entry into the
 	server.
-
-	* speed: a large directory remove that is done by the kernel in 1
-	seconds triggers minutes of bookkeeping (07:56:42 - 08:01:10 for ~3000
-	files, all due to Schlemiehl again. Want to do some collecting of
-	pending ops before actually writing to the RECENT files. Lock!
 
 2011-01-30  Andreas J. Koenig  <andk@cpan.org>
 

@@ -98,13 +98,13 @@ foreach my $directory ( File::Find::Rule->new->directory->in($rootdir) ) {
         or die "watch creation failed";
 }
 
-sub newfile {
-    my($rf,$fullname) = @_;
-    $rf->update($fullname,"new");
+sub handle_file {
+    my($rf,$fullname,$type,$batch) = @_;
+    push @$batch, {path => $fullname, type => $type};
 }
 
 sub newdir {
-    my($inotify,$rf,$fullname) = @_;
+    my($inotify,$rf,$fullname,$batch) = @_;
     $inotify->watch
         (
          $fullname,
@@ -125,10 +125,10 @@ sub newdir {
         my $abs = File::Spec->catfile($fullname,$dirent);
         if (-l $abs || -f _) {
             warn "[..:..:..] Readdir_F  $abs\n";
-            newfile($rf,$abs);
+            handle_file($rf,$abs,"new",$batch);
         } elsif (-d $abs) {
             warn "[..:..:..] Readdir_D  $abs\n";
-            newdir($inotify,$rf,$abs);
+            newdir($inotify,$rf,$abs,$batch);
         }
     }
 }
@@ -138,7 +138,7 @@ my $requires_fsck = 1;
 my $have_warned_fsck = 0;
 
 sub handle_event {
-    my $ev = shift;
+    my($ev,$batch) = @_;
     my @stringifiedmask;
     for my $watch (
                    "IN_CREATE", "IN_CLOSE_WRITE", "IN_MOVED_TO", # new
@@ -173,20 +173,20 @@ sub handle_event {
             # it to $rf. $rf must be robust enough to swallow bogus
             # deletes. Alternatively we could look into $rf whether
             # this object is known, couldn't we?
-            $rf->update($fullname,"delete");
+            handle_file($rf,$fullname,"delete",$batch);
             warn "[$time] Deleteobj  $reportname (@stringifiedmask)\n";
         } elsif ($ev->IN_DELETE_SELF || $ev->IN_MOVE_SELF) {
             $ev->w->cancel;
             warn "[$time] Delwatcher $reportname (@stringifiedmask)\n";
         } elsif ($ev->IS_DIR) {
-            newdir($inotify,$rf,$fullname);
+            newdir($inotify,$rf,$fullname,$batch);
             warn "[$time] Newwatcher $reportname (@stringifiedmask)\n";
         } elsif (-l $fullname) {
-            newfile($rf,$fullname);
+            handle_file($rf,$fullname,"new",$batch);
             warn "[$time] Updatelink $reportname (@stringifiedmask)\n";
         } elsif (-f _) {
             if ($ev->IN_CLOSE_WRITE || $ev->IN_MOVED_TO) {
-                newfile($rf,$fullname);
+                handle_file($rf,$fullname,"new",$batch);
                 warn "[$time] Updatefile $reportname (@stringifiedmask)\n";
             }
         } else {
@@ -205,9 +205,11 @@ while () {
         print "Alert: inotify read error: $!";
         last;
     }
+    my @batch;
     foreach my $event (@events) {
-        handle_event($event);
+        handle_event($event,\@batch);
     }
+    $rf->batch_update(\@batch);
     if ($requires_fsck) {
         if (time > $have_warned_fsck + 3600) {
             warn "REMINDER: TODO: HANDLE FSCK";

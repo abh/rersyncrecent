@@ -1,5 +1,9 @@
 2011-02-09  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
+	* I think interval guaranteed with the $last_aggregate_call
+	variable (both in fsck and server) need to be fixed with a $recc
+	variable to something like 60 seconds or even less.
+
 	* minor bug: fsck just added the lockfile to the index which should be
 	considered bookkeeping.
 

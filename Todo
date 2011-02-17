@@ -1,3 +1,13 @@
+2011-02-17  Andreas J. Koenig  <andk@cpan.org>
+
+	* ALERT rrr: we have a piece of code somewhere in the mirror()
+	subroutine that reads the raw YAML file with normal open() and cuts it
+	off for efficiency, then feeds it to yaml::load in order to get some
+	metadata. Reading the thing with the whole tail of the recent array
+	kills the whole idea. The whole thing will not work with JSON.
+
+	So we must invent a protocol 3 that works with two index files.
+
 2011-02-09  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* I think interval guaranteed with the $last_aggregate_call

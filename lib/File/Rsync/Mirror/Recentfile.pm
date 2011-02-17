@@ -885,6 +885,7 @@ sub _merge_locked {
     my $myepoch = $my_recent->[0] ? $my_recent->[0]{epoch} : undef;
     my $epoch = $other_recent->[0] ? $other_recent->[0]{epoch} : $myepoch;
     my $oldest_allowed = 0;
+    $DB::single++;
     my $something_done;
     unless ($my_recent->[0]) {
         # obstetrics
@@ -2038,6 +2039,10 @@ sub _locked_batch_update {
     my($self,$batch) = @_;
     my $something_done = 0;
     my $recent = $self->recent_events;
+    unless ($recent->[0]) {
+        # obstetrics
+        $something_done = 1;
+    }
     my %paths_in_recent = map { $_->{path} => undef } @$recent;
     my $interval = $self->interval;
     my $canonmeth = $self->canonize;

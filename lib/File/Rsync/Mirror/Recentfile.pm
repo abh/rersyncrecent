@@ -2309,10 +2309,10 @@ sub write_recent {
     }
     my $minmax = $self->minmax;
     if (!defined $minmax->{max} || _bigfloatlt($minmax->{max},$recent->[0]{epoch})) {
-        $minmax->{max} = $recent->[0]{epoch};
+        $minmax->{max} = @$recent && exists $recent->[0]{epoch} ? $recent->[0]{epoch} : undef;
     }
     if (!defined $minmax->{min} || _bigfloatlt($minmax->{min},$recent->[-1]{epoch})) {
-        $minmax->{min} = $recent->[-1]{epoch};
+        $minmax->{min} = @$recent && exists $recent->[-1]{epoch} ? $recent->[-1]{epoch} : undef;
     }
     $self->minmax($minmax);
     my $meth = sprintf "write_%d", $self->protocol;

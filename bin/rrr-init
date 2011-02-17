@@ -33,6 +33,11 @@ directory.
 
 Prints a brief message and exists.
 
+=item B<--serializer_suffix=s>
+
+Defaults to C<.yaml>. Supported values are listed in
+L<File::Rsync::Mirror::Recentfile> under the heading SERIALIZERS.
+
 =item B<--verbose|v+>
 
 More feedback.
@@ -87,6 +92,7 @@ my $rfconstructor = sub {
            interval => $aggregator[0],
            localroot => $localroot,
            verbose => $Opt{verbose},
+           serializer_suffix => $Opt{serializer_suffix},
           );
 };
 my $rf = $rfconstructor->();

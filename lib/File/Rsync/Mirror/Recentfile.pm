@@ -838,6 +838,8 @@ sub lock {
                 sleep 1;
                 last GETLOCK;
             }
+        } else {
+            warn "Warning: unknown process holds a lock in '$lockdir', waiting..." unless $have_warned{unknown}++;
         }
         Time::HiRes::sleep 0.01;
         if (time - $start > $locktimeout) {

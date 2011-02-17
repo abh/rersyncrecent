@@ -179,6 +179,7 @@ warn sprintf(
 $DB::single++;
 my $rf = $recc->principal_recentfile;
 my $last_aggregate_call = time;
+my @batch;
 for my $dm (@diskmisses) {
     if (0) {
     } elsif ($Opt{"dry-run"}) {
@@ -192,13 +193,13 @@ for my $dm (@diskmisses) {
         $rf->get_remotefile($relative);
     } else {
         warn "Removing from indexfile: $dm\n";
-        $rf->update($dm,"delete");
-        if (time > $last_aggregate_call + $rf->interval_secs) {
-            warn "Aggregating\n";
-            $rf->aggregate;
-            $last_aggregate_call = time;
-        }
-        sleep 0.33;
+        push @batch, {path => $dm, type => "delete"};
+        #$rf->update($dm,"delete");
+        #if (time > $last_aggregate_call + $rf->interval_secs) {
+        #    warn "Aggregating\n";
+        #    $rf->aggregate;
+        #    $last_aggregate_call = time;
+        #}
     }
 }
 for my $im (@indexmisses) {
@@ -221,15 +222,18 @@ for my $im (@indexmisses) {
         }
     } else {
         warn "Adding to indexfile: $im\n";
-        $rf->update($im,"new");
-        if (time > $last_aggregate_call + $rf->interval_secs) {
-            warn "Aggregating\n";
-            $rf->aggregate;
-            $last_aggregate_call = time;
-        }
-        sleep 0.33;
+        my @stat = stat $im or next;
+        push @batch, {epoch => $stat[9], path => $im, type => "new"};
+        #$rf->update($im,"new");
+        #if (time > $last_aggregate_call + $rf->interval_secs) {
+        #    warn "Aggregating\n";
+        #    $rf->aggregate;
+        #    $last_aggregate_call = time;
+        #}
     }
 }
+$rf->batch_update(\@batch);
+
 __END__
 
 

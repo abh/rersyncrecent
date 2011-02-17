@@ -104,7 +104,7 @@ my $rfilename = File::Spec->catfile
 
 if (-e $rfilename) {
     if ($Opt{force}) {
-        unlink $rfilename or die "Could not unlink '%s': %s", $rfilename, $!;
+        unlink $rfilename or die sprintf "Could not unlink '%s': %s", $rfilename, $!;
         $rf = $rfconstructor->();
     } else {
         die sprintf "Alert: Found an already existing file '%s'. Won't overwrite. Either use --force or remove the file before calling me again", $rfilename;

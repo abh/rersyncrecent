@@ -829,6 +829,8 @@ sub lock {
         if (open my $fh, "<", $procfile) {
             chomp(my $process = <$fh>);
             if (0) {
+            } elsif ($process !~ /^\d+$/) {
+                warn "Warning: unknown process holds a lock in '$lockdir', waiting..." unless $have_warned{unknown}++;
             } elsif ($$ == $process) {
                 last GETLOCK;
             } elsif (kill 0, $process) {

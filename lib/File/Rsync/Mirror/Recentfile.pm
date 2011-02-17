@@ -823,14 +823,16 @@ sub lock {
     my $start = time;
     my $locktimeout = $self->locktimeout || 600;
     my %have_warned;
-  GETLOCK: while (not mkdir "$rfile.lock") {
-        if (open my $fh, "<", "$rfile.lock/process") {
+    my $lockdir = "$rfile.lock";
+    my $procfile = "$lockdir/process";
+ GETLOCK: while (not mkdir $lockdir) {
+        if (open my $fh, "<", $procfile) {
             chomp(my $process = <$fh>);
             if (0) {
             } elsif ($$ == $process) {
                 last GETLOCK;
             } elsif (kill 0, $process) {
-                warn "Warning: process $process holds a lock, waiting..." unless $have_warned{$process}++;
+                warn "Warning: process $process holds a lock in '$lockdir', waiting..." unless $have_warned{$process}++;
             } else {
                 warn "Warning: breaking lock held by process $process";
                 sleep 1;
@@ -841,8 +843,8 @@ sub lock {
         if (time - $start > $locktimeout) {
             die "Could not acquire lockdirectory '$rfile.lock': $!";
         }
-    }
-    open my $fh, ">", "$rfile.lock/process" or die "Could not open >$rfile.lock/process\: $!";
+    } # GETLOCK
+    open my $fh, ">", $procfile or die "Could not open >$procfile\: $!";
     print $fh $$, "\n";
     close $fh or die "Could not close: $!";
     $self->_is_locked (1);

@@ -232,7 +232,11 @@ for my $im (@indexmisses) {
         #}
     }
 }
-$rf->batch_update(\@batch);
+unless ($Opt{"dry-run"}) {
+    if (@batch) {
+        $rf->batch_update(\@batch);
+    }
+}
 
 __END__
 

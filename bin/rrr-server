@@ -83,8 +83,9 @@ for my $req (qw(Linux::Inotify2 File::Find::Rule)) {
 my $inotify = new Linux::Inotify2
     or die "Unable to create new inotify object: $!";
 
-foreach my $directory ( File::Find::Rule->new->directory->in($rootdir) ) {
-    $inotify->watch
+sub my_inotify {
+    my($directory) = @_;
+    unless ($inotify->watch
         (
          $directory,
          IN_CLOSE_WRITE()
@@ -94,8 +95,23 @@ foreach my $directory ( File::Find::Rule->new->directory->in($rootdir) ) {
          |IN_DELETE()
          |IN_DELETE_SELF()
          |IN_MOVE_SELF()
-        )
-        or die "watch creation failed";
+        )) {
+        # or die "watch creation failed: $!";
+        if ($!{ENOSPC}) {
+            die "Alert: ENOSPC reached, probably your system needs to increase the amount of inotify watches allowed per user via '/proc/sys/fs/inotify/max_user_watches'\n";
+        } else {
+            for my $err (qw(ENOENT EBADF EEXIST)) {
+                if ($!{$err}) {
+                    warn "$err encountered on '$directory'. Giving up on this watch, trying to continue.\n" if $Opt{verbose};
+                    return;
+                }
+            }
+            die "Alert: $!";
+        }
+    }
+}
+foreach my $directory ( File::Find::Rule->new->directory->in($rootdir) ) {
+    my_inotify($directory);
 }
 
 sub handle_file {
@@ -105,18 +121,7 @@ sub handle_file {
 
 sub newdir {
     my($inotify,$rf,$fullname,$batch) = @_;
-    $inotify->watch
-        (
-         $fullname,
-         IN_CLOSE_WRITE()
-         |IN_MOVED_FROM()
-         |IN_MOVED_TO()
-         |IN_CREATE()
-         |IN_DELETE()
-         |IN_DELETE_SELF()
-         |IN_MOVE_SELF()
-        )
-            or die "watch creation failed";
+    my_inotify($fullname);
     # immediately inspect it, we certainly have missed the first
     # events in this directory
     opendir my $dh, $fullname or return;

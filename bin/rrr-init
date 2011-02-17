@@ -71,6 +71,11 @@ if (@ARGV != 1) {
     pod2usage(1);
 }
 
+if ($Opt{verbose}) {
+    # speed up fail on missing module:
+    require Time::Progress;
+}
+
 my($rootdir) = @ARGV;
 my $aggregator_string = $Opt{aggregator} || "1h,1d,1M,1Y,Z";
 my @aggregator = split /\s*,\s*/, $aggregator_string;

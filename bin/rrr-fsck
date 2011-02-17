@@ -129,7 +129,7 @@ find({
      $root
     );
 if ($Opt{verbose}) {
-    printf "\r%8d files checked on disk\n", $i;
+    printf "\r%8d files and symlinks checked on disk\n", $i;
 }
 $i = 0;
 

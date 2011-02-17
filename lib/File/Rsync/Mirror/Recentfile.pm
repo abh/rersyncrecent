@@ -870,7 +870,6 @@ sub merge {
     $self->_merge_sanitycheck ( $other );
     $other->lock;
     my $other_recent = $other->recent_events || [];
-    # $DB::single++ if $other->interval_secs eq "2" and grep {$_->{epoch} eq "999.999"} @$other_recent;
     $self->lock;
     $self->_merge_locked ( $other, $other_recent );
     $self->unlock;
@@ -885,7 +884,6 @@ sub _merge_locked {
     my $myepoch = $my_recent->[0] ? $my_recent->[0]{epoch} : undef;
     my $epoch = $other_recent->[0] ? $other_recent->[0]{epoch} : $myepoch;
     my $oldest_allowed = 0;
-    $DB::single++;
     my $something_done;
     unless ($my_recent->[0]) {
         # obstetrics
@@ -2077,7 +2075,6 @@ sub _locked_batch_update {
         $oldest_allowed = 0;
     }
 TRUNCATE: while (@$recent) {
-        # $DB::single++ unless defined $oldest_allowed;
         if (_bigfloatlt($recent->[-1]{epoch}, $oldest_allowed)) {
             pop @$recent;
             $something_done = 1;

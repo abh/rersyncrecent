@@ -6,7 +6,7 @@ rrr-overview - summarize the dataset
 
 =head1 SYNOPSIS
 
-  rrr-news [options] principal_recentfile
+  rrr-overview [options] principal_recentfile
 
 =head1 OPTIONS
 

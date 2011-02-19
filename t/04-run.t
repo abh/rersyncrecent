@@ -4,8 +4,6 @@ use Test::More;
 use File::Spec;
 sub _f ($) {File::Spec->catfile(split /\//, shift);}
 
-my $Id = q$Id: bap.t 26 2003-02-16 19:01:03Z k $;
-
 my @s = grep {-x $_} grep { !/~/ } glob("bin/rrr*");
 
 my $tests_per_loop = 3;

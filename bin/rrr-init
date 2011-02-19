@@ -109,8 +109,6 @@ if (-e $rfilename) {
     } else {
         die sprintf "Alert: Found an already existing file '%s'. Won't overwrite. Either use --force or remove the file before calling me again", $rfilename;
     }
-} else {
-    warn "Debug: rfilename[$rfilename]";
 }
 my @t = time;
 my @batch;

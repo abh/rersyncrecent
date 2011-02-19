@@ -66,6 +66,8 @@ if (@ARGV != 1) {
 }
 
 my($principal) = @ARGV;
+use File::Spec ();
+$principal = File::Spec->rel2abs($principal);
 my $recc = File::Rsync::Mirror::Recent->new
     (local => $principal);
 my($rf) = $recc->principal_recentfile;

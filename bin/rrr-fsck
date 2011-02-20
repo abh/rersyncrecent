@@ -105,6 +105,12 @@ for my $passthrough (qw(remoteroot verbose)) {
 }
 my $root = $recc->localroot;
 die "Alert: Root not defined, giving up" unless defined $root;
+my $prf = $recc->principal_recentfile;
+my $filenameroot = $prf->filenameroot;
+my $serializer_suffix = $prf->serializer_suffix;
+my $ignore_rx = qr((?x:
+ ^ \Q$filenameroot\E (?:  - [0-9]*[smhdWMQYZ] \Q$serializer_suffix\E (?: \.lock (?: /.* )? )?  | \.recent ) \z 
+));
 
 my %diskfiles;
 my $i;
@@ -117,6 +123,8 @@ find({
       wanted => sub {
           my @lstat = lstat $_;
           return unless -l _ or -f _;
+          my($reportname) = $File::Find::name =~ m{^\Q$root\E/*(.*)};
+          return if $reportname =~ $ignore_rx;
           $i++;
           if ($Opt{verbose} && time - $last_verbosity > 0.166666) {
               printf "\r%8d files and symlinks checked on disk ", $i;

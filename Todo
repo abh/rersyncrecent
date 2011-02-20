@@ -1,3 +1,14 @@
+2011-02-20  Andreas J. Koenig  <andk@cpan.org>
+
+	* start consistently considering the RECENT files themselves not part of
+	the set.
+
+2011-02-19  Andreas J. Koenig  <andk@cpan.org>
+
+	* Found the term anonymous one way file system
+
+	* No support for empty directories
+
 2011-02-17  Andreas J. Koenig  <andk@cpan.org>
 
 	* .recent/ or .rrr/ for metadata
@@ -8,7 +19,8 @@
 	metadata. Reading the thing with the whole tail of the recent array
 	kills the whole idea. The whole thing will not work with JSON.
 
-	So we must invent a protocol 3 that works with two index files.
+	So we must invent a protocol 2 that works with one additional index
+	files, say "A", only containing meta.
 
 2011-02-09  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 

@@ -160,11 +160,22 @@ if ($Opt{verbose}) {
     printf "\r%8d entries read from index\n", scalar @$indexfiles;
 }
 my %seen;
-my %indexfiles = map {("$root/$_->{path}"=>$_->{epoch})} grep { !$seen{$_->{path}}++ && $_->{type} eq "new" } @$indexfiles;
+my %indexfiles = map {
+    ("$root/$_->{path}"=>$_->{epoch})
+} grep {
+    defined $_->{path} &&
+        !$seen{$_->{path}}++
+            && $_->{type} eq "new"
+} @$indexfiles;
+my @missing_rfrfiles;
 for my $rf (@{$recc->recentfiles}) {
     my $rfrfile = $rf->rfile;
-    my @stat = stat $rfrfile or die "Could not stat '$rfrfile': $!";
-    $indexfiles{$rfrfile} = $stat[9];
+    unless (-e $rfrfile) {
+        push @missing_rfrfiles, $rfrfile;
+    }
+}
+if (@missing_rfrfiles) {
+    warn "Warning: missing index files @missing_rfrfiles\n";
 }
 if ($Opt{verbose}) {
     printf "\r%8d file objects found in index\n", scalar keys %indexfiles;

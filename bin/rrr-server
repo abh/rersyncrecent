@@ -218,10 +218,13 @@ while () {
             my $pid = fork;
             if (! defined $pid) {
                 sleep 0.1;
+                next;
             } elsif ($pid) {
                 wait;
+                last;
             } else {
                 $rf->aggregate;
+                exit;
             }
         }
         $last_aggregate_call = time;

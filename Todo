@@ -1,3 +1,9 @@
+2011-02-21  Andreas J. Koenig  <andk@cpan.org>
+
+	* rrr-server has a memory leak
+
+	root     16063 94.7 10.6 358404 354600 pts/21  RN   Feb18 4117:16 /home/src/perl/repoperls/installed-perls/perl/v5.13.8-16-gf53580f/bin/perl -Ilib bin/rrr-server --verbose /home/ftp/incoming/RECENT-1h.yaml
+
 2011-02-20  Andreas J. Koenig  <andk@cpan.org>
 
 	* start consistently considering the RECENT files themselves not part of

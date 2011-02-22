@@ -213,8 +213,17 @@ while () {
         handle_event($event,\@batch);
     }
     $rf->batch_update(\@batch);
-    if (time > $last_aggregate_call + 30) {
-        $rf->aggregate;
+    if (time > $last_aggregate_call + 30) { # arbitrary
+        while () {
+            my $pid = fork;
+            if (! defined $pid) {
+                sleep 0.1;
+            } elsif ($pid) {
+                wait;
+            } else {
+                $rf->aggregate;
+            }
+        }
         $last_aggregate_call = time;
     }
     if ($requires_fsck) {

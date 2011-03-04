@@ -65,28 +65,8 @@ if (@ARGV != 1) {
     pod2usage(1);
 }
 
-my($principal) = @ARGV;
-use File::Spec ();
-$principal = File::Spec->rel2abs($principal);
-my $recc = File::Rsync::Mirror::Recent->new
-    (local => $principal);
-my($rf) = $recc->principal_recentfile;
-my $rootdir = $rf->localroot;
-$rootdir =~ s|/$||;
-for my $req (qw(Linux::Inotify2 File::Find::Rule)) {
-    eval qq{ require $req; 1 };
-    if ($@) {
-        die "Failing on 'require $req': $@"
-    } else {
-        $req->import;
-    }
-}
-
-my $inotify = new Linux::Inotify2
-    or die "Unable to create new inotify object: $!";
-
 sub my_inotify {
-    my($directory) = @_;
+    my($inotify, $directory) = @_;
     unless ($inotify->watch
         (
          $directory,
@@ -112,9 +92,6 @@ sub my_inotify {
         }
     }
 }
-foreach my $directory ( File::Find::Rule->new->directory->in($rootdir) ) {
-    my_inotify($directory);
-}
 
 sub handle_file {
     my($rf,$fullname,$type,$batch) = @_;
@@ -123,7 +100,7 @@ sub handle_file {
 
 sub newdir {
     my($inotify,$rf,$fullname,$batch) = @_;
-    my_inotify($fullname);
+    my_inotify($inotify, $fullname);
     # immediately inspect it, we certainly have missed the first
     # events in this directory
     opendir my $dh, $fullname or return;
@@ -140,9 +117,8 @@ sub newdir {
     }
 }
 
-my $requires_fsck = 1;
 sub handle_event {
-    my($ev,$batch) = @_;
+    my($inotify,$rf,$ev,$batch) = @_;
     my @stringifiedmask;
     for my $watch (
                    "IN_CREATE", "IN_CLOSE_WRITE", "IN_MOVED_TO", # new
@@ -155,6 +131,7 @@ sub handle_event {
             # directories deleted; moved directories both
         }
     }
+    my $rootdir = $rf->localroot;
     # warn sprintf "rootdir[$rootdir]time[%s]ev.w.name[%s]ev.name[%s]ev.fullname[%s]mask[%s]\n", time, $ev->w->name, $ev->name, $ev->fullname, join("|",@stringifiedmask);
     my $ignore = 0;
     if ($ev->w->name eq $rootdir) {
@@ -171,7 +148,7 @@ sub handle_event {
         my $time = sprintf "%02d:%02d:%02d", (localtime)[2,1,0];
         if (0) {
         } elsif ($ev->IN_Q_OVERFLOW) {
-            $requires_fsck = 1;
+            $rf->_requires_fsck(1);
         } elsif ($ev->IN_DELETE || $ev->IN_MOVED_FROM) {
             # we don't know whether it was a directory, we simply pass
             # it to $rf. $rf must be robust enough to swallow bogus
@@ -199,40 +176,61 @@ sub handle_event {
     }
 }
 
-my $last_aggregate_call = 0;
-my $have_warned_fsck = 0;
+sub init {
+    my($inotify, $rootdir) = @_;
+    foreach my $directory ( File::Find::Rule->new->directory->in($rootdir) ) {
+        my_inotify($inotify, $directory);
+    }
 
-while () {
-    my @events = $inotify->read;
-    unless ( @events > 0 ) {
-        print "Alert: inotify read error: $!";
-        last;
-    }
-    my @batch;
-    foreach my $event (@events) {
-        handle_event($event,\@batch);
-    }
-    $rf->batch_update(\@batch);
-    if (time > $last_aggregate_call + 30) { # arbitrary
-        while () {
-            my $pid = fork;
-            if (! defined $pid) {
-                sleep 0.1;
-                next;
-            } elsif ($pid) {
-                wait;
-                last;
-            } else {
-                $rf->aggregate;
-                exit;
-            }
+}
+
+# Need also to verify that we watch all directories we encounter.
+sub fsck {
+    my($rf) = @_;
+    0 == system $^X, "-Ilib", "bin/rrr-fsck", $rf->rfile, "--verbose" or die;
+}
+
+MAIN: {
+    my($principal) = @ARGV;
+    $principal = File::Spec->rel2abs($principal);
+    my $recc = File::Rsync::Mirror::Recent->new
+        (local => $principal);
+    my($rf) = $recc->principal_recentfile;
+    my $rootdir = $rf->localroot;
+    for my $req (qw(Linux::Inotify2 File::Find::Rule)) {
+        eval qq{ require $req; 1 };
+        if ($@) {
+            die "Failing on 'require $req': $@"
+        } else {
+            $req->import;
         }
-        $last_aggregate_call = time;
     }
-    if ($requires_fsck) {
-        if (time > $have_warned_fsck + 3600) {
-            warn "REMINDER: TODO: HANDLE FSCK" if $Opt{verbose};
-            $have_warned_fsck = time;
+
+    my $inotify = new Linux::Inotify2
+        or die "Unable to create new inotify object: $!";
+
+    init($inotify, $rootdir);
+    fsck($rf);
+    my $last_aggregate_call = 0;
+
+    while () {
+        my @events = $inotify->read;
+        unless ( @events > 0 ) {
+            print "Alert: inotify read error: $!";
+            last;
+        }
+        my @batch;
+        foreach my $event (@events) {
+            handle_event($inotify,$rf,$event,\@batch);
+        }
+        $rf->batch_update(\@batch);
+        if (time > $last_aggregate_call + 60) { # arbitrary
+            $rf->aggregate;
+            $last_aggregate_call = time;
+        }
+        if ($rf->_requires_fsck) {
+            fsck($rf);
+            $rf->_requires_fsck(0);
         }
     }
 }

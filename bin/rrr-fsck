@@ -109,7 +109,7 @@ my $prf = $recc->principal_recentfile;
 my $filenameroot = $prf->filenameroot;
 my $serializer_suffix = $prf->serializer_suffix;
 my $ignore_rx = qr((?x:
- ^ \Q$filenameroot\E (?:  - [0-9]*[smhdWMQYZ] \Q$serializer_suffix\E (?: \.lock (?: /.* )? )?  | \.recent ) \z 
+ ^ \Q$filenameroot\E (?:  - [0-9]*[smhdWMQYZ] \Q$serializer_suffix\E (?: \.lock (?: /.* )? )?  | \.recent ) \z
 ));
 
 my %diskfiles;

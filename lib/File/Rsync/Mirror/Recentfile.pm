@@ -214,6 +214,7 @@ BEGIN {
                   "_remember_last_uptodate_call",
                   "_remote_dir",
                   "_remoteroot",
+                  "_requires_fsck",
                   "_rfile",
                   "_rsync",
                   "__verified_tempdir",
@@ -773,13 +774,15 @@ sub interval_secs {
 
 =head2 $obj->localroot ( $localroot )
 
-Get/set accessor. The local root of the tree.
+Get/set accessor. The local root of the tree. Guaranteed without
+trailing slash.
 
 =cut
 
 sub localroot {
     my ($self, $localroot) = @_;
     if (@_ >= 2) {
+        $localroot =~ s|/$||;
         $self->_localroot($localroot);
         $self->_rfile(undef);
     }

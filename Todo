@@ -4,6 +4,20 @@
 
 	root     16063 94.7 10.6 358404 354600 pts/21  RN   Feb18 4117:16 /home/src/perl/repoperls/installed-perls/perl/v5.13.8-16-gf53580f/bin/perl -Ilib bin/rrr-server --verbose /home/ftp/incoming/RECENT-1h.yaml
 
+	experimenting with a fork for aggregate():
+
+	root     12196 60.2  0.2  13652  9920 pts/21   RN   08:25   1:56 /home/src/perl/repoperls/installed-perls/perl/v5.13.8-16-gf53580f/bin/perl -Ilib bin/rrr-server --verbose /home/ftp/incoming/RECENT-1h.yaml
+
+	A delete of several hundred files:
+
+	root     12196 72.8  0.3  13792 10056 pts/21   RN   08:25   3:48 /home/src/perl/repoperls/installed-perls/perl/v5.13.8-16-gf53580f/bin/perl -Ilib bin/rrr-server --verbose /home/ftp/incoming/RECENT-1h.yaml
+
+	Delete several hundred again:
+
+	root     12196 79.8  0.3  14788 10944 pts/21   RN   08:25   6:34 /home/src/perl/repoperls/installed-perls/perl/v5.13.8-16-gf53580f/bin/perl -Ilib bin/rrr-server --verbose /home/ftp/incoming/RECENT-1h.yaml
+
+	It's a lot.
+
 2011-02-20  Andreas J. Koenig  <andk@cpan.org>
 
 	* start consistently considering the RECENT files themselves not part of

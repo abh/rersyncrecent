@@ -223,7 +223,7 @@ MAIN: {
         foreach my $event (@events) {
             handle_event($inotify,$rf,$event,\@batch);
         }
-        $rf->batch_update(\@batch);
+        $rf->batch_update(\@batch) if @batch;
         if (time > $last_aggregate_call + 60) { # arbitrary
             $rf->aggregate;
             $last_aggregate_call = time;

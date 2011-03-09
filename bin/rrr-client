@@ -1,0 +1,88 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use local::lib;
+use Getopt::Long;
+
+=head1 NAME
+
+rrr-client - continously mirror recent updates
+
+=head1 SYNOPSIS
+
+  rrr-client [options]
+
+=head1 OPTIONS
+
+=over 8
+
+=cut
+
+my @opt = <<'=back' =~ /B<--(\S+)>/g;
+
+=item B<--source>
+
+Source to mirror from, including the name of the RECENT metadata file.
+For example C<cpan-rsync.perl.org::CPAN/RECENT.recent>.
+
+=item B<--target>
+
+Destination directory for the mirror.
+
+=item B<--user>
+
+Username if the rsync source requires it.
+
+=item B<--password>
+
+Password if the rsync source requires it.  Can also be set by setting
+the environment variable RSYNC_PASSWORD.
+
+=item B<--tmpdir>
+
+Directory for temporary files; should be on the same file system
+partition as the C<--target> directory.
+
+=back
+
+=head1 DESCRIPTION
+
+After you have setup a tree watch it with inotify and keep it
+uptodate. Depends on inotify which probably only exists on linux.
+
+=cut
+
+GetOptions("user=s" => \(my $opt_user),
+  "password=s" => \(my $opt_password),
+  "source=s"   => \(my $opt_source),
+  "target=s"   => \(my $opt_target),
+  "tmpdir=s"   => \(my $opt_tmpdir),
+);
+
+die "$0 --source some.mirror::module/ --target /some/dir/\n"
+    unless $opt_source and $opt_target;
+  
+$ENV{RSYNC_PASSWORD} = $opt_password if $opt_password;
+
+use File::Rsync::Mirror::Recent;
+my $rrr = File::Rsync::Mirror::Recent->new
+  (
+   ignore_link_stat_errors => 1,
+   localroot => $opt_target,
+   ($opt_tmpdir ? (tempdir => $opt_tmpdir) : ()),
+   remote => ($opt_user ? $opt_user . '@' : '') . $opt_source,
+   max_files_per_connection => 5000,
+   rsync_options => {
+                     compress => 1,
+                     links => 1,
+                     'safe-links' => 1,
+                     times => 1,
+                     checksum => 0,
+                     ($opt_tmpdir ? ('temp-dir' => $opt_tmpdir) : ()),
+                    },
+   verbose => 1,
+   _runstatusfile => "recent-rmirror-state.yml",
+   _logfilefordone => "recent-rmirror-donelog.log",
+  );
+
+$rrr->rmirror ( "skip-deletes" => 0, loop => 1 );

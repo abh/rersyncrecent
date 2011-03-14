@@ -71,7 +71,7 @@ my $rrr = File::Rsync::Mirror::Recent->new
    localroot => $opt_target,
    ($opt_tmpdir ? (tempdir => $opt_tmpdir) : ()),
    remote => ($opt_user ? $opt_user . '@' : '') . $opt_source,
-   max_files_per_connection => 5000,
+   max_files_per_connection => 20000,
    rsync_options => {
                      compress => 1,
                      links => 1,
@@ -82,7 +82,7 @@ my $rrr = File::Rsync::Mirror::Recent->new
                     },
    verbose => 1,
    _runstatusfile => "recent-rmirror-state.yml",
-   _logfilefordone => "recent-rmirror-donelog.log",
+   # _logfilefordone => "recent-rmirror-donelog.log",
   );
 
 $rrr->rmirror ( "skip-deletes" => 0, loop => 1 );

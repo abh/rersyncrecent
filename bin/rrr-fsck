@@ -236,7 +236,7 @@ for my $im (@indexmisses) {
         }
     } else {
         warn "Adding to indexfile: $im\n";
-        my @stat = stat $im or next;
+        my @stat = lstat $im or next;
         push @batch, {epoch => $stat[9], path => $im, type => "new"};
     }
 }

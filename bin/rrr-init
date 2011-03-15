@@ -114,7 +114,7 @@ my @t = time;
 my @batch;
 foreach my $file ( File::Find::Rule->new->file->in($rootdir) ) {
     my $path = File::Spec->rel2abs($file);
-    my $epoch = (stat $path)[9];
+    my $epoch = (lstat $path)[9];
     push @batch, {path=>$path,type=>"new",epoch=>$epoch};
 }
 if ($Opt{verbose}) {

@@ -167,6 +167,7 @@ my %indexfiles = map {
         !$seen{$_->{path}}++
             && $_->{type} eq "new"
 } @$indexfiles;
+
 my @missing_rfrfiles;
 for my $rf (@{$recc->recentfiles}) {
     my $rfrfile = $rf->rfile;
@@ -213,12 +214,6 @@ for my $dm (@diskmisses) {
     } else {
         warn "Removing from indexfile: $dm\n";
         push @batch, {path => $dm, type => "delete"};
-        #$rf->update($dm,"delete");
-        #if (time > $last_aggregate_call + $rf->interval_secs) {
-        #    warn "Aggregating\n";
-        #    $rf->aggregate;
-        #    $last_aggregate_call = time;
-        #}
     }
 }
 for my $im (@indexmisses) {
@@ -243,12 +238,6 @@ for my $im (@indexmisses) {
         warn "Adding to indexfile: $im\n";
         my @stat = stat $im or next;
         push @batch, {epoch => $stat[9], path => $im, type => "new"};
-        #$rf->update($im,"new");
-        #if (time > $last_aggregate_call + $rf->interval_secs) {
-        #    warn "Aggregating\n";
-        #    $rf->aggregate;
-        #    $last_aggregate_call = time;
-        #}
     }
 }
 unless ($Opt{"dry-run"}) {

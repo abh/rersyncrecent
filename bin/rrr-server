@@ -100,6 +100,7 @@ sub handle_file {
 
 sub newdir {
     my($inotify,$rf,$fullname,$batch) = @_;
+    return if -l $fullname;
     my_inotify($inotify, $fullname);
     # immediately inspect it, we certainly have missed the first
     # events in this directory
@@ -159,12 +160,12 @@ sub handle_event {
         } elsif ($ev->IN_DELETE_SELF || $ev->IN_MOVE_SELF) {
             $ev->w->cancel;
             warn "[$time] Delwatcher $reportname (@stringifiedmask)\n" if $Opt{verbose};
-        } elsif ($ev->IN_ISDIR) {
-            newdir($inotify,$rf,$fullname,$batch);
-            warn "[$time] Newwatcher $reportname (@stringifiedmask)\n" if $Opt{verbose};
         } elsif (-l $fullname) {
             handle_file($rf,$fullname,"new",$batch);
             warn "[$time] Updatelink $reportname (@stringifiedmask)\n" if $Opt{verbose};
+        } elsif ($ev->IN_ISDIR) {
+            newdir($inotify,$rf,$fullname,$batch);
+            warn "[$time] Newwatcher $reportname (@stringifiedmask)\n" if $Opt{verbose};
         } elsif (-f _) {
             if ($ev->IN_CLOSE_WRITE || $ev->IN_MOVED_TO) {
                 handle_file($rf,$fullname,"new",$batch);
@@ -178,7 +179,7 @@ sub handle_event {
 
 sub init {
     my($inotify, $rootdir) = @_;
-    foreach my $directory ( File::Find::Rule->new->directory->in($rootdir) ) {
+    foreach my $directory ( File::Find::Rule->new->directory->not( File::Find::Rule->new->symlink )->in($rootdir) ) {
         my_inotify($inotify, $directory);
     }
 

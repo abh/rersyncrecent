@@ -2258,15 +2258,22 @@ sub uptodate {
         my $minmax = $self->minmax;
         if (exists $minmax->{mtime}) {
             my $rfile = $self->_my_current_rfile;
-            my @stat = stat $rfile or die "Could not stat '$rfile': $!";
-            my $mtime = $stat[9];
-            if (defined $mtime && defined $minmax->{mtime} && $mtime > $minmax->{mtime}) {
-                $why = "mtime[$mtime] of rfile[$rfile] > minmax/mtime[$minmax->{mtime}], so we are not uptodate";
-                $uptodate = 0;
+            my @stat = stat $rfile;
+            if (@stat) {
+                my $mtime = $stat[9];
+                if (defined $mtime && defined $minmax->{mtime} && $mtime > $minmax->{mtime}) {
+                    $why = "mtime[$mtime] of rfile[$rfile] > minmax/mtime[$minmax->{mtime}], so we are not uptodate";
+                    $uptodate = 0;
+                } else {
+                    my $covered = $self->done->covered(@$minmax{qw(max min)});
+                    $why = sprintf "minmax covered[%s], so we return that", defined $covered ? $covered : "UNDEF";
+                    $uptodate = $covered;
+                }
             } else {
-                my $covered = $self->done->covered(@$minmax{qw(max min)});
-                $why = sprintf "minmax covered[%s], so we return that", defined $covered ? $covered : "UNDEF";
-                $uptodate = $covered;
+                require Carp;
+                $why = "Could not stat '$rfile': $!";
+                Carp::cluck($why);
+                $uptodate = 0;
             }
         }
     }

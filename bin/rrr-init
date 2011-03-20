@@ -40,7 +40,7 @@ L<File::Rsync::Mirror::Recentfile> under the heading SERIALIZERS.
 
 =item B<--verbose|v+>
 
-More feedback.
+More feedback. Requires Time::Progress installed.
 
 =back
 

@@ -1,3 +1,16 @@
+2011-03-20  Andreas J. Koenig  <andk@cpan.org>
+
+	* release 0.1.0
+
+	* rrr-client contributed by Ask Bjørn Hansen
+
+	* rrr-server based on Linux::Inotify2
+
+	* support for symlinks added
+
+	* all pre-alpha and alpha warnings removed; I'm sure there are bugs
+	lurking but I see no dominating showstoppers at the moment
+
 2010-10-29  Andreas J. Koenig  <andk@cpan.org>
 
 	* release 0.0.8-TRIAL
@@ -72,10 +85,10 @@
 2009-03-25  Andreas J. Koenig  <andk@cpan.org>
 
 	* release 0.0.1
-	
+
 	First version, released on an unsuspecting world.
 
-	
+
 	Local Variables:
 	coding: utf-8
 	mode: change-log

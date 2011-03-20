@@ -36,7 +36,7 @@ if ($ARGV[0]){
         $version .= "-TRIAL";
     }
 }
-$version .= "-TRIAL";
+# $version .= "-TRIAL";
 
 my $provides = {
                 "File::Rsync::Mirror::Recent" =>

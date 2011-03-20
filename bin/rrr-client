@@ -85,7 +85,7 @@ my $rrr = File::Rsync::Mirror::Recent->new
                      'safe-links' => 1,
                      times => 1,
                      checksum => 0,
-                     timeout       => 300, # do not allow rsync to hang forever
+                     timeout       => 30, # do not allow rsync to hang for too long
                      ($Opt{tmpdir} ? ('temp-dir' => $Opt{tmpdir}) : ()),
                     },
    verbose => 1,

@@ -1,3 +1,32 @@
+2011-03-20  Andreas J. Koenig  <andk@cpan.org>
+
+	* More options to pass through rrr-client
+
+	* More tests
+
+	* .recent/ or .rrr/ for metadata
+
+	* memory leak in rrr-server
+
+	* lockdirectory expiration? server died and blocked fsck for so long.
+
+	* rewrite _thaw_without_pathdb as a forked child job to have it
+	format-independent
+
+	* profiling! Rewrite slow parts in C.
+
+	* rrr-server probably not robust under all possible conditions; maybe
+	add some regular fsck or something. Consider the case of IN_Q_OVERFLOW
+	again.
+
+	* signal handlers
+
+	* how would an rsync-free HTTP variant look like? See 2008-10-10 again.
+
+	* are we sure we do NOT LEAVE DOT FILES around?
+
+	* ---- no open todos below this line ----
+
 2011-02-21  Andreas J. Koenig  <andk@cpan.org>
 
 	* rrr-server has a memory leak
@@ -31,8 +60,6 @@
 
 2011-02-17  Andreas J. Koenig  <andk@cpan.org>
 
-	* .recent/ or .rrr/ for metadata
-
 	* ALERT rrr: we have a piece of code somewhere in the mirror()
 	subroutine that reads the raw YAML file with normal open() and cuts it
 	off for efficiency, then feeds it to yaml::load in order to get some
@@ -62,8 +89,6 @@
 	21:43:37 - 21:44:12. From 7:30 to 0:35 while doing 60% more work that's
 	a joy.
 
-	* lockdirectory expiration? server died and blocked fsck for so long.
-
 	* At the moment rrr-init is not needed anymore, rrr-server can be
 	started and followed by rrr-fsck. Still stupid but not the main
 	showstopper.
@@ -72,16 +97,6 @@
 
 	* IN_Q_OVERFLOW needs to trigger an fsck, likewise the entry into the
 	server.
-
-2011-01-30  Andreas J. Koenig  <andk@cpan.org>
-
-	* rrr-init and rrr-server need to be used such:
-
-	init
-	server
-	init again
-
-	Stupid but no showstopper ATM.
 
 2010-10-26  Andreas J. Koenig  <andk@cpan.org>
 
@@ -169,7 +184,7 @@
 	For the record: the bug was that ignore_link_stat_error was lost during
 	sparse_clone. And then the second bug was that it did not default to
 	true. Both are now fixed.
-	
+
 2009-04-25  Andreas J. Koenig  <andk@cpan.org>
 
 	* Todo: fill rrr program with life
@@ -311,7 +326,7 @@ done
 
 	http://spreadsheets.google.com/pub?key=pGlWX10blP4u2kM05SDtiMg is a
 	spreadsheet collected by Atul Aggarwal about bittorrent implementations.
-	
+
 2009-04-12  Andreas J. Koenig  <andk@cpan.org>
 
 	* Interesting last minute bug during real download testing: the output
@@ -416,12 +431,12 @@ done
 	future? YES, FIXED
 
 	* bug with native integers:
-  
-	- 
+
+	-
     epoch: 997872011
     path: id/D/DE/DELTA/Crypt-Rijndael_PP-0.03.readme
     type: new
-  - 
+  -
     epoch: 1195248431
     path: id/L/LG/LGODDARD/Tk-Wizard-2.124.readme
     type: new
@@ -434,8 +449,8 @@ done
 
 	Yes, records out of order:
 
- 447003   -                
- 447004     epoch: 995885533    
+ 447003   -
+ 447004     epoch: 995885533
  447005     path: id/P/PH/PHISH/CGI-XMLApplication_0.9.3.readme
  447006     type: new
  447007   -
@@ -468,19 +483,19 @@ done
 
 	* another bug:
 
-Sync 1237531537 (31547/33111/Z) id/J/JH/JHI/String-Approx-2.7.tar.gz ... 
-_bigfloatcmp called with l[1237505213.21133]r[UNDEF]: but both must be defined at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/FakeBigFloat.pm line 76
-        File::Rsync::Mirror::Recentfile::FakeBigFloat::_bigfloatcmp(1237505213.21133, undef) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/FakeBigFloat.pm line 131
-        File::Rsync::Mirror::Recentfile::FakeBigFloat::_bigfloatlt(1237505213.21133, undef) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/Done.pm line 110
-        File::Rsync::Mirror::Recentfile::Done::covered('File::Rsync::Mirror::Recentfile::Done=HASH(0x8857fb4)', 1237505213.21133, 0.123456789) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile.pm line 2041
-        File::Rsync::Mirror::Recentfile::uptodate('File::Rsync::Mirror::Recentfile=HASH(0x8533a2c)') called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recent.pm line 536
-        File::Rsync::Mirror::Recent::rmirror('File::Rsync::Mirror::Recent=HASH(0x82ef3d0)', 'skip-deletes', 1) called at /home/k/sources/CPAN/GIT/trunk/bin/testing-rmirror.pl line 27
- at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/FakeBigFloat.pm line 76
-        File::Rsync::Mirror::Recentfile::FakeBigFloat::_bigfloatcmp(1237505213.21133, undef) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/FakeBigFloat.pm line 131
-        File::Rsync::Mirror::Recentfile::FakeBigFloat::_bigfloatlt(1237505213.21133, undef) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/Done.pm line 110
-        File::Rsync::Mirror::Recentfile::Done::covered('File::Rsync::Mirror::Recentfile::Done=HASH(0x8857fb4)', 1237505213.21133, 0.123456789) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile.pm line 2041
-        File::Rsync::Mirror::Recentfile::uptodate('File::Rsync::Mirror::Recentfile=HASH(0x8533a2c)') called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recent.pm line 536
-        File::Rsync::Mirror::Recent::rmirror('File::Rsync::Mirror::Recent=HASH(0x82ef3d0)', 'skip-deletes', 1) called at /home/k/sources/CPAN/GIT/trunk/bin/testing-rmirror.pl line 27
+	Sync 1237531537 (31547/33111/Z) id/J/JH/JHI/String-Approx-2.7.tar.gz ...
+	_bigfloatcmp called with l[1237505213.21133]r[UNDEF]: but both must be defined at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/FakeBigFloat.pm line 76
+  File::Rsync::Mirror::Recentfile::FakeBigFloat::_bigfloatcmp(1237505213.21133, undef) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/FakeBigFloat.pm line 131
+  File::Rsync::Mirror::Recentfile::FakeBigFloat::_bigfloatlt(1237505213.21133, undef) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/Done.pm line 110
+  File::Rsync::Mirror::Recentfile::Done::covered('File::Rsync::Mirror::Recentfile::Done=HASH(0x8857fb4)', 1237505213.21133, 0.123456789) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile.pm line 2041
+  File::Rsync::Mirror::Recentfile::uptodate('File::Rsync::Mirror::Recentfile=HASH(0x8533a2c)') called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recent.pm line 536
+  File::Rsync::Mirror::Recent::rmirror('File::Rsync::Mirror::Recent=HASH(0x82ef3d0)', 'skip-deletes', 1) called at /home/k/sources/CPAN/GIT/trunk/bin/testing-rmirror.pl line 27
+	at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/FakeBigFloat.pm line 76
+  File::Rsync::Mirror::Recentfile::FakeBigFloat::_bigfloatcmp(1237505213.21133, undef) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/FakeBigFloat.pm line 131
+  File::Rsync::Mirror::Recentfile::FakeBigFloat::_bigfloatlt(1237505213.21133, undef) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/Done.pm line 110
+  File::Rsync::Mirror::Recentfile::Done::covered('File::Rsync::Mirror::Recentfile::Done=HASH(0x8857fb4)', 1237505213.21133, 0.123456789) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile.pm line 2041
+  File::Rsync::Mirror::Recentfile::uptodate('File::Rsync::Mirror::Recentfile=HASH(0x8533a2c)') called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recent.pm line 536
+  File::Rsync::Mirror::Recent::rmirror('File::Rsync::Mirror::Recent=HASH(0x82ef3d0)', 'skip-deletes', 1) called at /home/k/sources/CPAN/GIT/trunk/bin/testing-rmirror.pl line 27
 
 	FIXED, it was the "--skip-locking" file where manual intervention was participating
 
@@ -490,39 +505,39 @@ _bigfloatcmp called with l[1237505213.21133]r[UNDEF]: but both must be defined a
 	finish. In the debugging state file I see lots of identical intervals
 	that do not get collapsed. When I restart the mirrorer it dies with:
 
-Sync 1237507989 (227/33111/Z) id/X/XI/XINMING/Catalyst-Plugin-Compress.tar.gz ...
-_bigfloatcmp called with l[1237400817.94363]r[UNDEF]: but both must be defined at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/FakeBigFloat.pm line 76
-        File::Rsync::Mirror::Recentfile::FakeBigFloat::_bigfloatcmp(1237400817.94363, undef) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/FakeBigFloat.pm line 101
-        File::Rsync::Mirror::Recentfile::FakeBigFloat::_bigfloatge(1237400817.94363, undef) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/Done.pm line 226
-        File::Rsync::Mirror::Recentfile::Done::_register_one('File::Rsync::Mirror::Recentfile::Done=HASH(0x84c6af8)', 'HASH(0xb693f2dc)') called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/Done.pm line 200
-        File::Rsync::Mirror::Recentfile::Done::register('File::Rsync::Mirror::Recentfile::Done=HASH(0x84c6af8)', 'ARRAY(0x8c54bfc)', 'ARRAY(0xb67e618c)') called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile.pm line 1044
-        File::Rsync::Mirror::Recentfile::_mirror_item('File::Rsync::Mirror::Recentfile=HASH(0x84abcb0)', 227, 'ARRAY(0x8c54bfc)', 33110, 'File::Rsync::Mirror::Recentfile::Done=HASH(0x84c6af8)', 'HASH(0x84abd8c)', 'ARRAY(0x839cb64)', 'HASH(0x839c95c)', 'HASH(0xb6a30f0c)', ...) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile.pm line 992
-        File::Rsync::Mirror::Recentfile::mirror('File::Rsync::Mirror::Recentfile=HASH(0x84abcb0)', 'piecemeal', 1, 'skip-deletes', 1) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recent.pm line 564
-        File::Rsync::Mirror::Recent::_rmirror_mirror('File::Rsync::Mirror::Recent=HASH(0x84ab6d4)', 7, 'HASH(0x8499488)') called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recent.pm line 532
-        File::Rsync::Mirror::Recent::rmirror('File::Rsync::Mirror::Recent=HASH(0x84ab6d4)', 'skip-deletes', 1) called at /home/k/sources/CPAN/GIT/trunk/bin/testing-rmirror.pl line 27
+	Sync 1237507989 (227/33111/Z) id/X/XI/XINMING/Catalyst-Plugin-Compress.tar.gz ...
+	_bigfloatcmp called with l[1237400817.94363]r[UNDEF]: but both must be defined at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/FakeBigFloat.pm line 76
+  File::Rsync::Mirror::Recentfile::FakeBigFloat::_bigfloatcmp(1237400817.94363, undef) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/FakeBigFloat.pm line 101
+  File::Rsync::Mirror::Recentfile::FakeBigFloat::_bigfloatge(1237400817.94363, undef) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/Done.pm line 226
+  File::Rsync::Mirror::Recentfile::Done::_register_one('File::Rsync::Mirror::Recentfile::Done=HASH(0x84c6af8)', 'HASH(0xb693f2dc)') called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile/Done.pm line 200
+  File::Rsync::Mirror::Recentfile::Done::register('File::Rsync::Mirror::Recentfile::Done=HASH(0x84c6af8)', 'ARRAY(0x8c54bfc)', 'ARRAY(0xb67e618c)') called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile.pm line 1044
+  File::Rsync::Mirror::Recentfile::_mirror_item('File::Rsync::Mirror::Recentfile=HASH(0x84abcb0)', 227, 'ARRAY(0x8c54bfc)', 33110, 'File::Rsync::Mirror::Recentfile::Done=HASH(0x84c6af8)', 'HASH(0x84abd8c)', 'ARRAY(0x839cb64)', 'HASH(0x839c95c)', 'HASH(0xb6a30f0c)', ...) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recentfile.pm line 992
+  File::Rsync::Mirror::Recentfile::mirror('File::Rsync::Mirror::Recentfile=HASH(0x84abcb0)', 'piecemeal', 1, 'skip-deletes', 1) called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recent.pm line 564
+  File::Rsync::Mirror::Recent::_rmirror_mirror('File::Rsync::Mirror::Recent=HASH(0x84ab6d4)', 7, 'HASH(0x8499488)') called at /home/k/sources/rersyncrecent/lib/File/Rsync/Mirror/Recent.pm line 532
+  File::Rsync::Mirror::Recent::rmirror('File::Rsync::Mirror::Recent=HASH(0x84ab6d4)', 'skip-deletes', 1) called at /home/k/sources/CPAN/GIT/trunk/bin/testing-rmirror.pl line 27
 
 	and debugging stands at
 
-At: before
-Brfinterval: Z
-Ci: 227
-Dre+1: 
-  epoch: 1237400802.5789
-  path: id/J/JO/JOHND/CHECKSUMS
-  type: new
-Dre-0: 
-  epoch: 1237400807.97514
-  path: id/M/MI/MIYAGAWA/CHECKSUMS
-  type: new
-Dre-1: 
-  epoch: 1237400817.94363
-  path: id/X/XI/XINMING/Catalyst-Plugin-Compress.tar.gz
-  type: new
-Eintervals: 
-  - 
-    - 900644040
-    - 900644040
-  - []
+	At: before
+	Brfinterval: Z
+	Ci: 227
+	Dre+1:
+	  epoch: 1237400802.5789
+	  path: id/J/JO/JOHND/CHECKSUMS
+	  type: new
+	Dre-0:
+	  epoch: 1237400807.97514
+	  path: id/M/MI/MIYAGAWA/CHECKSUMS
+	  type: new
+	Dre-1:
+	  epoch: 1237400817.94363
+	  path: id/X/XI/XINMING/Catalyst-Plugin-Compress.tar.gz
+	  type: new
+	Eintervals:
+	  -
+	    - 900644040
+	    - 900644040
+	  - []
 
 	and it is reproducable.
 
@@ -532,7 +547,7 @@ Eintervals:
 	FIXED, it was the third anded term in each of the ifs in the IV block in
 	_register_one: with that we make sure that we do not stamp on valuable
 	interval data.
-	
+
 2009-03-17  Andreas J. Koenig  <andk@cpan.org>
 
 	* done: verified the existence of the floating point bug in bleadperl
@@ -575,24 +590,24 @@ Eintervals:
 	small script, only in the large test script. The closest to the output
 	below was:
 
-#!perl
-use strict;
-use Devel::Peek;
-my $x = "01237123229.8814";
-my($l,$r);
-for ($l,$r) {
-    $_ = "x"x34;
-}
-($l,$r) = ($1,$2) if $x =~ /(.)(.+)/;
-$r = int $r;
-$l = "1237123231.22458";
-$r = "1237123231.22458";
-1 if $l/1.1;
-Devel::Peek::Dump $l;
-Devel::Peek::Dump $r;
-Devel::Peek::Dump $x = $l <=> $r;
-die "BROKE" if $x;
-__END__
+	#!perl
+	use strict;
+	use Devel::Peek;
+	my $x = "01237123229.8814";
+	my($l,$r);
+	for ($l,$r) {
+  $_ = "x"x34;
+	}
+	($l,$r) = ($1,$2) if $x =~ /(.)(.+)/;
+	$r = int $r;
+	$l = "1237123231.22458";
+	$r = "1237123231.22458";
+	1 if $l/1.1;
+	Devel::Peek::Dump $l;
+	Devel::Peek::Dump $r;
+	Devel::Peek::Dump $x = $l <=> $r;
+	die "BROKE" if $x;
+	__END__
 
 	The checked in state at c404a85 fails the test with my
 	/usr/local/perl-5.10-uld/bin/perl on 64bit but curiously not with
@@ -605,50 +620,50 @@ __END__
 	* Bug in perl 5.10 on my 64bit box:
 
   DB<98> Devel::Peek::Dump $l
-SV = PVMG(0x19e0450) at 0x142a550
-  REFCNT = 2
-  FLAGS = (PADMY,NOK,POK,pNOK,pPOK)
-  IV = 0
-  NV = 1237123231.22458
-  PV = 0x194ce70 "1237123231.22458"\0
-  CUR = 16
-  LEN = 40
-
-  DB<99> Devel::Peek::Dump $r
-SV = PVMG(0x19e0240) at 0x142a3e8
-  REFCNT = 2
-  FLAGS = (PADMY,POK,pPOK)
-  IV = 1237123229
-  NV = 1237123229.8814
-  PV = 0x19ff900 "1237123231.22458"\0
-  CUR = 16
-  LEN = 40
-
-  DB<100> Devel::Peek::Dump $l <=> $r
-SV = IV(0x19ea6e8) at 0x19ea6f0
-  REFCNT = 1
-  FLAGS = (PADTMP,IOK,pIOK)
-  IV = -1
-
-  DB<101> Devel::Peek::Dump $l
-SV = PVMG(0x19e0450) at 0x142a550
-  REFCNT = 2
-  FLAGS = (PADMY,NOK,POK,pNOK,pPOK)
-  IV = 0
-  NV = 1237123231.22458
-  PV = 0x194ce70 "1237123231.22458"\0
-  CUR = 16
-  LEN = 40
-
-  DB<102> Devel::Peek::Dump $r
-SV = PVMG(0x19e0240) at 0x142a3e8
-  REFCNT = 2
-  FLAGS = (PADMY,NOK,POK,pIOK,pNOK,pPOK)
-  IV = 1237123231
-  NV = 1237123231.22458
-  PV = 0x19ff900 "1237123231.22458"\0
-  CUR = 16
-  LEN = 40
+	SV = PVMG(0x19e0450) at 0x142a550
+	  REFCNT = 2
+	  FLAGS = (PADMY,NOK,POK,pNOK,pPOK)
+	  IV = 0
+	  NV = 1237123231.22458
+	  PV = 0x194ce70 "1237123231.22458"\0
+	  CUR = 16
+	  LEN = 40
+	
+	  DB<99> Devel::Peek::Dump $r
+	SV = PVMG(0x19e0240) at 0x142a3e8
+	  REFCNT = 2
+	  FLAGS = (PADMY,POK,pPOK)
+	  IV = 1237123229
+	  NV = 1237123229.8814
+	  PV = 0x19ff900 "1237123231.22458"\0
+	  CUR = 16
+	  LEN = 40
+	
+	  DB<100> Devel::Peek::Dump $l <=> $r
+	SV = IV(0x19ea6e8) at 0x19ea6f0
+	  REFCNT = 1
+	  FLAGS = (PADTMP,IOK,pIOK)
+	  IV = -1
+	
+	  DB<101> Devel::Peek::Dump $l
+	SV = PVMG(0x19e0450) at 0x142a550
+	  REFCNT = 2
+	  FLAGS = (PADMY,NOK,POK,pNOK,pPOK)
+	  IV = 0
+	  NV = 1237123231.22458
+	  PV = 0x194ce70 "1237123231.22458"\0
+	  CUR = 16
+	  LEN = 40
+	
+	  DB<102> Devel::Peek::Dump $r
+	SV = PVMG(0x19e0240) at 0x142a3e8
+	  REFCNT = 2
+	  FLAGS = (PADMY,NOK,POK,pIOK,pNOK,pPOK)
+	  IV = 1237123231
+	  NV = 1237123231.22458
+	  PV = 0x19ff900 "1237123231.22458"\0
+	  CUR = 16
+	  LEN = 40
 
 	Retry with uselongdouble gives same effect. Not reproducable on 32bit box (k75).
 
@@ -696,7 +711,7 @@ SV = PVMG(0x19e0240) at 0x142a3e8
 
 	* bzcat uploads.csv.bz2 | perl -F, -nale '$Seen{$F[-1]}++ and print'
 
-	Strangest output being HAKANARDO who managed to upload 
+	Strangest output being HAKANARDO who managed to upload
 
 	Here is a better oneliner that includes also the first line of each
 	finding:
@@ -717,7 +732,7 @@ SV = PVMG(0x19e0240) at 0x142a3e8
 	* lookup by epoch and by path and use this ability on the pause to never
 	again register a file twice that doesn't need it. Let's call it
 	contains().
-	
+
 	* after the dirtymark is done: fill up recentfiles with fake (historic)
 	entries; fill up with individual corrections; algorithm maybe to be done
 	with bigfloat so that we can always place something in the middle
@@ -806,9 +821,6 @@ SV = PVMG(0x19e0240) at 0x142a3e8
 	the whole thing to run via HTTP.
 
 2008-10-09  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
-
-	* are we sure we do NOT LEAVE DOT FILES around? Especially on the
-	symlink?
 
 	* smoker on k81 fetching from k75 to verify cascading works. See
 	2008-07-17 in upgradexxx and rsync-over-recentfile-3.pl.
@@ -1034,7 +1046,7 @@ SV = PVMG(0x19e0240) at 0x142a3e8
 	also 2008-08-30. .shadow-xxx directory? this also needed for a
 	filesystem that is still incomplete and might need the mirrorfiles for
 	lookup(?)
-	
+
 	- long living objects that mirror again and again. Inject something
 	into ta, see how it goes over to tb.
 
@@ -1052,7 +1064,7 @@ SV = PVMG(0x19e0240) at 0x142a3e8
 	it. There are other cases that are not self healing and must be tracked
 	and bugreported.
 
-	- how, exactly, do we have to deal with deletes? With rsync errors? 
+	- how, exactly, do we have to deal with deletes? With rsync errors?
 
 	rsync: link_stat "/id/K/KA/KARMAN/Rose-HTMLx-Form-Related-0.07.meta" (in
 	authors) failed: No such file or directory (2)
@@ -1439,7 +1451,7 @@ SV = PVMG(0x19e0240) at 0x142a3e8
 	Date:   Sat Aug 2 11:40:29 2008 +0200
 
 	there was a lot of trying but the effect is hardly measurable with
-	current tests.	
+	current tests.
 
 	* overhead of connecting seems high. When setting
 	max_files_per_connection to 1 we see that.

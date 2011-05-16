@@ -887,8 +887,8 @@ sub _rmirror_endofloop_sleep {
              time,
              $sleep,
             );
-        sleep $sleep;
     }
+    sleep $sleep;
 }
 
 # it returns two things: abslfile and rfilename. But the abslfile is

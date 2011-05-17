@@ -159,7 +159,7 @@ tag ::
 	git tag -m 'This is $(VERSION)' "$(VERSION)"
 
 sign:
-	cpansign -s
+	`dirname $(PERL)`/cpansign -s
 
 test-server-run:
 	$(PERL) bin/rrr-init --force t/testserver

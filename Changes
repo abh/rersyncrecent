@@ -1,3 +1,12 @@
+2011-05-17  Andreas J. Koenig  <andk@cpan.org>
+
+	* release 0.2.0
+
+	* rrr-client new options --verbose and --skip-deletes
+
+	* address #68220: wrong closing brace position in
+	_rmirror_endofloop_sleep (Mitry Matyushkov)
+
 2011-03-20  Andreas J. Koenig  <andk@cpan.org>
 
 	* release 0.1.1 (MANIFEST fixes)

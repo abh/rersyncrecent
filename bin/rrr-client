@@ -49,6 +49,11 @@ the environment variable RSYNC_PASSWORD.
 Directory for temporary files; should be on the same file system
 partition as the C<--target> directory.
 
+=item B<--verbose!>
+
+Defaults to false. Note: Older versions of rrr-client defaulted to
+being verbose.
+
 =back
 
 =head1 DESCRIPTION
@@ -70,6 +75,7 @@ if ($Opt{help}) {
 pod2usage(1) unless $Opt{source} and $Opt{target};
 
 $ENV{RSYNC_PASSWORD} = $Opt{password} if $Opt{password};
+$Opt{verbose} ||= 0;
 
 use File::Rsync::Mirror::Recent;
 my $rrr = File::Rsync::Mirror::Recent->new
@@ -88,7 +94,7 @@ my $rrr = File::Rsync::Mirror::Recent->new
                      timeout       => 30, # do not allow rsync to hang for too long
                      ($Opt{tmpdir} ? ('temp-dir' => $Opt{tmpdir}) : ()),
                     },
-   verbose => 1,
+   verbose => $Opt{verbose},
    _runstatusfile => "recent-rmirror-state.yml",
    # _logfilefordone => "recent-rmirror-donelog.log",
   );

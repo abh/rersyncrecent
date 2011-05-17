@@ -44,6 +44,11 @@ Username if the rsync source requires it.
 Password if the rsync source requires it.  Can also be set by setting
 the environment variable RSYNC_PASSWORD.
 
+=item B<--skip-deletes!>
+
+Defaults to false. If true, skips all delete events in the index files
+which means no files are being deleted that have been deleted upstream.
+
 =item B<--tmpdir=s>
 
 Directory for temporary files; should be on the same file system
@@ -76,6 +81,7 @@ pod2usage(1) unless $Opt{source} and $Opt{target};
 
 $ENV{RSYNC_PASSWORD} = $Opt{password} if $Opt{password};
 $Opt{verbose} ||= 0;
+$Opt{"skip-deletes"} ||=0;
 
 use File::Rsync::Mirror::Recent;
 my $rrr = File::Rsync::Mirror::Recent->new
@@ -99,4 +105,4 @@ my $rrr = File::Rsync::Mirror::Recent->new
    # _logfilefordone => "recent-rmirror-donelog.log",
   );
 
-$rrr->rmirror ( "skip-deletes" => 0, loop => 1 );
+$rrr->rmirror ( "skip-deletes" => $Opt{"skip-deletes"}, loop => 1 );

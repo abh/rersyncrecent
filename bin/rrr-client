@@ -59,6 +59,10 @@ partition as the C<--target> directory.
 Defaults to false. Note: Older versions of rrr-client defaulted to
 being verbose.
 
+=item B<--verboselog=s>
+
+Path to the logfile to write verbose progress information to.
+
 =back
 
 =head1 DESCRIPTION
@@ -101,6 +105,7 @@ my $rrr = File::Rsync::Mirror::Recent->new
                      ($Opt{tmpdir} ? ('temp-dir' => $Opt{tmpdir}) : ()),
                     },
    verbose => $Opt{verbose},
+   ($Opt{verboselog} ? (verboselog => $Opt{verboselog}) : ()),
    _runstatusfile => "recent-rmirror-state.yml",
    # _logfilefordone => "recent-rmirror-donelog.log",
   );

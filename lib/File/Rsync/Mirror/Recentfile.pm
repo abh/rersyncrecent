@@ -1184,9 +1184,10 @@ sub _mirror_item {
         if ($options->{'skip-deletes'}) {
             $activity = "skipped";
         } else {
-            if (! -e $dst) {
+            my @lstat = lstat $dst;
+            if (! -e _) {
                 $activity = "not_found";
-            } elsif (-l $dst or not -d _) {
+            } elsif (-l _ or not -d _) {
                 $self->delayed_operations->{unlink}{$dst}++;
                 $activity = "deleted";
             } else {

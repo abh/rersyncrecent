@@ -1,3 +1,16 @@
+2011-06-04  Andreas J. Koenig  <andk@cpan.org>
+
+	* release 0.2.1
+
+	* rrr-client: fix delete events on dangling symlinks (spotted by Henk P.
+	Penning)
+
+	* improve diagnostics when encountering a lock directory
+
+	* address #68440: wrong documentation in rrr-client (Slaven Rezić)
+
+	* address #67668: add verboselog (Mitry Matyushkov)
+
 2011-05-17  Andreas J. Koenig  <andk@cpan.org>
 
 	* release 0.2.0

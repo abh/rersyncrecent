@@ -67,8 +67,8 @@ Path to the logfile to write verbose progress information to.
 
 =head1 DESCRIPTION
 
-After you have setup a tree watch it with inotify and keep it
-uptodate. Depends on inotify which probably only exists on linux.
+Mirror a remote directory based on a set of RECENT* files provided by
+the remote server.
 
 =cut
 

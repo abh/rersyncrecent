@@ -857,7 +857,7 @@ sub _rmirror_runstatusfile_write {
     my $start = time;
     while (not mkdir "$file.lock") {
         Time::HiRes::sleep 0.15;
-        warn "*** waiting for lock ***" if time - $start >= 3;
+        warn "*** waiting for lock directory '$file.lock' ***" if time - $start >= 3;
     }
     YAML::Syck::DumpFile
           (

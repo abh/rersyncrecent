@@ -44,6 +44,11 @@ Username if the rsync source requires it.
 Password if the rsync source requires it.  Can also be set by setting
 the environment variable RSYNC_PASSWORD.
 
+=item B<--runstatusfile=s>
+
+Only needed for debugging. Path to the internally used status file.
+Argument is passed through to the File::Rsync::Mirror::Recent object.
+
 =item B<--skip-deletes!>
 
 Defaults to false. If true, skips all delete events in the index files
@@ -105,8 +110,8 @@ my $rrr = File::Rsync::Mirror::Recent->new
                      ($Opt{tmpdir} ? ('temp-dir' => $Opt{tmpdir}) : ()),
                     },
    verbose => $Opt{verbose},
-   ($Opt{verboselog} ? (verboselog => $Opt{verboselog}) : ()),
-   _runstatusfile => "recent-rmirror-state.yml",
+   ($Opt{verboselog}    ? (verboselog    => $Opt{verboselog})   : ()),
+   ($Opt{runstatusfile} ? (runstatusfile => $Opt{runstatusfile} : ()),
    # _logfilefordone => "recent-rmirror-donelog.log",
   );
 

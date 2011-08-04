@@ -32,3 +32,4 @@ t/pod.t
 t/RECENT-1h.yaml
 t/RECENT-6h.yaml
 Todo
+META.json                                Module JSON meta-data (added by MakeMaker)

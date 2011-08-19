@@ -1,3 +1,11 @@
+2011-08-19  Andreas J. Koenig  <andk@cpan.org>
+
+	* release 0.3.0
+
+	* rrr-client: runstatusfile now completely optional, not defaulting to a
+	file in the current directory which prevented a sane behaviour during
+	system startup (Moritz Onken)
+
 2011-06-04  Andreas J. Koenig  <andk@cpan.org>
 
 	* release 0.2.1

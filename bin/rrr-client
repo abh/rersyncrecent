@@ -110,8 +110,8 @@ my $rrr = File::Rsync::Mirror::Recent->new
                      ($Opt{tmpdir} ? ('temp-dir' => $Opt{tmpdir}) : ()),
                     },
    verbose => $Opt{verbose},
-   ($Opt{verboselog}    ? (verboselog    => $Opt{verboselog})   : ()),
-   ($Opt{runstatusfile} ? (runstatusfile => $Opt{runstatusfile} : ()),
+   ($Opt{verboselog}    ? (verboselog    => $Opt{verboselog})    : ()),
+   ($Opt{runstatusfile} ? (runstatusfile => $Opt{runstatusfile}) : ()),
    # _logfilefordone => "recent-rmirror-donelog.log",
   );
 

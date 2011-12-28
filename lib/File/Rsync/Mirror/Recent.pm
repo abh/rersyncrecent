@@ -1015,12 +1015,14 @@ history before. So when the mirror falls behind the update period
 reflected in the shortest file, it can complement the list of recent
 file events with the next one. And if this is not long enough we want
 another one, again a bit longer. And we want one that completes the
-history back to the oldest file. The index files do contain the
-complete list of current files. The longer a period covered by an
+history back to the oldest file. The index files together do contain
+the complete list of current files. The longer a period covered by an
 index file is gone the less often the index file is updated. For
 practical reasons adjacent files will often overlap a bit but this is
-neither necessary nor enforced. That's the basic idea. The following
-example represents a tree that has a few updates every day:
+neither necessary nor enforced. Enforced is only that there must not
+ever be a gap between two adjacent index files. That's the basic idea.
+The following example represents a tree that has a few updates every
+day:
 
  RECENT.recent -> RECENT-1h.yaml
  RECENT-1h.yaml
@@ -1032,6 +1034,9 @@ example represents a tree that has a few updates every day:
  RECENT-1Y.yaml
  RECENT-Z.yaml
 
+Each of these files represents a contract to hold a record for every
+filesystem event within the period indicated in the filename.
+
 The first file is the principal file, in so far it is the one that is
 written first after a filesystem change. Usually a symlink links to it
 with a filename that has the same filenameroot and the suffix
@@ -1041,6 +1046,71 @@ copy maintained instead.
 The last file, the Z file, contains the complementary files that are
 in none of the other files. It may contain C<delete> events but often
 C<delete> events are discarded at the transition to the Z file.
+
+=head2 SITE SEEING TOUR
+
+This section illustrates the operation of a server-client couple in a
+fictious installation that has to deal with a long time of inactivity.
+I think such an edge case installation demonstrates the economic
+behaviour of our model of overlapping time slices best.
+
+The sleeping beauty (http://en.wikipedia.org/wiki/Sleeping_Beauty) is
+a classic fairytale of a princess sleeping for a hundred years. The
+story inspired the test case 02-aurora.t.
+
+Given an upstream server where the people stop feeding new files for
+one hundred years. That upstream server has no driving energy to do
+major changes to its RECENT files. Cronjobs will continue to shift
+things towards the Z file but soon will stop doing so since all of
+them have to keep their promise to record files covering a certain
+period. Soon all RECENT files will cover exactly their native period.
+
+Downstream servers will stubbornly ask their question to the rsync
+server whether there is a newer RECENT.recent. As soon as the smallest
+RECENT file has reached the state of maximum possible merge with the
+second smallest RECENT file, the answer of the rsync server will
+always be: nothing new. And downstream servers that were uptodate on
+the previous request will be satisfied and do nothing. Never will they
+request a download. The answer that there is no change is sufficient
+to determine that there is no change in the whole tree.
+
+Let's presume the smallest RECENT file on this castle is a 1h file and
+downstream decides to ask every 30 minutes. Now the hundred years are
+over and upstream starts producing files again. One file every minute.
+After one minute it will move old files over to the, say, 1d file. In
+the next sixty minutes it will not be allowed to move any other file
+over to the 1d file. At some point in time downstream will ask the
+obligatory question "anything new?" and it will get the current 1h
+file. It will recognize in the meta part of the current file which
+timestamps have been moved to the 1d file, it will recognize that it
+has all those. It will have no need to download the 1d file, it will
+download the missing files and be done. No second RECENT file needs to
+be downloaded.
+
+Downstream only decides to download another RECENT file when not doing
+so would result in a gap between two recent files. Such that
+consistency checks would become impossible. Or for potentially
+interested third parties, like down-down-stream servers.
+
+Downloads of RECENT files are subject to rsync optimizations in that
+rsync does some level of blockwise checksumming that is considered
+efficient to avoid copying blocks of data that have not changed. Our
+format is that of an ordered array, so that large blocks stay constant
+when elements are prepended to the array. This means we usually do not
+have to rsync full RECENT files. Only if they are really small, the
+rsync algorithm will not come into play but that's OK for small files.
+
+Upstream servers are extremely lazy in writing the larger files. See
+File::Rsync::Mirror::Recentfile::aggregate() for the specs. Long
+before the one hundred years are over, the upstream server will stop
+changing files. Slowly everything that existed before upstream fell
+asleep trickles into the Z file. Say, the second-largest RECENT file
+is a 1Y file and the third-largest RECENT file is a 1Q file, then it
+will take at least one quarter of a year that the 1Y file will be
+merged into the Z file. From that point in time everything will have
+been merged into the Z file and the server's job to call C<aggregate>
+regularly will become a noop. Consequently downstream will never again
+download anything. Just the obligatory question: anything new?
 
 =head2 THE INDIVIDUAL RECENTFILE
 
@@ -1053,8 +1123,51 @@ list of fileobjects.
 Here we find things that are pretty much self explaining: all
 lowercase attributes are accessors and as such explained in the
 manpages. The uppercase attribute C<Producers> contains version
-information about involved software components. Nothing to worry about
-as I believe.
+information about involved software components.
+
+Even though the lowercase attributes are documented in the
+F:R:M:Recentfile manpage, let's focus on the important stuff to make
+sure nothing goes by unnoticed: meta contains the aggregator levels in
+use in this installation, in other words the names of the RECENT
+files, eg:
+
+  aggregator:
+    - 3s
+    - 8s
+    - 21s
+    - 55s
+    - Z
+
+It contains a dirtymark telling us the timestamp of the last protocol
+violation of the upstream server:
+
+  dirtymark: '1325093856.49272'
+
+Plus a few things convenient in a situation where we need to do some
+debugging.
+
+And it contains information about which timestamp is the maximum
+timestamp in the neighboring file. This is probably the most important
+data in meta:
+
+  merged:
+    epoch: 1307159461.94575
+
+This keeps track of the highest epoch we would find if we looked into
+the next RECENT file.
+
+Another entry is the minmax, eg:
+
+  minmax:
+    max: 1307161441.97444
+    min: 1307140103.70322
+
+The merged/epoch and minmax examples above illustrate one case of an
+overlap (130715... is between 130716... and 130714...). The syncing
+strategy for the client is in general the imperative: if the interval
+covered by a recentfile (minmax) and the interval covered by the next
+higher recentfile (merged/epoch) do not overlap anymore, then it is
+time to refresh the next recentfile.
 
 =head2 THE RECENT PART
 
@@ -1088,10 +1201,16 @@ guarantee they are unique.
 
 If the origin host breaks the promise to deliver consistent and
 complete I<recentfiles> then it must update its C<dirtymark> and all
-slaves must discard what they cosider the truth. In the worst case
-that something goes wrong despite the dirtymark mechanism the way back
-to sanity can always be achieved through traditional rsyncing between
-the hosts.
+slaves must discard what they cosider the truth.
+
+In the worst case that something goes wrong despite the dirtymark
+mechanism the way back to sanity can be achieved through traditional
+rsyncing between the hosts. But please be wary doing that: mixing
+traditional rsync and the F:R:M:R technique can lead to gratuitous
+extra errors. If you're the last host in a chain, there's nobody you
+can disturb, but if you have downstream clients, it is possible that
+rsync copies a RECENT file before the contained files are actually
+available.
 
 =head1 BACKGROUND
 
@@ -1168,10 +1287,21 @@ Certainly p2p/bittorrent can help in such situations because
 downloading sites help each other and bittorrent chunks large files
 into pieces.
 
-=head1 FUTURE DIRECTIONS
+=head1 INOTIFY
 
-Currently the origin server must keep track of injected and removed
-files. Should be supported by an inotify-based assistant.
+Currently the origin server has two options. The traditional one is to
+strictly keep track of injected and removed files through all involved
+processes and call C<update> on every file system event. The other
+option is to let data come in and use the assistance of inotify. PAUSE
+is running the former, the cpan master site is running the latter.
+Both work equally well for CPAN because CPAN has not yet had any
+problem with upload storms. On installations that have to deal with
+more uploaded data than inotify+rrr can handle it's better to use the
+traditional method such that the relevant processes can build up some
+backpressure to throttle writing processes until we're ready to accept
+the next data chunk.
+
+=head1 FUTURE DIRECTIONS
 
 Convince other users outside the CPAN like
 http://fedoraproject.org/wiki/Infrastructure/Mirroring

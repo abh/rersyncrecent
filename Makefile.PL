@@ -128,7 +128,7 @@ package MY;
 sub distsignature {
     my($self) = shift;
     my $ret = $self->SUPER::distsignature_target(@_);
-    $ret =~ s|cpansign|\`dirname \$(PERL)\`/cpansign|g;
+    $ret =~ s|cpansign|\$(PERL) \`dirname \$(PERL)\`/cpansign|g;
     return $ret;
 }
 sub postamble {
@@ -165,7 +165,7 @@ tag ::
 	git tag -m 'This is $(VERSION)' "$(VERSION)"
 
 sign:
-	`dirname $(PERL)`/cpansign -s
+	$(PERL) `dirname $(PERL)`/cpansign -s
 
 test-server-run:
 	$(PERL) bin/rrr-init --force t/testserver

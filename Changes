@@ -1,3 +1,12 @@
+2011-12-28  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
+
+	* release 0.3.1
+
+	* documentation improvements and a new author-test aurora.t, no
+	functional changes; thanks to Henk P. Penning for writing iim
+	(http://ftp.cs.uu.nl/pub/PERL/iim) and asking questions of vital
+	importance for 'rrr'
+
 2011-08-19  Andreas J. Koenig  <andk@cpan.org>
 
 	* release 0.3.0

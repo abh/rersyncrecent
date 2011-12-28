@@ -21,6 +21,7 @@ README
 SIGNATURE			Public-key signature (added by MakeMaker)
 t/00-load.t
 t/01-util.t
+t/02-aurora.t
 t/02-operation.t
 t/03-done.t
 t/04-run.t

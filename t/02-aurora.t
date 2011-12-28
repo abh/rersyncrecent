@@ -25,6 +25,10 @@ my @opt = <<'=back' =~ /B<--(\S+)>/g;
 Defaults to true. Negate with --nocleanup. If true, all generated
 files are removed at the end of the test run.
 
+=item B<--files=i>
+
+Number of files to run through the experiment. Default is 15.
+
 =item B<--help|h!>
 
 This help
@@ -92,6 +96,7 @@ $Opt{cleanup}    = 1   unless defined $Opt{cleanup};
 $Opt{sleep1}     = 0.2 unless defined $Opt{sleep1};
 $Opt{sleep2}     = 0.1 unless defined $Opt{sleep2};
 $Opt{iterations} = 30  unless defined $Opt{iterations};
+$Opt{files}      = 15  unless defined $Opt{files};
 
 
 use File::Basename qw(dirname);
@@ -134,11 +139,24 @@ my @cast =
           leaves
      );
 
+while (@cast > $Opt{files}) {
+    pop @cast;
+}
+{
+    my $i = 2;
+    while (@cast < $Opt{files}) {
+        push @cast, "leaves ($i)";
+        $i++;
+    }
+}
 {
     my @intervals;
     my $test_counter;
     BEGIN {
         @intervals = qw( 2s 3s 5s 8s 13s 21s 34s 55s Z );
+        # @intervals = qw( 89s 144s 233s 377s 610s 987s 1597s 2584s 4181s 6765s Z );
+        # @intervals = qw( 2s 5s 13s 34s 89s 233s 610s 1597s 4181s Z );
+        # @intervals = qw( 2s 5s 13s 34s 89s 233s 610s Z );
         $tests += 1;
     }
     my $rf0 = File::Rsync::Mirror::Recentfile->new

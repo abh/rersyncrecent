@@ -25,14 +25,22 @@ http://cpan.perl.org/SITES.html#RSYNC
 The first thing you should prepare is the CPAN tree itself on your
 disk. The source where you take it from does not matter that much.
 Take it from where you always took it. The setup I suggest is to
-mirror authors/ and modules/ with this program. And once per day or so
-do a traditional rsync from that old school mirroring host, maybe
-authors/ and modules/, something like:
-
-  rsync -av --delete --exclude "authors/" --exclude "modules/" \
-    ftp.funet.fi::CPAN /home/ftp/pub/CPAN
+mirror authors/ and modules/ with this program.
 
 The loop is something like this:
+
+Short version:
+
+    #!/bin/sh
+
+    RSYNC_PASSWORD=secret
+    export RSYNC_PASSWORD
+
+    for t in modules authors ; do
+      rrr-client --source rsync://andk@pause.perl.org:8732/PAUSE/$t/ --target /home/ftp/pub/PAUSE/$t/ --tmpdir /home/tmp &
+    done
+
+Or if the short version is not sufficient for some reason:
 
     $ENV{USER}="sandy"; # fill in your name
     $ENV{RSYNC_PASSWORD} = "secret"; # fill in your passwd

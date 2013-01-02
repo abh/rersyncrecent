@@ -1,3 +1,12 @@
+2012-12-31  k  <andk@cpan.org>
+
+	* release 0.3.2
+
+	* documentation improvement: offer a shorter version of the mirror
+	script in the HOWTO
+
+	* minor bugfix: fix the shebang in rrr-client
+
 2011-12-28  Andreas J. Koenig  <andreas.koenig.7os6VVqR@franz.ak.mind.de>
 
 	* release 0.3.1

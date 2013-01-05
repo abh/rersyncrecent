@@ -9,8 +9,11 @@ my $version = MM->parse_version($version_from);
 if ($ARGV[0]){
     if ($ARGV[0] eq "--setversion") {
         die "Your perl is a bit dated[$]].\nDo not make a release with it\n" if $] < 5.008;
-        die "Your MakeMaker is a bit dated[$ExtUtils::MakeMaker::VERSION].\nYou should get a new one\n"
+        die "Your MakeMaker is a bit dated[$ExtUtils::MakeMaker::VERSION].\nDo not make a release with it\n"
             if $ExtUtils::MakeMaker::VERSION < 6.4502;
+        local $ENV{LANG} = "C";
+        my $dirty = `git status --porcelain --untracked-files=no`;
+        die "Not everything checked in or out?\n====\n$dirty====\n" if $dirty;
         use lib "lib";
         eval {  require $version_from; }; die $@ if $@;
         my $makefile = "Makefile";
@@ -91,6 +94,7 @@ WriteMakefile
      dist => {
               DIST_DEFAULT => join(" ", # note: order matters!
                                    "verify-changes-date",
+                                   "verify-changes-version",
                                    "Makefile",
                                    "META.yml",
                                    "setversion",
@@ -145,6 +149,9 @@ setversion:
 verify-changes-date:
 	@$(PERL) -ne 'BEGIN{my@t=(localtime)[5,4,3];$$t[0]+=1900;$$t[1]++;$$t=sprintf"%04d-%02d-%02d",@t}' \
 		-e '$$ok++,exit if /^$$t\s/; END{die "Alert: did not find <$$t> in Changes file" unless $$ok}' Changes
+
+verify-changes-version:
+	@$(PERL) -ne '$$ok++,exit if /\b$(VERSION)\b/; END{die "Alert: did not find <$(VERSION)> in Changes file" unless $$ok}' Changes
 
 verify-no-subdir:
 	@$(PERL) -e 'my$$s=join",",grep{!/^($(OKDIRS))\z/x&&-d($$_)}glob"*";' \

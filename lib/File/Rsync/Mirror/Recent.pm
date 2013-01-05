@@ -28,7 +28,7 @@ use Storable;
 use Time::HiRes qw();
 use YAML::Syck;
 
-use version; our $VERSION = qv('0.3.2');
+use version; our $VERSION = qv('0.3.4');
 
 =head1 SYNOPSIS
 

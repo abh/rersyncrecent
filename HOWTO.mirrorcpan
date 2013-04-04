@@ -3,29 +3,16 @@
 =head1 HOW TO MIRROR CPAN
 
 As of this writing the single purpose for this distribution is to
-provide a backbone for the CPAN.
-
-The idea is to get a handful backbone nodes that mirror directly from
-PAUSE and a second layer that mirrors from them. Targetting at a
-mirroring interval of 20 seconds.
-
-The rsync daemon on PAUSE runs on port 8732 and you need a password to
-access it. There is a second rsync daemon running on the standard port
-873 but it has very limited access policies to leave the bandwidth for
-the backbone.
-
-If you have username and password you can mirror directly from PAUSE.
-If you haven't and maintain a public CPAN mirror, ask me for one.
-Otherwise pick your best CPAN mirror with an rsync server and try the
-same script below for getting the quickest update cycle possible.
+provide a fast rsync client/server combination for the CPAN.
 
 You find a list of potential rsync servers at
-http://cpan.perl.org/SITES.html#RSYNC
+http://cpan.perl.org/SITES.html
+
+Find current stats at http://mirror.cpan.org/
 
 The first thing you should prepare is the CPAN tree itself on your
 disk. The source where you take it from does not matter that much.
-Take it from where you always took it. The setup I suggest is to
-mirror authors/ and modules/ with this program.
+Take it from where you always took it.
 
 The loop is something like this:
 
@@ -33,30 +20,22 @@ Short version:
 
     #!/bin/sh
 
-    RSYNC_PASSWORD=secret
-    export RSYNC_PASSWORD
+    rrr-client --source rsync://cpan-rsync.perl.org::CPAN --target /home/rrrcpan/target --tmpdir /home/tmp &
 
-    for t in modules authors ; do
-      rrr-client --source rsync://andk@pause.perl.org:8732/PAUSE/$t/ --target /home/ftp/pub/PAUSE/$t/ --tmpdir /home/tmp &
-    done
-
-Or if the short version is not sufficient for some reason:
-
-    $ENV{USER}="sandy"; # fill in your name
-    $ENV{RSYNC_PASSWORD} = "secret"; # fill in your passwd
+Or if the short version is not sufficient for some reason, maybe you
+want only the authors/ and modules/ tree:
 
     use File::Rsync::Mirror::Recent;
     my @rrr = map {
         File::Rsync::Mirror::Recent->new
                 (
-                 localroot                  => "/home/ftp/pub/PAUSE/$_", # your local path
-                 remote                     => "pause.perl.org::PAUSE/$_/RECENT.recent", # your upstream
-                 max_files_per_connection   => 863,
+                 localroot                  => "/home/rrrcpan/target/$_", # your local path
+                 remote                     => "cpan-rsync.perl.org::CPAN/$_/RECENT.recent", # your upstream
+                 max_files_per_connection   => 863, # arbitrary
                  tempdir                    => "/home/ftp/tmp", # optional tempdir to hide temporary files
                  ttl                        => 10,
                  rsync_options              =>
                  {
-                  port              => 8732, # only for PAUSE
                   compress          => 1,
                   links             => 1,
                   times             => 1,
@@ -64,12 +43,13 @@ Or if the short version is not sufficient for some reason:
                   'omit-dir-times'  => 1, # not available before rsync 3.0.3
                   timeout           => 300, # do not allow rsync to hang forever
                  },
+                 tmpdir                     => "/home/rrrcpan/target",
                  verbose                    => 1,
                  verboselog                 => "/var/log/rmirror-pause.log",
                 )} "authors", "modules";
     die "directory $_ doesn't exist, giving up" for grep { ! -d $_->localroot } @rrr;
     while (){
-        my $ttgo = time + 1200; # pick less if you have a password and/or consent from the upstream
+        my $ttgo = time + 1200; # arbitrary
         for my $rrr (@rrr){
             $rrr->rmirror ( "skip-deletes" => 1 );
         }
@@ -82,7 +62,11 @@ Or if the short version is not sufficient for some reason:
 
 =pod
 
-Don't forget to fill in your user name and password.
+Target directory is, of course, your choice, so replace
+'/home/rrrcpan/target' with your favorite path.
+
+The tmpdir is important and must reside on the same partition as the
+target directory, so that rename(2) works.
 
 You see the 'skip-deletes' and guess, this is mirroring without doing
 deletes. You can do it with deletes or you can leave the deletion to
@@ -104,17 +88,11 @@ need the loop over two directories. The other directories of CPAN are
 currently not available for downloading with
 File::Rsync::Mirror::Recent.
 
-The 'port' is only needed for users who have a password for PAUSE,
-other rsync servers listen on the rsync server port and the option can
-be omitted.
-
 The timeslice in the while loop above needs to be large enough to let
 the rsync server survive. If you choose a random rsync server and are
 not an rsync server yourself please be modest and choose 1200. Choose
 less if you're offering rsync yourself and have a fat pipe, and
-especially if you know your upstream can manage it. If you have a
-PAUSE password choose 20 seconds. We will watch how well this works
-and will adjust this recommendation according to our findings.
+especially if you know your upstream can manage it.
 
 Set the key 'verbose' to 0 if you have no debugging demands. In this
 case you want to omit the 'sleeping $sleep ...' noise further down the

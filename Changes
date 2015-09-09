@@ -1,3 +1,13 @@
+2015-09-10  k  <andk@cpan.org>
+
+	* release 0.4.0
+
+	* support rsync_options as a hashref or as an arrayref; this change
+	deals with upstram changes between File-Rsync 0.45 and 0.46;
+	rsync_options are rewritten such that F:R:M:R works with old and new
+	versions of File::Rsync; see also
+	https://rt.cpan.org/Ticket/Display.html?id=106942
+
 2013-01-05  k  <k@k83.linux.bogus>
 
 	* release 0.3.4

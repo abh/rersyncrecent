@@ -28,7 +28,7 @@ use Storable;
 use Time::HiRes qw();
 use YAML::Syck;
 
-use version; our $VERSION = qv('0.3.4');
+use version; our $VERSION = qv('0.4.0');
 
 =head1 SYNOPSIS
 
@@ -208,7 +208,9 @@ the principal remote recentfile has.
 =item rsync_options
 
 Things like compress, links, times or checksums. Passed in to the
-File::Rsync object used to run the mirror.
+File::Rsync object used to run the mirror. Can be a hashref or an
+arrayref. Depending on the version of File::Rsync it is passed on as a
+hashref or as a flat list.
 
 =item tempdir
 
@@ -943,7 +945,22 @@ sub _fetch_as_tempfile {
          UNLINK => 0,
         );
     my $rsync;
-    unless ($rsync = File::Rsync->new($self->rsync_options)) {
+    my @rsync_options;
+    if (my $rso = $self->rsync_options) {
+        if (ref $rso eq "HASH") {
+            @rsync_options = %$rso;
+        } elsif (ref $rso eq "ARRAY") {
+            @rsync_options = @$rso;
+        }
+    } else {
+        @rsync_options = ();
+    }
+    if ($File::Rsync::VERSION <= 0.45) {
+        $rsync = File::Rsync->new({@rsync_options});
+    } else {
+        $rsync = File::Rsync->new(@rsync_options);
+    }
+    unless ($rsync) {
         require Carp;
         Carp::confess(YAML::Syck::Dump($self->rsync_options));
     }

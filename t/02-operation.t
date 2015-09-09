@@ -121,12 +121,12 @@ rmtree [$root_from, $root_to];
              aggregator     => [@intervals[1..$#intervals]],
              interval       => $intervals[0],
              localroot      => $root_from,
-             rsync_options  => {
+             rsync_options  => [
                                 compress          => 0,
                                 links             => 1,
                                 times             => 1,
                                 checksum          => 0,
-                               },
+                               ],
             );
         my $timestampfutured = 0;
         for my $iv (@intervals) {

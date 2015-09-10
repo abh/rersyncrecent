@@ -1037,9 +1037,9 @@ the complete list of current files. The longer a period covered by an
 index file is gone the less often the index file is updated. For
 practical reasons adjacent files will often overlap a bit but this is
 neither necessary nor enforced. Enforced is only that there must not
-ever be a gap between two adjacent index files. That's the basic idea.
-The following example represents a tree that has a few updates every
-day:
+ever be a gap between two adjacent index files that would have to
+contain a file reference. That's the basic idea. The following example
+represents a tree that has a few updates every day:
 
  RECENT.recent -> RECENT-1h.yaml
  RECENT-1h.yaml

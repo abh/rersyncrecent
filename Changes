@@ -1,5 +1,11 @@
 2015-09-10  k  <andk@cpan.org>
 
+	* release 0.4.1
+
+	* documentation clarification, inspired by Henk Penning 2013, never made
+	it into a release so far; release 0.4.0 missed to include it, so let me
+	make another release immediately after it
+
 	* release 0.4.0
 
 	* support rsync_options as a hashref or as an arrayref; this change

@@ -70,22 +70,24 @@ WriteMakefile
      PREREQ_PM =>
      {
       # 'Data::Serializer' => 0.46, # restricted to YAML without it
-      'accessors'        => 0,
       'Data::Float'      => 0,
-      'File::Rsync'      => 0,
-      'Test::More'       => 0,
+      'Data::Serializer' => 0,
       'File::Basename'   => 0,
       'File::Find::Rule' => 0,
       'File::Path'       => 0,
+      'File::Rsync'      => 0,
       'File::Spec'       => 0,
-      'File::Temp'       => 0.21, # removes bogus test on parent directory
+      'File::Temp'       => '0.21', # removes bogus test on parent directory
+      'JSON'             => '2',
       'List::MoreUtils'  => 0,
       'List::Pairwise'   => 0,
+      'Pod::Usage'       => '1.61', # 1.16 from perl-5.8.1 failed, 1.61 is
+                                    # the oldest working on CPAN now
       'Scalar::Util'     => 0,
-      'Data::Serializer' => 0,
+      'Test::More'       => 0,
       'Time::HiRes'      => 0,
       'YAML::Syck'       => 0,
-      'JSON'             => 2,
+      'accessors'        => 0,
       'version'          => 0,
      },
      EXE_FILES    => [

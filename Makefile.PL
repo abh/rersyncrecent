@@ -10,7 +10,7 @@ if ($ARGV[0]){
     if ($ARGV[0] eq "--setversion") {
         die "Your perl is a bit dated[$]].\nDo not make a release with it\n" if $] < 5.008;
         die "Your MakeMaker is a bit dated[$ExtUtils::MakeMaker::VERSION].\nDo not make a release with it\n"
-            if $ExtUtils::MakeMaker::VERSION < 6.4502;
+            if $ExtUtils::MakeMaker::VERSION < 6.48;
         local $ENV{LANG} = "C";
         my $dirty = `git status --porcelain --untracked-files=no`;
         die "Not everything checked in or out?\n====\n$dirty====\n" if $dirty;
@@ -72,6 +72,7 @@ WriteMakefile
       # 'Data::Serializer' => 0.46, # restricted to YAML without it
       'Data::Float'      => 0,
       'Data::Serializer' => 0,
+      'ExtUtils::MakeMaker' => 6.48,
       'File::Basename'   => 0,
       'File::Find::Rule' => 0,
       'File::Path'       => 0,
@@ -110,14 +111,14 @@ WriteMakefile
               (COMPRESS => 'gzip -9f',
                SUFFIX => ".gz"),
              },
-     ($ExtUtils::MakeMaker::VERSION >= 6.4502 ?
-      (META_MERGE => {
-                      # write: git push git+ssh://repo.or.cz/srv/git/rersyncrecent.git master
-                      resources => {
-                                    repository => "git://repo.or.cz/rersyncrecent.git",
-                                   },
-                      provides => $provides,
-                     }) : ()),
+     META_MERGE => {
+                    # write: git push git+ssh://repo.or.cz/srv/git/rersyncrecent.git master
+                    resources => {
+                                  repository => "git://repo.or.cz/rersyncrecent.git",
+                                 },
+                    provides => $provides,
+                   },
+     MIN_PERL_VERSION => '5.006',
      @sign,
      clean               => { FILES => 'File-Rsync-Mirror-Recent-*' },
     );

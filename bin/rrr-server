@@ -45,7 +45,6 @@ use strict;
 use warnings;
 
 use File::Find qw(find);
-use lib "/home/k/sources/rersyncrecent/lib";
 use File::Rsync::Mirror::Recent;
 use File::Spec;
 use Getopt::Long;

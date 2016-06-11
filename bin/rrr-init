@@ -55,7 +55,6 @@ use strict;
 use warnings;
 
 use File::Find::Rule;
-use lib "/home/k/sources/rersyncrecent/lib";
 use File::Rsync::Mirror::Recent;
 use File::Rsync::Mirror::Recentfile;
 use File::Spec;

@@ -112,7 +112,6 @@ taken instead.
 use strict;
 use warnings;
 
-use lib "/home/k/sources/rersyncrecent/lib";
 use File::Rsync::Mirror::Recent;
 use Getopt::Long;
 use Pod::Usage qw(pod2usage);

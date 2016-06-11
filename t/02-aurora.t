@@ -276,7 +276,7 @@ BEGIN {
     if ($ENV{AUTHOR_TEST}) {
         plan tests => $tests
     } else {
-        plan( skip_all => "test is a tunable author test, set envariable AUTHOR_TEST and tune it" );
+        plan( skip_all => "tunable! To run, set env AUTHOR_TEST and tune" );
         eval "require POSIX; 1" and POSIX::_exit(0);
     }
 }

@@ -1,3 +1,10 @@
+2016-06-11  k  <andk@cpan.org>
+
+	* release 0.4.3
+
+	* remove nonsensical private INC path in all binaries; no functional
+	change
+
 2016-02-16  k  <andk@cpan.org>
 
 	* release 0.4.2

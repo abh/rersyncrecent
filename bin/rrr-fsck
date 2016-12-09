@@ -22,7 +22,7 @@ Does nothing, only prints what it would do.
 
 =item B<--help|h>
 
-Prints a brief message and exists.
+Prints a brief message and exits.
 
 =item B<--remoteroot=s>
 

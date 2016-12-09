@@ -24,7 +24,7 @@ my @opt = <<'=back' =~ /B<--(\S+)>/g;
 
 =item B<--help|h>
 
-Prints a brief message and exists.
+Prints a brief message and exits.
 
 =item B<--source=s>
 

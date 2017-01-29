@@ -79,6 +79,7 @@ WriteMakefile
       'File::Rsync'      => 0,
       'File::Spec'       => 0,
       'File::Temp'       => '0.21', # removes bogus test on parent directory
+      'Hash::Util'       => 0,
       'JSON'             => '2',
       'List::MoreUtils'  => 0,
       'List::Pairwise'   => 0,

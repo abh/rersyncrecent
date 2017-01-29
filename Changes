@@ -1,3 +1,9 @@
+2017-01-29  k  <andk@cpan.org>
+
+	* release 0.4.4
+
+	* Add Hash::Util to PREREQ_PM; no functional change
+
 2016-06-11  k  <andk@cpan.org>
 
 	* release 0.4.3

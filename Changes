@@ -1,8 +1,10 @@
-2017-01-29  k  <andk@cpan.org>
+2017-10-02  k  <andk@cpan.org>
 
 	* release 0.4.4
 
-	* Add Hash::Util to PREREQ_PM; no functional change
+	* bugfix #123171: do not expect rrr-fsck in ./bin/ (Ask Bjørn Hansen)
+
+	* add Hash::Util to PREREQ_PM; no functional change (Andreas König)
 
 2016-06-11  k  <andk@cpan.org>
 

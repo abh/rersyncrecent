@@ -1,3 +1,10 @@
+2017-10-04  k  <andk@cpan.org>
+
+	* release 0.4.5
+
+	* add options to rrr-client: --max-files-per-connection and
+	--rsync-timeout; sort options in manpage; no functional change
+
 2017-10-02  k  <andk@cpan.org>
 
 	* release 0.4.4

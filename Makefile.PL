@@ -39,7 +39,7 @@ if ($ARGV[0]){
         $version .= "-TRIAL";
     }
 }
-my $trial = 1;
+my $trial = 0;
 if ($trial) {
     $version .= "-TRIAL";
     if ($trial > 1) {

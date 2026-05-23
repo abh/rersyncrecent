@@ -31,6 +31,20 @@ Prints a brief message and exits.
 Defaults to 20000. Same as max_files_per_connection in
 File::Rsync::Mirror::Recent
 
+=item B<--maximum-time-per-loop=f>
+
+Work budget per mirror loop in seconds; same as maximum_time_per_loop in
+File::Rsync::Mirror::Recent. Defaults to 20. Raise it to transfer more
+per pass before yielding to re-check the principal and reseed lagging
+interval files.
+
+=item B<--minimum-time-per-loop=f>
+
+Throttle floor per mirror loop in seconds; same as minimum_time_per_loop
+in File::Rsync::Mirror::Recent. Defaults to 20. The minimum wall-clock
+length of a loop, so an idle client does not reconnect upstream more
+often than this.
+
 =item B<--password=s>
 
 Password if the rsync source requires it.  Can also be set by setting
@@ -121,6 +135,8 @@ my $rrr = File::Rsync::Mirror::Recent->new
                      ($Opt{tmpdir} ? ('temp-dir' => $Opt{tmpdir}) : ()),
                     },
    ($Opt{runstatusfile} ? (runstatusfile => $Opt{runstatusfile}) : ()),
+   (defined $Opt{"maximum-time-per-loop"} ? (maximum_time_per_loop => $Opt{"maximum-time-per-loop"}) : ()),
+   (defined $Opt{"minimum-time-per-loop"} ? (minimum_time_per_loop => $Opt{"minimum-time-per-loop"}) : ()),
    ($Opt{tmpdir} ? (tempdir => $Opt{tmpdir}) : ()),
    verbose => $Opt{verbose},
    ($Opt{verboselog}    ? (verboselog    => $Opt{verboselog})    : ()),

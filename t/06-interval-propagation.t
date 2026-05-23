@@ -23,11 +23,12 @@ is called only:
         $self->_rmirror_cleanup;
     }
 
-When C<RECENT-Z> is large and the per-loop time budget
-(C<minimum_time_per_loop>) is small, a loop cannot bring C<Z> up to date.
+When C<RECENT-Z> is large and the per-loop work budget
+(C<maximum_time_per_loop>) is small, a loop cannot bring C<Z> up to date.
 Uptodateness for C<Z> is therefore never reached, the gate stays false and
-C<_rmirror_cleanup> never runs. Meanwhile the smaller interval files reach
-uptodateness, unseed, and -- with no re-seed -- stop being re-fetched.
+(before the fix) the re-seed never ran. Meanwhile the smaller interval
+files reach uptodateness, unseed, and -- with no re-seed -- stop being
+re-fetched.
 
 The observable effect: as events age out of the principal into a mid-tier
 (e.g. C<RECENT-5s.yaml>) on the server, the server's mid-tier index keeps
@@ -48,12 +49,14 @@ misses those events.
      churning the server so its RECENT-5s.yaml advances.
   5. Assert the client's RECENT-5s.yaml advances too.
 
-Currently step 5 FAILS: the client's mid-tier index stays frozen because
-_rmirror_cleanup is gated behind the never-true "Z is uptodate" condition.
+Before the fix, step 5 FAILED: the client's mid-tier index stayed frozen
+because the re-seed was gated behind the never-true "Z is uptodate"
+condition. The fix runs C<_rmirror_reseed> every loop, independent of that
+gate, so step 5 now passes.
 
-C<minimum_time_per_loop> is a non-behavioral test seam (read/write
-accessor / constructor option, defaulting to 20 so production is
-unchanged).
+C<maximum_time_per_loop> (the work budget) and C<minimum_time_per_loop>
+(the throttle floor) are non-behavioral seams (read/write accessors /
+constructor options, each defaulting to 20 so production is unchanged).
 
 =head2 Why this is an AUTHOR_TEST
 
@@ -207,7 +210,8 @@ my $rrr = File::Rsync::Mirror::Recent->new
      remote                   => "$root_from/RECENT.recent",
      max_files_per_connection => 2,
      _runstatusfile           => $statusfile,
-     minimum_time_per_loop    => 1,   # the seam: tight budget
+     maximum_time_per_loop    => 1,   # the seam: tight work budget so a
+     minimum_time_per_loop    => 1,   # loop can never finish RECENT-Z
      rsync_options            => {
                                   compress   => 0,
                                   links      => 1,
@@ -216,7 +220,7 @@ my $rrr = File::Rsync::Mirror::Recent->new
                                   'temp-dir' => "$cwd/$tmpdir",
                                  },
     );
-is($rrr->minimum_time_per_loop, 1, "seam: minimum_time_per_loop is injectable");
+is($rrr->maximum_time_per_loop, 1, "seam: maximum_time_per_loop is injectable");
 
 # Per-connection sleeps keep RECENT-Z's sync time above the budget in a
 # way that does not depend on raw rsync speed.

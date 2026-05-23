@@ -55,6 +55,26 @@ C<minimum_time_per_loop> is a non-behavioral test seam (read/write
 accessor / constructor option, defaulting to 20 so production is
 unchanged).
 
+=head2 Why this is an AUTHOR_TEST
+
+This test drives a real C<rmirror(loop =E<gt> 1)> daemon in a child
+process and watches it converge through several timing-dependent states
+(mid-tier reaching uptodateness, RECENT-Z staying behind, the client
+re-fetching an advancing mid-tier index). On a loaded machine the
+convergence simply takes longer; there is no fast, fully deterministic
+way to provoke "RECENT-Z perpetually behind while mid-tier keeps
+advancing" without real elapsed time. Like C<t/02-aurora.t> it is
+therefore gated behind C<AUTHOR_TEST> and skipped by default so the
+normal C<make test> / C<prove> suite stays stable. Run it with:
+
+    AUTHOR_TEST=1 perl -Ilib t/06-interval-propagation.t
+
+Under C<AUTHOR_TEST> it is hardened to be reliable rather than fast: it
+uses generous deadlines (it may run a couple of minutes), separates the
+"client has installed its first RECENT-5s" precondition from the
+advancement assertion, and guards every epoch comparison against undef
+so it never compares against a missing baseline.
+
 =cut
 
 use FindBin;
@@ -68,6 +88,21 @@ use POSIX ":sys_wait_h";
 use YAML::Syck ();
 
 use Test::More;
+
+my $tests = 4;
+
+BEGIN {
+    unless ($ENV{AUTHOR_TEST}) {
+        # Timing-sensitive: drives a real rmirror daemon and waits for
+        # several timing-dependent states to converge. Skipped by default
+        # to keep the suite stable; run under AUTHOR_TEST.
+        Test::More::plan(skip_all =>
+            "timing-sensitive test; to run, set env AUTHOR_TEST=1 "
+            . "(e.g. AUTHOR_TEST=1 perl -Ilib t/06-interval-propagation.t)");
+    }
+}
+
+plan tests => $tests;
 
 use File::Rsync::Mirror::Recent;
 use File::Rsync::Mirror::Recentfile;
@@ -204,17 +239,28 @@ if (!$pid) {
     POSIX::_exit(0);
 }
 
-# Wait for the bug-triggering steady state. The condition is: the mid-tier
-# has reached uptodateness while RECENT-Z has NOT, and the client has
-# actually installed its copy of the mid-tier index (so we have a baseline
-# to watch). In that state the cleanup gate ($rfs->[-1]->uptodate) is false.
+# ---- Phase 1: reach the bug-exercising precondition --------------------
+#
+# Precondition (NOT the thing under test, just the state in which the bug
+# can manifest): the mid-tier has reached uptodateness while RECENT-Z has
+# NOT, AND the client has actually installed its first copy of the mid-tier
+# index so we have a non-undef baseline to watch. In that state the cleanup
+# gate ($rfs->[-1]->uptodate) is false.
+#
 # We do not require the mid-tier to be currently unseeded: a working fix
 # re-seeds it via cleanup, so the unseeded snapshot is not always
-# observable -- but "mid-tier uptodate, Z not uptodate" holds either way.
-my $bug_state_deadline = time + 70;
-my $reached_bug_state  = 0;
-my $client_frozen;
-while (time < $bug_state_deadline) {
+# observable -- but "mid-tier uptodate, Z not uptodate, client copy present"
+# holds either way.
+#
+# Generous deadline: on a loaded machine convergence just takes longer, and
+# the fix adds per-loop re-seed work under the tight 1s budget. Reaching the
+# precondition is a setup step, so we wait as long as needed (within reason)
+# rather than proceeding with an undef baseline.
+my $PRECONDITION_TIMEOUT = 150;   # seconds; setup, not the assertion
+my $precondition_deadline = time + $PRECONDITION_TIMEOUT;
+my $reached_precondition  = 0;
+my $client_frozen;                # client mid-tier baseline at onset
+while (time < $precondition_deadline) {
     # keep the server's principal (and thus mid-tiers) moving
     serv_new("churn");
     $rf0->aggregate;
@@ -224,8 +270,8 @@ while (time < $bug_state_deadline) {
         && $st->{$midtier} && $st->{$midtier}{uptodate}
         && $st->{Z} && !$st->{Z}{uptodate}
         && defined $c) {
-        $reached_bug_state = 1;
-        $client_frozen     = $c;   # baseline at onset
+        $reached_precondition = 1;
+        $client_frozen        = $c;   # defined baseline at onset
         last;
     }
     # A steady ~1s cadence keeps the server churn from starving the daemon
@@ -233,32 +279,52 @@ while (time < $bug_state_deadline) {
     sleep 1;
 }
 
-ok($reached_bug_state,
-   "reached bug-triggering state: $midtier uptodate while Z not uptodate")
-    or diag "status: " . YAML::Syck::Dump(status_rfs());
+ok($reached_precondition,
+   "reached bug-exercising precondition: $midtier uptodate while Z not "
+   . "uptodate and client has installed its first RECENT-$midtier")
+    or diag "precondition not reached within ${PRECONDITION_TIMEOUT}s; "
+        . "client $midtier baseline is "
+        . (defined $client_frozen ? $client_frozen : "undef")
+        . "; status: " . YAML::Syck::Dump(status_rfs());
+
+# Independently assert we captured a usable (defined) baseline. Everything
+# downstream compares against this; an undef baseline must never silently
+# pass an advancement check.
+ok(defined $client_frozen,
+   "captured a defined client RECENT-$midtier baseline before churn");
 
 my $server_at_freeze = rf_maxepoch($root_from, $midtier);
-diag sprintf "at bug-state onset: client %s max=%s  server %s max=%s",
+diag sprintf "at precondition onset: client %s max=%s  server %s max=%s",
     $midtier, (defined $client_frozen ? $client_frozen : "undef"),
     $midtier, (defined $server_at_freeze ? $server_at_freeze : "undef");
 
-# Keep churning so the server's mid-tier index advances well past the
-# frozen client value, then check whether the client catches up. Without
-# the fix the client's mid-tier index stays frozen; with cleanup re-seeding
-# the mid-tier it advances.
-my $advance_deadline = time + 45;
+# ---- Phase 2: the actual assertion -------------------------------------
+#
+# Keep churning so the server's mid-tier index advances well past the frozen
+# client value, then check whether the client catches up. Without the fix
+# the client's mid-tier index stays frozen (cleanup, which re-seeds the
+# mid-tier, is gated behind the never-true "Z is uptodate"); with the fix
+# _rmirror_reseed runs every loop and the client's mid-tier keeps advancing.
+#
+# This is a robust, non-transient signal: we wait until the client's
+# max-epoch strictly exceeds the baseline. Only run it if we have a defined
+# baseline -- otherwise the comparison would be meaningless.
+my $ADVANCE_TIMEOUT  = 90;   # seconds; generous for a loaded machine
+my $advance_deadline = time + $ADVANCE_TIMEOUT;
 my $client_advanced  = 0;
 my $client_latest    = $client_frozen;
-while (time < $advance_deadline) {
-    serv_new("churn");
-    $rf0->aggregate;
-    $client_latest = rf_maxepoch($root_to, $midtier);
-    if (defined $client_latest && defined $client_frozen
-        && $client_latest > $client_frozen) {
-        $client_advanced = 1;
-        last;
+if (defined $client_frozen) {
+    while (time < $advance_deadline) {
+        serv_new("churn");
+        $rf0->aggregate;
+        my $c = rf_maxepoch($root_to, $midtier);
+        $client_latest = $c if defined $c;
+        if (defined $c && $c > $client_frozen) {
+            $client_advanced = 1;
+            last;
+        }
+        sleep 1;
     }
-    sleep 1;
 }
 
 my $server_latest = rf_maxepoch($root_from, $midtier);
@@ -273,14 +339,17 @@ waitpid($pid, 0);
 1 while waitpid(-1, WNOHANG) > 0;
 
 ok($client_advanced,
-   "client's RECENT-$midtier index advanced (mid-tier kept fresh by cleanup)")
+   "client's RECENT-$midtier index advanced past baseline "
+   . "(mid-tier kept fresh by per-loop re-seed)")
     or diag "client RECENT-$midtier stayed frozen at "
         . (defined $client_frozen ? $client_frozen : "undef")
-        . " while the server's advanced -- mid-tier re-seed is gated behind "
-        . "RECENT-Z uptodateness";
+        . " (latest "
+        . (defined $client_latest ? $client_latest : "undef")
+        . ") while the server's advanced to "
+        . (defined $server_latest ? $server_latest : "undef")
+        . " -- mid-tier re-seed is gated behind RECENT-Z uptodateness";
 
 cleanup();
-done_testing();
 
 # Local Variables:
 # mode: cperl

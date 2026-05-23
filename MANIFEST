@@ -26,6 +26,8 @@ t/02-operation.t
 t/03-done.t
 t/04-run.t
 t/05-bugtracker.t
+t/06-interval-propagation.t
+t/07-reseed-undef-minmax.t
 t/70_critic.t
 t/perlcriticrc
 t/pod-coverage.t

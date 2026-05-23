@@ -194,6 +194,11 @@ as in F:R:M:Recentfile
 
 as in F:R:M:Recentfile
 
+=item minimum_time_per_loop
+
+The minimum seconds budget that a single C<rmirror> loop iteration is
+allowed to spend. Defaults to 20.
+
 =item remote
 
 The remote principal recentfile in rsync notation. E.g.
@@ -793,7 +798,9 @@ sub _rmirror_reseed {
         my $thismerged = $rfs->[$i]->merged;
         my $next = $rfs->[$i+1];
         my $nextminmax = $next->minmax;
-        if (not defined $thismerged->{epoch} or _bigfloatlt($nextminmax->{max},$thismerged->{epoch})){
+        if (not defined $thismerged->{epoch}
+            or not defined $nextminmax->{max}
+            or _bigfloatlt($nextminmax->{max},$thismerged->{epoch})){
             $next->seed;
         }
     }

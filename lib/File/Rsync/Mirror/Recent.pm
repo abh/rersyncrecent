@@ -720,6 +720,14 @@ sub _rmirror_loop {
                 }
             }
             $self->_max_one_state(0);
+            # Re-seed mid-tier (non-principal) interval files every loop,
+            # independent of whether the full-history file (RECENT-Z) has
+            # become uptodate within this loop's time budget. Otherwise, when
+            # RECENT-Z is large and cannot finish in one budget, the mid-tier
+            # files would never get re-seeded and the client's copy of those
+            # index files would freeze while the principal stays fresh. The
+            # re-seed condition is self-limiting, so this does not thrash.
+            $self->_rmirror_reseed;
             my $exit = 0;
             if ($rfs->[-1]->uptodate) {
                 $self->_rmirror_cleanup;
@@ -778,12 +786,8 @@ sub _rmirror_sleep_per_connection {
     $rfs->[$i+1]->done->merge($rf->done) if $i < $#$rfs;
 }
 
-sub _rmirror_cleanup {
+sub _rmirror_reseed {
     my($self) = @_;
-    my $pathdb = $self->_pathdb();
-    for my $k (keys %$pathdb) {
-        delete $pathdb->{$k};
-    }
     my $rfs = $self->recentfiles;
     for my $i (0..$#$rfs-1) {
         my $thismerged = $rfs->[$i]->merged;
@@ -792,6 +796,14 @@ sub _rmirror_cleanup {
         if (not defined $thismerged->{epoch} or _bigfloatlt($nextminmax->{max},$thismerged->{epoch})){
             $next->seed;
         }
+    }
+}
+
+sub _rmirror_cleanup {
+    my($self) = @_;
+    my $pathdb = $self->_pathdb();
+    for my $k (keys %$pathdb) {
+        delete $pathdb->{$k};
     }
 }
 

@@ -160,6 +160,10 @@ BEGIN {
          "_max_one_state",        # when we have no time left but want
                                   # at least get one file per
                                   # iteration to avoid procrastination
+         "minimum_time_per_loop", # minimum seconds budget per rmirror
+                                  # loop; defaults to 20 (see rmirror).
+                                  # Test seam: lower values let a loop
+                                  # bail out before the chain is current.
          "_principal_recentfile",
          "_recentfiles",
          "_rsync",
@@ -637,9 +641,9 @@ sub rmirror {
         # XXX exit gracefully (reminder)
     };
 
-    # XXX needs accessor: warning, if set too low, we do nothing but
-    # mirror the principal!
-    my $minimum_time_per_loop = 20;
+    # warning: if set too low, we do nothing but mirror the principal!
+    my $minimum_time_per_loop = $self->minimum_time_per_loop;
+    $minimum_time_per_loop = 20 unless defined $minimum_time_per_loop;
 
     if (my $logfile = $self->_logfilefordone) {
         for my $i (0..$#$rfs) {

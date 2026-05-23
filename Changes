@@ -1,3 +1,20 @@
+2026-05-23  Ask Bjørn Hansen  <ask@develooper.com>
+
+	* fix rmirror mid-tier RECENT file starvation in mirror cascades:
+	re-seed the interval files every loop instead of gating it on RECENT-Z
+	reaching uptodateness within a single loop budget, which never happens
+	on large trees so only the principal file stayed fresh
+
+	* guard _rmirror_reseed against an undef minmax.max on a not-yet-fetched
+	larger file so the forked child can no longer die in _bigfloatlt
+
+	* split the loop time budget into maximum_time_per_loop (work budget per
+	pass) and minimum_time_per_loop (throttle floor), both default 20; expose
+	--maximum-time-per-loop and --minimum-time-per-loop on rrr-client
+
+	* add t/07-reseed-undef-minmax.t (deterministic) and t/06-interval-propagation.t
+	(AUTHOR_TEST-gated end-to-end repro)
+
 2020-06-21  k  <andk@cpan.org>
 
 	* release 0.4.6

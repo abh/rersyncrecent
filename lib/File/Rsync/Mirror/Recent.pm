@@ -160,6 +160,15 @@ BEGIN {
          "_max_one_state",        # when we have no time left but want
                                   # at least get one file per
                                   # iteration to avoid procrastination
+         "maximum_time_per_loop", # work budget: seconds one rmirror loop
+                                  # keeps mirroring before it yields to
+                                  # re-check the principal, reseed lagging
+                                  # interval files and write the status
+                                  # file; defaults to 20 (see rmirror).
+         "minimum_time_per_loop", # throttle floor: minimum wall-clock
+                                  # length of one rmirror loop, so an idle
+                                  # client does not reconnect upstream more
+                                  # often than this; defaults to 20.
          "_principal_recentfile",
          "_recentfiles",
          "_rsync",
@@ -189,6 +198,21 @@ as in F:R:M:Recentfile
 =item max_files_per_connection
 
 as in F:R:M:Recentfile
+
+=item maximum_time_per_loop
+
+The work budget for a single C<rmirror> loop iteration: the number of
+seconds the loop keeps mirroring files before it yields to re-check the
+principal recentfile, reseed any lagging interval files and write the run
+status file. Defaults to 20. Raise it to let a busy mirror transfer more
+per pass (fewer yields); lower it to react to upstream changes sooner.
+
+=item minimum_time_per_loop
+
+The throttle floor for a single C<rmirror> loop iteration: its minimum
+wall-clock length. If a loop finishes its work sooner, it sleeps out the
+remainder, so an idle client does not reconnect to the upstream more
+often than this. Defaults to 20.
 
 =item remote
 
@@ -637,9 +661,13 @@ sub rmirror {
         # XXX exit gracefully (reminder)
     };
 
-    # XXX needs accessor: warning, if set too low, we do nothing but
-    # mirror the principal!
-    my $minimum_time_per_loop = 20;
+    # The work budget bounds how long each loop mirrors before yielding;
+    # the throttle floor is the minimum wall-clock length of a loop. Both
+    # default to 20 seconds.
+    my $minimum_time_per_loop = $self->minimum_time_per_loop;
+    $minimum_time_per_loop = 20 unless defined $minimum_time_per_loop;
+    my $maximum_time_per_loop = $self->maximum_time_per_loop;
+    $maximum_time_per_loop = 20 unless defined $maximum_time_per_loop;
 
     if (my $logfile = $self->_logfilefordone) {
         for my $i (0..$#$rfs) {
@@ -668,13 +696,17 @@ sub rmirror {
         $self->_rmirror_runstatusfile_write ($rstfile, \%options);
         $self->_have_written_statusfile(1);
     }
-    $self->_rmirror_loop($minimum_time_per_loop,\%options);
+    $self->_rmirror_loop($minimum_time_per_loop,$maximum_time_per_loop,\%options);
 }
 
 sub _rmirror_loop {
-    my($self,$minimum_time_per_loop,$options) = @_;
+    my($self,$minimum_time_per_loop,$maximum_time_per_loop,$options) = @_;
   LOOP: while () {
-        my $ttleave = time + $minimum_time_per_loop;
+        my $loopstart = time;
+        # $ttleave bounds the mirroring work in this pass (the maximum
+        # budget). The end-of-loop sleep below pads a short loop up to the
+        # minimum period. These were a single knob historically.
+        my $ttleave = $loopstart + $maximum_time_per_loop;
         my $rstfile = $self->runstatusfile;
         my $otherproc = $self->_thaw_without_pathdb ($rstfile);
         my $pid = fork;
@@ -716,6 +748,14 @@ sub _rmirror_loop {
                 }
             }
             $self->_max_one_state(0);
+            # Re-seed mid-tier (non-principal) interval files every loop,
+            # independent of whether the full-history file (RECENT-Z) has
+            # become uptodate within this loop's time budget. Otherwise, when
+            # RECENT-Z is large and cannot finish in one budget, the mid-tier
+            # files would never get re-seeded and the client's copy of those
+            # index files would freeze while the principal stays fresh. The
+            # re-seed condition is self-limiting, so this does not thrash.
+            $self->_rmirror_reseed;
             my $exit = 0;
             if ($rfs->[-1]->uptodate) {
                 $self->_rmirror_cleanup;
@@ -732,7 +772,7 @@ sub _rmirror_loop {
         if (!$options->{loop} && $otherproc && $otherproc->recentfiles->[-1]->uptodate) {
             last LOOP;
         }
-        my $sleep = $ttleave - time;
+        my $sleep = $loopstart + $minimum_time_per_loop - time;
         if ($sleep > 0.01) {
             $self->_rmirror_endofloop_sleep ($sleep);
         } else {
@@ -774,20 +814,26 @@ sub _rmirror_sleep_per_connection {
     $rfs->[$i+1]->done->merge($rf->done) if $i < $#$rfs;
 }
 
-sub _rmirror_cleanup {
+sub _rmirror_reseed {
     my($self) = @_;
-    my $pathdb = $self->_pathdb();
-    for my $k (keys %$pathdb) {
-        delete $pathdb->{$k};
-    }
     my $rfs = $self->recentfiles;
     for my $i (0..$#$rfs-1) {
         my $thismerged = $rfs->[$i]->merged;
         my $next = $rfs->[$i+1];
         my $nextminmax = $next->minmax;
-        if (not defined $thismerged->{epoch} or _bigfloatlt($nextminmax->{max},$thismerged->{epoch})){
+        if (not defined $thismerged->{epoch}
+            or not defined $nextminmax->{max}
+            or _bigfloatlt($nextminmax->{max},$thismerged->{epoch})){
             $next->seed;
         }
+    }
+}
+
+sub _rmirror_cleanup {
+    my($self) = @_;
+    my $pathdb = $self->_pathdb();
+    for my $k (keys %$pathdb) {
+        delete $pathdb->{$k};
     }
 }
 
